@@ -16,10 +16,13 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-    const prompt = `Você é a Luana, mulher madura (50+). Crie UMA (1) "pílula de motivação diária" muito curta (1 a 2 frases), impactante, bem humorada, acolhedora ou debochada sobre a vida da mulher madura, menopausa, skincare ou amor próprio. Nada de clichês cafonas. Tem que ser algo que faça a mulher sorrir, se sentir poderosa ou rir da própria idade tomando um café. Retorne apenas o texto da frase, sem aspas, sem explicações.`;
+    const prompt = `Você é a Luana, mulher madura (50+). Crie um LOTE DE 15 "pílulas de motivação diária" muito curtas (1 a 2 frases cada), impactantes, bem humoradas, acolhedoras ou debochadas sobre a vida da mulher madura, menopausa, skincare ou amor próprio. Nada de clichês cafonas. Tem que ser algo que faça a mulher sorrir, se sentir poderosa ou rir da própria idade tomando um café.
 
+Retorne EXATAMENTE 15 frases. CADA FRASE EM UMA NOVA LINHA. Não coloque números, nem aspas, nem marcadores (bullets). Apenas o texto de cada frase em uma linha separada.`;
+
+    // Utilizando o modelo 1.5-flash que é absurdamente mais barato (quase de graça) para textos
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-1.5-flash",
       contents: prompt
     });
 

@@ -7,7 +7,14 @@ export const revalidate = 0;
 export default async function Home() {
   const supabase = await createClient();
   const { data: products } = await supabase.from("products").select("*").order("created_at", { ascending: false }).limit(3);
-  const { data: latestQuote } = await supabase.from("quotes").select("*").order("created_at", { ascending: false }).limit(1).single();
+  
+  // Pegamos todas as pílulas para sortear a do dia
+  const { data: quotes } = await supabase.from("quotes").select("*").order("created_at", { ascending: true });
+  let latestQuote = null;
+  if (quotes && quotes.length > 0) {
+    const daysSinceEpoch = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+    latestQuote = quotes[daysSinceEpoch % quotes.length];
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-wine-dark)] flex flex-col font-sans">
