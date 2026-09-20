@@ -49,7 +49,7 @@ const compressImage = (file: File): Promise<File> => {
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"product" | "blog" | "manage" | "inbox" | "quotes" | "drops">("product");
+  const [activeTab, setActiveTab] = useState<"product" | "blog" | "manage" | "inbox" | "quotes" | "drops" | "newsletter">("product");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
   const [impressions, setImpressions] = useState("");
@@ -86,6 +86,13 @@ export default function AdminDashboard() {
   const [editingItem, setEditingItem] = useState<any>(null);
   
   const [blogCategory, setBlogCategory] = useState("Confissões de Madrugada");
+  
+  // Newsletter
+  const [subscribersCount, setSubscribersCount] = useState(0);
+  const [nlType, setNlType] = useState("site");
+  const [nlContext, setNlContext] = useState("");
+  const [nlSubject, setNlSubject] = useState("");
+  const [nlHtml, setNlHtml] = useState("");
 
   const supabase = createClient();
 
@@ -99,7 +106,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === "inbox") fetchEmails();
     if (activeTab === "manage") fetchManageData();
+    if (activeTab === "newsletter") fetchSubscribers();
   }, [activeTab]);
+
+  const fetchSubscribers = async () => {
+    const { count } = await supabase.from("subscribers").select("*", { count: "exact", head: true });
+    setSubscribersCount(count || 0);
+  };
 
   const fetchEmails = async () => {
     const { data } = await supabase.from("emails").select("*").order("created_at", { ascending: false });
@@ -284,6 +297,53 @@ export default function AdminDashboard() {
       }
 
       setMessage("Crônica gerada com sucesso! Revise e publique.");
+    } catch (error: any) {
+      setMessage("Erro: " + error.message);
+    }
+    setLoading(false);
+  };
+
+  const handleGenerateNewsletter = async () => {
+    setLoading(true);
+    setMessage("Escrevendo e-mail...");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || "";
+      const res = await fetch("/api/generate-newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ emailType: nlType, contextText: nlContext })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setNlSubject(data.subject);
+      setNlHtml(data.html);
+      setMessage("E-mail gerado! Revise o assunto e o corpo abaixo antes de disparar.");
+    } catch (error: any) {
+      setMessage("Erro: " + error.message);
+    }
+    setLoading(false);
+  };
+
+  const handleSendNewsletter = async () => {
+    if (!nlSubject || !nlHtml) return setMessage("Gere ou preencha o e-mail antes de disparar!");
+    if (!confirm(`Tem certeza que deseja enviar este e-mail para ${subscribersCount} assinantes?`)) return;
+    
+    setLoading(true);
+    setMessage("Disparando e-mails...");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || "";
+      const res = await fetch("/api/send-newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ subject: nlSubject, html: nlHtml })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setMessage(`Sucesso! E-mail disparado para ${data.count} assinantes. 🎉`);
+      setNlSubject("");
+      setNlHtml("");
     } catch (error: any) {
       setMessage("Erro: " + error.message);
     }
@@ -504,7 +564,7 @@ export default function AdminDashboard() {
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
                 <p className="font-bold tracking-widest uppercase">Versão 1.28</p>
-                <p>Atualizado em 20/09/2026 às 15:18</p>
+                <p>Atualizado em 20/09/2026 às 15:59</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -530,6 +590,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => setActiveTab("inbox")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "inbox" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
             E-mails
+          </button>
+          <button onClick={() => setActiveTab("newsletter")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "newsletter" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
+            Marketing
           </button>
         </div>
 
@@ -860,6 +923,70 @@ export default function AdminDashboard() {
                       ))}
                     </div>
                   </>
+                )}
+              </div>
+            )}
+
+            {activeTab === "newsletter" && (
+              <div className="space-y-6">
+                <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-wine-light)] mb-8 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-xl text-[var(--color-gold)] font-serif mb-1">Base de Assinantes</h3>
+                    <p className="text-[var(--color-gold-light)] opacity-70 text-sm">Leitoras que querem te ouvir.</p>
+                  </div>
+                  <div className="text-4xl font-bold text-[var(--color-gold)]">
+                    {subscribersCount}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="block text-[var(--color-gold-light)] text-sm">Qual o objetivo do e-mail?</label>
+                  <select value={nlType} onChange={(e) => setNlType(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)] focus:outline-none">
+                    <option value="site">Apresentar o site (Boas-vindas/Geral)</option>
+                    <option value="blog">Avisar sobre novo post no Papo de Mulher</option>
+                    <option value="produto">Avisar sobre novo Achadinho na Vitrine</option>
+                  </select>
+
+                  <textarea 
+                    placeholder="O que você quer falar neste e-mail? (Ex: 'Quero falar do creme que postei ontem', ou 'Apenas dar bom dia e dizer que estou sumida')" 
+                    value={nlContext} 
+                    onChange={(e) => setNlContext(e.target.value)} 
+                    rows={3} 
+                    className="w-full bg-transparent border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)] focus:outline-none resize-none"
+                  ></textarea>
+
+                  <button onClick={handleGenerateNewsletter} disabled={loading} className="w-full bg-transparent border border-[var(--color-gold)] text-[var(--color-gold)] py-3 rounded font-bold uppercase tracking-widest hover:bg-[var(--color-wine-light)] transition-colors mt-2">
+                    {loading ? "Gerando..." : "Gerar Texto com IA ✨"}
+                  </button>
+                </div>
+
+                {nlHtml && (
+                  <div className="mt-8 pt-8 border-t border-[var(--color-wine-light)] space-y-6">
+                    <div>
+                      <label className="block text-[var(--color-gold-light)] text-sm mb-2">Assunto do E-mail</label>
+                      <input 
+                        type="text" 
+                        value={nlSubject} 
+                        onChange={(e) => setNlSubject(e.target.value)} 
+                        className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-gold)] rounded px-4 py-3 text-white font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[var(--color-gold-light)] text-sm mb-2">Corpo do E-mail (HTML)</label>
+                      <textarea 
+                        value={nlHtml} 
+                        onChange={(e) => setNlHtml(e.target.value)} 
+                        rows={10} 
+                        className="w-full bg-[#1a0f12] border border-[var(--color-wine-light)] rounded p-4 text-[var(--color-gold-light)] font-mono text-xs focus:outline-none"
+                      ></textarea>
+                    </div>
+
+                    <div className="bg-white text-black p-6 rounded-lg overflow-auto max-h-96" dangerouslySetInnerHTML={{ __html: nlHtml }}></div>
+
+                    <button onClick={handleSendNewsletter} disabled={loading || subscribersCount === 0} className="w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform text-lg mt-4 shadow-xl">
+                      🚀 Disparar para {subscribersCount} Assinantes
+                    </button>
+                  </div>
                 )}
               </div>
             )}
