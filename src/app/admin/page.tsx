@@ -502,8 +502,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.26</p>
-                <p>Atualizado em 20/09/2026 às 14:41</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.27</p>
+                <p>Atualizado em 20/09/2026 às 14:50</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -577,10 +577,14 @@ export default function AdminDashboard() {
                       <div>
                         <label className="block text-[var(--color-gold-light)] text-sm mb-1">Categoria</label>
                         <select value={productCategory} onChange={(e) => setProductCategory(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
-                          <option value="SkinCare">SkinCare</option>
-                          <option value="Maquiagem">Maquiagem</option>
-                          <option value="Cabelos">Cabelos</option>
-                          <option value="Suplementos">Suplementos</option>
+                            <option value="SkinCare">SkinCare</option>
+                            <option value="Maquiagem">Maquiagem</option>
+                            <option value="Cabelos">Cabelos</option>
+                            <option value="Corpo">Corpo</option>
+                            <option value="Mãos">Mãos</option>
+                            <option value="Unhas">Unhas</option>
+                            <option value="Suplementos">Suplementos</option>
+                            <option value="Outros Achadinhos">Outros Achadinhos</option>
                         </select>
                       </div>
                     </div>
@@ -770,7 +774,11 @@ export default function AdminDashboard() {
                             <option value="SkinCare">SkinCare</option>
                             <option value="Maquiagem">Maquiagem</option>
                             <option value="Cabelos">Cabelos</option>
+                            <option value="Corpo">Corpo</option>
+                            <option value="Mãos">Mãos</option>
+                            <option value="Unhas">Unhas</option>
                             <option value="Suplementos">Suplementos</option>
+                            <option value="Outros Achadinhos">Outros Achadinhos</option>
                           </>
                         ) : (
                           <>

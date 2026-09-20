@@ -8,7 +8,7 @@ export default async function Vitrine() {
   const supabase = await createClient();
   const { data: products } = await supabase.from("products").select("*").order("created_at", { ascending: false });
 
-  const categories = ["SkinCare", "Maquiagem", "Cabelos", "Suplementos", "Geral"];
+  const categories = ["SkinCare", "Maquiagem", "Cabelos", "Corpo", "Mãos", "Unhas", "Suplementos", "Outros Achadinhos", "Geral"];
   const groupedProducts: Record<string, any[]> = {};
   categories.forEach(c => groupedProducts[c] = []);
 
