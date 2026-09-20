@@ -243,11 +243,33 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ title, impressions, category: blogCategory, imageUrl: tempAiImageUrl })
       });
-      const data = await res.json();
+      
+      const textRes = await res.text();
+      let data;
+      try {
+        data = JSON.parse(textRes);
+      } catch (e) {
+        throw new Error("A IA falhou em formatar a resposta. Tente novamente.");
+      }
+
       if (data.error) throw new Error(data.error);
 
       setGeneratedBlogTitle(title || "Crônica da Luana");
       setGeneratedBlogPost(data.text);
+      
+      if (data.imagePrompt) {
+        setMessage("Buscando inspiração de imagem fotográfica...");
+        try {
+          const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(data.imagePrompt)}?width=800&height=800&nologo=true`;
+          const imageResponse = await fetch(imgUrl);
+          const blob = await imageResponse.blob();
+          const file = new File([blob], "ai_generated_blog.jpg", { type: "image/jpeg" });
+          setDisplayImageFile(file);
+        } catch (imgError) {
+          console.error("Erro ao baixar imagem da IA:", imgError);
+        }
+      }
+
       setMessage("Crônica gerada com sucesso! Revise e publique.");
     } catch (error: any) {
       setMessage("Erro: " + error.message);
@@ -376,8 +398,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
              <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.05</p>
-                <p>Atualizado em 20/09/2026 às 10:45</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.06</p>
+                <p>Atualizado em 20/09/2026 às 10:57</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -568,6 +590,26 @@ export default function AdminDashboard() {
                       <h3 className="text-[var(--color-gold)] font-serif text-xl mb-4 text-center">Seu Novo Artigo</h3>
                       <input type="text" value={generatedBlogTitle} onChange={(e) => setGeneratedBlogTitle(e.target.value)} className="w-full bg-transparent border-b border-[var(--color-wine-light)] mb-4 text-[var(--color-gold)] font-bold focus:outline-none" />
                       <textarea value={generatedBlogPost} onChange={(e) => setGeneratedBlogPost(e.target.value)} rows={15} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed" ></textarea>
+                    </div>
+
+                    <div className="border-2 border-dashed border-[var(--color-wine-light)] rounded-xl p-6 text-center bg-[var(--color-wine-dark)] relative mt-6 flex flex-col items-center">
+                      <input type="file" id="blogOfficialFileInput" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files && e.target.files[0]) setDisplayImageFile(e.target.files[0]); }} />
+                      {displayPreviewUrl || previewUrl ? (
+                         <div className="relative inline-block mt-4 mb-4">
+                          <img src={displayPreviewUrl || previewUrl || ""} alt="Preview" className="mx-auto max-h-48 object-contain rounded" />
+                          <button onClick={(e) => { e.stopPropagation(); setDisplayImageFile(null); setImageFile(null); }} className="absolute -top-3 -right-3 bg-red-800 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:bg-red-600 transition-colors shadow-lg border-2 border-[var(--color-wine-dark)]" title="Excluir Foto">
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-[var(--color-gold-light)] mb-4">
+                          <p className="font-bold uppercase tracking-widest text-sm text-[var(--color-gold)]">Sem foto selecionada.</p>
+                          <p className="text-xs opacity-70 mt-2">Quer adicionar uma foto? (Cole com Ctrl+V)</p>
+                        </div>
+                      )}
+                      {!(displayPreviewUrl || previewUrl) && (
+                        <button onClick={() => document.getElementById("blogOfficialFileInput")?.click()} className="border border-[var(--color-wine-light)] text-[var(--color-gold)] px-6 py-2 rounded uppercase tracking-widest hover:bg-[var(--color-wine)] mt-2">Escolher Outra Foto</button>
+                      )}
                     </div>
 
                     {message && <p className="text-sm text-[#f3e5ab] mt-2 italic text-center font-bold">{message}</p>}
