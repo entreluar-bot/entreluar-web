@@ -60,6 +60,7 @@ export default function AdminDashboard() {
   const [price, setPrice] = useState("");
   const [postDate, setPostDate] = useState("");
   const [productCategory, setProductCategory] = useState("SkinCare");
+  const [isAccessory, setIsAccessory] = useState(false);
   
   const [quoteText, setQuoteText] = useState("");
   const [quotes, setQuotes] = useState<any[]>([]);
@@ -196,7 +197,7 @@ export default function AdminDashboard() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ title, link, impressions, imageUrl: tempAiImageUrl })
+        body: JSON.stringify({ title, link, impressions, imageUrl: tempAiImageUrl, isAccessory })
       });
 
       const textRes = await res.text();
@@ -433,7 +434,7 @@ export default function AdminDashboard() {
       }
 
       let journalId = null;
-      if (generatedBlogPost) {
+      if (generatedBlogPost && !isAccessory) {
         const { data: journalData, error: blogError } = await supabase.from("journal").insert([{
           title: generatedBlogTitle,
           content: generatedBlogPost,
@@ -563,8 +564,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.30</p>
-                <p>Atualizado em 20/09/2026 às 16:40</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.31</p>
+                <p>Atualizado em 20/09/2026 às 17:02</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -648,6 +649,8 @@ export default function AdminDashboard() {
                             <option value="Mãos">Mãos</option>
                             <option value="Unhas">Unhas</option>
                             <option value="Suplementos">Suplementos</option>
+                            <option value="Acessórios">Acessórios</option>
+                            <option value="Roupas">Roupas</option>
                             <option value="Outros Achadinhos">Outros Achadinhos</option>
                         </select>
                       </div>
@@ -660,8 +663,21 @@ export default function AdminDashboard() {
 
                       <div className="opacity-60 hover:opacity-100 transition-opacity">
                         <label className="block text-[var(--color-gold-light)] text-sm mb-1">Suas Notas Pessoais (Opcional)</label>
-                      <textarea placeholder="Se você não digitar nada, a IA foca nos benefícios científicos." value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={2} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
-                    </div>
+                        <textarea placeholder="Se você não digitar nada, a IA foca nos benefícios científicos." value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={2} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
+                      </div>
+
+                      <div className="flex items-center gap-3 bg-[#1a0f12] p-4 rounded-lg border border-[var(--color-wine-light)]">
+                        <input 
+                          type="checkbox" 
+                          id="isAccessory" 
+                          checked={isAccessory} 
+                          onChange={(e) => setIsAccessory(e.target.checked)} 
+                          className="w-5 h-5 accent-[var(--color-gold)]"
+                        />
+                        <label htmlFor="isAccessory" className="text-[var(--color-gold-light)] text-sm cursor-pointer select-none">
+                          👗 É um acessório, roupa ou item de estilo (não possui fórmula / não gera resenha científica).
+                        </label>
+                      </div>
 
                     {message && <p className="text-sm text-[#f3e5ab] mt-2 italic text-center font-bold">{message}</p>}
                     
@@ -672,14 +688,18 @@ export default function AdminDashboard() {
                 ) : (
                   <>
                     <div className="space-y-6">
-                      <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
-                        <h3 className="text-[var(--color-gold)] font-serif text-xl mb-4 text-center">1. Vitrine: {generatedProductName}</h3>
-                        <textarea value={generatedReview} onChange={(e) => setGeneratedReview(e.target.value)} rows={8} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed" ></textarea>
-                      </div>
-                      <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
-                        <h3 className="text-[var(--color-gold)] font-serif text-xl mb-4 text-center">2. Artigo do Ativo (Blog)</h3>
-                        <input type="text" value={generatedBlogTitle} onChange={(e) => setGeneratedBlogTitle(e.target.value)} className="w-full bg-transparent border-b border-[var(--color-wine-light)] mb-4 text-[var(--color-gold)] font-bold focus:outline-none" />
-                        <textarea value={generatedBlogPost} onChange={(e) => setGeneratedBlogPost(e.target.value)} rows={12} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed" ></textarea>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className={`bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)] ${isAccessory ? "md:col-span-2" : ""}`}>
+                          <h3 className="text-[var(--color-gold)] font-serif text-xl mb-4 text-center">{isAccessory ? "Vitrine (Acessório/Estilo)" : `1. Vitrine: ${generatedProductName}`}</h3>
+                          <textarea value={generatedReview} onChange={(e) => setGeneratedReview(e.target.value)} rows={8} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed" ></textarea>
+                        </div>
+                        {!isAccessory && (
+                          <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
+                            <h3 className="text-[var(--color-gold)] font-serif text-xl mb-4 text-center">2. Artigo do Ativo (Blog)</h3>
+                            <input type="text" value={generatedBlogTitle} onChange={(e) => setGeneratedBlogTitle(e.target.value)} className="w-full bg-transparent border-b border-[var(--color-wine-light)] mb-4 text-[var(--color-gold)] font-bold focus:outline-none" />
+                            <textarea value={generatedBlogPost} onChange={(e) => setGeneratedBlogPost(e.target.value)} rows={12} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed" ></textarea>
+                          </div>
+                        )}
                       </div>
                     </div>
 
