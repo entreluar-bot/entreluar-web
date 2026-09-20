@@ -58,6 +58,7 @@ export default function AdminDashboard() {
   const [displayImageFile, setDisplayImageFile] = useState<File | null>(null);
   const [displayPreviewUrl, setDisplayPreviewUrl] = useState<string | null>(null);
   const [price, setPrice] = useState("");
+  const [postDate, setPostDate] = useState("");
   const [productCategory, setProductCategory] = useState("SkinCare");
   
   const [quoteText, setQuoteText] = useState("");
@@ -367,13 +368,19 @@ export default function AdminDashboard() {
 
       setMessage("Publicando nos canais...");
 
+      const insertPayload: any = {};
+      if (postDate) {
+        insertPayload.created_at = new Date(postDate + "T12:00:00").toISOString();
+      }
+
       let journalId = null;
       if (generatedBlogPost) {
         const { data: journalData, error: blogError } = await supabase.from("journal").insert([{
           title: generatedBlogTitle,
           content: generatedBlogPost,
           image_url: finalPublicUrl,
-          category: blogCategory
+          category: blogCategory,
+          ...insertPayload
         }]).select("id").single();
         
         if (blogError) throw blogError;
@@ -395,7 +402,8 @@ export default function AdminDashboard() {
           shopee_link: link,
           image_url: finalPublicUrl,
           price,
-          category: productCategory
+          category: productCategory,
+          ...insertPayload
         }]);
         if (prodError) throw prodError;
       }
@@ -405,6 +413,7 @@ export default function AdminDashboard() {
       setImageFile(null); setDisplayImageFile(null); setPrice("");
       setGeneratedReview(""); setGeneratedProductName("");
       setGeneratedBlogTitle(""); setGeneratedBlogPost("");
+      setPostDate("");
 
     } catch (error: any) {
       setMessage("Erro: " + error.message);
@@ -494,8 +503,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.22</p>
-                <p>Atualizado em 20/09/2026 às 13:56</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.23</p>
+                <p>Atualizado em 20/09/2026 às 14:02</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -577,8 +586,13 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="opacity-60 hover:opacity-100 transition-opacity">
-                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Suas Notas Pessoais (Opcional)</label>
+                      <div>
+                        <label className="block text-[var(--color-gold-light)] text-sm mb-1">Data Retroativa (Opcional)</label>
+                        <input type="date" value={postDate} onChange={(e) => setPostDate(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)] mb-4" />
+                      </div>
+
+                      <div className="opacity-60 hover:opacity-100 transition-opacity">
+                        <label className="block text-[var(--color-gold-light)] text-sm mb-1">Suas Notas Pessoais (Opcional)</label>
                       <textarea placeholder="Se você não digitar nada, a IA foca nos benefícios científicos." value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={2} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
                     </div>
 
@@ -660,6 +674,11 @@ export default function AdminDashboard() {
                         <option value="Sobrevivendo com Humor">😂 Sobrevivendo com Humor</option>
                         <option value="Estudei para te explicar">🧠 Estudei para te explicar</option>
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Data Retroativa (Opcional)</label>
+                      <input type="date" value={postDate} onChange={(e) => setPostDate(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)] mb-4" />
                     </div>
 
                     <div>
