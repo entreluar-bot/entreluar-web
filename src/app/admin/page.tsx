@@ -2,6 +2,28 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 
+type NewsletterStatus = "idle" | "preparing" | "sending" | "complete" | "partial" | "failed";
+
+type NewsletterResult = {
+  success: boolean;
+  dispatchId: string;
+  requested: number;
+  accepted: number;
+  failed: number;
+  skipped: number;
+  message?: string;
+  errors: Array<{ batch: number; failed: number; message: string }>;
+};
+
+type EmailDelivery = {
+  id?: string;
+  recipient: string;
+  subject: string;
+  body: string;
+  sentAt?: string;
+  type: "marketing" | "resposta";
+};
+
 const compressImage = (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -90,6 +112,12 @@ export default function AdminDashboard() {
   
   // Newsletter
   const [subscribersCount, setSubscribersCount] = useState(0);
+  const [subscriberNotes, setSubscriberNotes] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState<NewsletterStatus>("idle");
+  const [newsletterDispatchId, setNewsletterDispatchId] = useState<string | null>(null);
+  const [emailSubscribers, setEmailSubscribers] = useState<string[]>([]);
+  const [emailDeliveries, setEmailDeliveries] = useState<EmailDelivery[]>([]);
+  const [emailAdminSearch, setEmailAdminSearch] = useState("");
   const [nlType, setNlType] = useState<"site" | "blog" | "produto" | "resenha" | "pilula">("site");
   const [nlContext, setNlContext] = useState("");
   const [nlSubject, setNlSubject] = useState("");
@@ -111,8 +139,24 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   const fetchSubscribers = async () => {
-    const { count } = await supabase.from("subscribers").select("*", { count: "exact", head: true });
-    setSubscribersCount(count || 0);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch("/api/send-newsletter", {
+        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Não foi possível consultar a base.");
+      setSubscribersCount(data.requested || 0);
+      setEmailSubscribers(data.subscribers || []);
+      setEmailDeliveries(data.deliveries || []);
+      const ignored = (data.invalid || 0) + (data.duplicates || 0);
+      setSubscriberNotes(ignored > 0 ? `${ignored} cadastro${ignored === 1 ? " foi ignorado" : "s foram ignorados"} por estar inválido ou repetido.` : "Base validada e pronta para envio.");
+    } catch (error) {
+      setSubscribersCount(0);
+      setEmailSubscribers([]);
+      setEmailDeliveries([]);
+      setSubscriberNotes(error instanceof Error ? error.message : "Não foi possível consultar a base.");
+    }
   };
 
   const fetchEmails = async () => {
@@ -306,6 +350,7 @@ export default function AdminDashboard() {
 
   const handleGenerateNewsletter = async () => {
     setLoading(true);
+    setNewsletterStatus("preparing");
     setMessage("Escrevendo e-mail...");
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -319,8 +364,11 @@ export default function AdminDashboard() {
       if (data.error) throw new Error(data.error);
       setNlSubject(data.subject);
       setNlHtml(data.html);
+      setNewsletterDispatchId(null);
+      setNewsletterStatus("idle");
       setMessage("E-mail gerado! Revise o assunto e o corpo abaixo antes de disparar.");
     } catch (error: any) {
+      setNewsletterStatus("failed");
       setMessage("Erro: " + error.message);
     }
     setLoading(false);
@@ -331,21 +379,38 @@ export default function AdminDashboard() {
     if (!confirm(`Tem certeza que deseja enviar este e-mail para ${subscribersCount} assinantes?`)) return;
     
     setLoading(true);
+    setNewsletterStatus("sending");
     setMessage("Disparando e-mails...");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token || "";
+      const dispatchId = newsletterDispatchId || crypto.randomUUID();
+      setNewsletterDispatchId(dispatchId);
       const res = await fetch("/api/send-newsletter", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ subject: nlSubject, html: nlHtml, emailType: nlType })
+        body: JSON.stringify({ subject: nlSubject, html: nlHtml, emailType: nlType, dispatchId })
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setMessage(`Sucesso! E-mail disparado para ${data.count} assinantes. 🎉`);
-      setNlSubject("");
-      setNlHtml("");
+      const data = await res.json() as NewsletterResult & { error?: string };
+      if (!res.ok || data.error) throw new Error(data.error || data.errors?.[0]?.message || "O disparo não foi aceito.");
+      if (data.success && data.requested === 0 && data.skipped > 0) {
+        setNewsletterStatus("complete");
+        setMessage(data.message || `Envio protegido: ${data.skipped} assinantes já tinham recebido este conteúdo.`);
+      } else if (data.success) {
+        setNewsletterStatus("complete");
+        const historyWarning = data.errors?.find((item) => item.batch === 0)?.message;
+        const skippedMessage = data.skipped > 0 ? ` ${data.skipped} destinatária${data.skipped === 1 ? " foi preservada" : "s foram preservadas"} porque já havia recebido este conteúdo.` : "";
+        setMessage(`Concluído! ${data.accepted} de ${data.requested} e-mails foram aceitos pelo provedor. 🎉${skippedMessage}${historyWarning ? ` ${historyWarning}` : ""}`);
+        setNlSubject("");
+        setNlHtml("");
+        setNewsletterDispatchId(null);
+        await fetchSubscribers();
+      } else {
+        setNewsletterStatus("partial");
+        setMessage(`Envio parcial: ${data.accepted} aceitos e ${data.failed} não enviados. Você pode tentar novamente com segurança.`);
+      }
     } catch (error: any) {
+      setNewsletterStatus("failed");
       setMessage("Erro: " + error.message);
     }
     setLoading(false);
@@ -491,11 +556,11 @@ export default function AdminDashboard() {
       const res = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ to: replyTo, subject: replySubject || "Resposta - Entreluar", text: replyBody })
+        body: JSON.stringify({ to: replyTo, subject: replySubject || "Resposta - Entreluar", text: replyBody, dispatchId: crypto.randomUUID() })
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setMessage("E-mail enviado com sucesso!");
+      if (!res.ok || data.error) throw new Error(data.error || "O e-mail não foi aceito.");
+      setMessage(data.warning || "E-mail enviado com sucesso!");
       setReplyTo(""); setReplySubject(""); setReplyBody("");
     } catch (error: any) {
       setMessage("Erro: " + error.message);
@@ -564,8 +629,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.31</p>
-                <p>Atualizado em 20/09/2026 às 17:02</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.33</p>
+                <p>Atualizado em 20/09/2026 às 18:02</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -953,6 +1018,7 @@ export default function AdminDashboard() {
                   <div>
                     <h3 className="text-xl text-[var(--color-gold)] font-serif mb-1">Base de Assinantes</h3>
                     <p className="text-[var(--color-gold-light)] opacity-70 text-sm">Leitoras que querem te ouvir.</p>
+                    <p className="mt-2 text-xs text-[var(--color-gold-light)] opacity-60">{subscriberNotes || "Validando a base..."}</p>
                   </div>
                   <div className="text-4xl font-bold text-[var(--color-gold)]">
                     {subscribersCount}
@@ -989,7 +1055,7 @@ export default function AdminDashboard() {
                       <input 
                         type="text" 
                         value={nlSubject} 
-                        onChange={(e) => setNlSubject(e.target.value)} 
+                        onChange={(e) => { setNlSubject(e.target.value); setNewsletterDispatchId(null); setNewsletterStatus("idle"); }}
                         className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-gold)] rounded px-4 py-3 text-white font-bold"
                       />
                     </div>
@@ -997,7 +1063,7 @@ export default function AdminDashboard() {
                       <label className="block text-[var(--color-gold-light)] text-sm mb-2">Corpo do E-mail (HTML)</label>
                       <textarea 
                         value={nlHtml} 
-                        onChange={(e) => setNlHtml(e.target.value)} 
+                        onChange={(e) => { setNlHtml(e.target.value); setNewsletterDispatchId(null); setNewsletterStatus("idle"); }}
                         rows={10} 
                         className="w-full bg-[#1a0f12] border border-[var(--color-wine-light)] rounded p-4 text-[var(--color-gold-light)] font-mono text-xs focus:outline-none"
                       ></textarea>
@@ -1008,11 +1074,101 @@ export default function AdminDashboard() {
                       <iframe title="Prévia do e-mail premium" srcDoc={nlHtml} className="h-[620px] w-full rounded-[22px] border border-[var(--line)] bg-[#12070a]" sandbox="allow-popups allow-popups-to-escape-sandbox" />
                     </div>
 
-                    <button onClick={handleSendNewsletter} disabled={loading || subscribersCount === 0} className="w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform text-lg mt-4 shadow-xl">
-                      🚀 Disparar para {subscribersCount} Assinantes
+                    {newsletterStatus !== "idle" && (
+                      <div className={`rounded-xl border px-4 py-3 text-sm ${newsletterStatus === "complete" ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-100" : newsletterStatus === "partial" ? "border-amber-300/40 bg-amber-300/10 text-amber-100" : newsletterStatus === "failed" ? "border-red-300/40 bg-red-300/10 text-red-100" : "border-[var(--color-gold)]/30 bg-[var(--color-gold)]/10 text-[var(--color-gold-light)]"}`} role="status" aria-live="polite">
+                        {newsletterStatus === "preparing" && "Preparando o conteúdo..."}
+                        {newsletterStatus === "sending" && "Enviando os lotes com segurança. Não feche esta página..."}
+                        {newsletterStatus === "complete" && "Disparo concluído e confirmado pelo provedor."}
+                        {newsletterStatus === "partial" && "Parte da lista foi aceita. O conteúdo foi mantido para uma nova tentativa segura."}
+                        {newsletterStatus === "failed" && "O envio não foi concluído. O conteúdo foi preservado."}
+                      </div>
+                    )}
+
+                    <button onClick={handleSendNewsletter} disabled={loading || subscribersCount === 0} className="w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform text-lg mt-4 shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
+                      {newsletterStatus === "sending" ? "Enviando lotes..." : `🚀 Disparar para ${subscribersCount} Assinantes`}
                     </button>
                   </div>
                 )}
+
+                <section className="mt-10 border-t border-[var(--color-wine-light)] pt-8" aria-labelledby="email-control-title">
+                  <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <p className="eyebrow mb-2">Histórico individual</p>
+                      <h3 id="email-control-title" className="font-serif text-2xl text-[var(--color-gold)]">Controle de e-mails enviados</h3>
+                      <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Veja quem recebeu cada conteúdo. Mensagens idênticas não serão reenviadas para a mesma pessoa.</p>
+                    </div>
+                    <input
+                      type="search"
+                      value={emailAdminSearch}
+                      onChange={(event) => setEmailAdminSearch(event.target.value)}
+                      placeholder="Buscar e-mail ou assunto"
+                      className="min-h-11 w-full rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-4 text-sm text-[var(--color-gold-light)] outline-none focus:border-[var(--color-gold)] md:max-w-xs"
+                    />
+                  </div>
+
+                  <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3">
+                    <div className="rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4">
+                      <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Cadastrados</p>
+                      <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{emailSubscribers.length}</p>
+                    </div>
+                    <div className="rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4">
+                      <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Envios registrados</p>
+                      <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{emailDeliveries.length}</p>
+                    </div>
+                    <div className="col-span-2 rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4 md:col-span-1">
+                      <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Nunca receberam</p>
+                      <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{emailSubscribers.filter((subscriber) => !emailDeliveries.some((delivery) => delivery.recipient === subscriber)).length}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {emailSubscribers
+                      .filter((subscriber) => {
+                        const query = emailAdminSearch.trim().toLowerCase();
+                        if (!query) return true;
+                        return subscriber.includes(query) || emailDeliveries.some((delivery) => delivery.recipient === subscriber && delivery.subject.toLowerCase().includes(query));
+                      })
+                      .map((subscriber) => {
+                        const subscriberDeliveries = emailDeliveries.filter((delivery) => delivery.recipient === subscriber);
+                        const lastDelivery = subscriberDeliveries[0];
+                        return (
+                          <details key={subscriber} className="group rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4 open:border-[var(--color-gold)]/50">
+                            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4">
+                              <div className="min-w-0">
+                                <p className="truncate font-semibold text-[var(--color-gold-light)]">{subscriber}</p>
+                                <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-55">
+                                  {subscriberDeliveries.length === 0 ? "Nenhum envio registrado" : `${subscriberDeliveries.length} envio${subscriberDeliveries.length === 1 ? "" : "s"} · último em ${new Date(lastDelivery.sentAt || "").toLocaleString("pt-BR")}`}
+                                </p>
+                              </div>
+                              <span className="shrink-0 text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+                            </summary>
+
+                            <div className="mt-4 space-y-3 border-t border-[var(--color-wine-light)] pt-4">
+                              {subscriberDeliveries.length === 0 ? (
+                                <p className="text-sm text-[var(--color-gold-light)] opacity-65">Esta pessoa ainda não recebeu campanhas registradas.</p>
+                              ) : subscriberDeliveries.map((delivery, index) => (
+                                <details key={delivery.id || `${subscriber}-${index}`} className="rounded-xl bg-[#1a0f12] p-4">
+                                  <summary className="cursor-pointer list-none">
+                                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                                      <div>
+                                        <span className="mr-2 rounded-full border border-[var(--color-gold)]/30 px-2 py-1 text-[10px] uppercase tracking-widest text-[var(--color-gold)]">{delivery.type === "marketing" ? "Marketing" : "Resposta"}</span>
+                                        <span className="text-sm font-semibold text-[var(--color-gold-light)]">{delivery.subject}</span>
+                                      </div>
+                                      <time className="shrink-0 text-xs text-[var(--color-gold-light)] opacity-50">{new Date(delivery.sentAt || "").toLocaleString("pt-BR")}</time>
+                                    </div>
+                                  </summary>
+                                  <div className="mt-4 max-h-72 overflow-auto rounded-lg border border-[var(--color-wine-light)] bg-white p-3 text-sm text-[#2b151b]" dangerouslySetInnerHTML={{ __html: delivery.body }} />
+                                </details>
+                              ))}
+                            </div>
+                          </details>
+                        );
+                      })}
+                    {emailSubscribers.length === 0 && (
+                      <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-65">Nenhum e-mail cadastrado para administrar.</div>
+                    )}
+                  </div>
+                </section>
               </div>
             )}
 
