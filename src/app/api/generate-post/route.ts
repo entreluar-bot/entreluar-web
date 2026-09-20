@@ -1,29 +1,28 @@
 import { NextResponse } from "next/server"; 
 import { GoogleGenAI } from "@google/genai"; 
-import { createClient } from "@supabase/supabase-js"; 
+import { getCreativeDirection, originalityRules } from "@/lib/creative-direction";
+import { authenticateAiRequest } from "@/lib/ai/auth";
+import { loadAiContext, parseJson, recordGeneration, suggestMemoryFromNotes, topicTags } from "@/lib/ai/context";
+import { LUANA_VOICE, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
+import { postSchema } from "@/lib/ai/schemas";
 
 export const maxDuration = 60; 
 
 export async function POST(req: Request) { 
   try { 
-    const authHeader = req.headers.get("Authorization"); 
-    if (!authHeader) return NextResponse.json({ error: "Não autorizado" }, { status: 401 }); 
-    
-    const token = authHeader.replace("Bearer ", ""); 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!); 
-    const { data: { user } } = await supabase.auth.getUser(token); 
-    
-    if (!user) return NextResponse.json({ error: "Sessão inválida ou expirada" }, { status: 401 }); 
-    
+    const { supabase, user } = await authenticateAiRequest(req);
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" }); 
     const body = await req.json(); 
     
     if (body.action === "brainstorm") { 
-      const prompt = `Você é a Luana, mulher madura (50+) e criadora da Entreluar Beauty. Gere 3 ideias de temas/títulos BEM humorados, polemicos, íntimos ou desabafos sobre menopausa, autocuidado da pele madura, ou vida de mulher, para a coluna do seu Diário. Não use markdown. Ex: 1. A libertação que é parar de tingir o cabelo e focar no colágeno.`; 
+      const context = await loadAiContext(supabase, user.id, "brainstorm", ["menopausa", "beleza", "autocuidado"]);
+      const prompt = `${LUANA_VOICE}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}\nGere 3 pautas distintas para o Diário. Misture identificação, serviço e opinião. Para cada uma, escreva em uma linha: título específico — ângulo — por que importa para a leitora. Evite clickbait, temas genéricos e variações da mesma ideia. Não numere e não use markdown.`;
       const response = await ai.models.generateContent({ 
         model: "gemini-3.6-flash", 
-        contents: prompt 
+        contents: prompt,
+        config: { temperature: 0.9, maxOutputTokens: 350, frequencyPenalty: 0.5 },
       }); 
+      await recordGeneration(supabase, user.id, { contentType: "brainstorm", notablePhrases: (response.text || "").split("\n").slice(0, 3), memoryIds: context.memoryIds, inputTokens: response.usageMetadata?.promptTokenCount, outputTokens: response.usageMetadata?.candidatesTokenCount });
       return NextResponse.json({ text: response.text }); 
     } 
     
@@ -37,20 +36,30 @@ export async function POST(req: Request) {
       imagePart = { inlineData: { data: buffer.toString("base64"), mimeType } }; 
     } 
     
-    const prompt = `Você é a Luana, criadora da Entreluar Beauty. IMPORTANTE SOBRE A LUANA: ELA NÃO É CASADA. ELA TEM UM NAMORADO, MAS NÃO CITE ELE TODA HORA! Varie muito as histórias: fale de amigas, de situações no supermercado, da rotina da manhã, de um dia chuvoso, de viagens, de noites em claro, de encontros ao acaso, ou de reflexões sozinha tomando um café. SEJA EXTREMAMENTE CRIATIVA E NUNCA REPETITIVA. Escreva um artigo completo para a categoria "${category || "Diário"}" do seu blog. Tema sugerido: "${title || "Crônica de uma mulher madura"}". NOTAS PESSOAIS DA LUANA: "${impressions || "Dê sua visão pessoal."}" ATENÇÃO: NÃO copie as notas pessoais exatamente como foram escritas! A Luana apenas jogou ali alguns fatos soltos. O seu dever é DIGERIR esses fatos e reescrevê-los de forma super envolvente, com humor e profundidade, como se você estivesse contando isso para uma amiga num áudio. Use tags HTML ESTRITAS (<p>, <h3> com emojis, <i>, <strong>, <ul>, <ol>). Sem crases no início e no fim. Escreva em PRIMEIRA PESSOA. Retorne ESTRITAMENTE UM JSON VÁLIDO sem formatação markdown com os seguintes campos: { "title": "CRIE UM TÍTULO INCRÍVEL E CRIATIVO AQUI PARA O POST", "text": "texto HTML", "imagePrompt": "A highly detailed, realistic cinematic photograph of [descrição em inglês de uma cena acolhedora, madura e estética (sem pessoas mostrando o rosto de perto) que ilustre a vibe deste texto]" }`; 
+    const context = await loadAiContext(supabase, user.id, "blog", topicTags(title, impressions, category));
+    const prompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}
+
+Escreva um artigo completo para a categoria "${category || "Diário"}" do blog. Tema: "${title || "Crônica de uma mulher madura"}". NOTAS PESSOAIS DA LUANA: "${impressions || "Nenhuma nota pessoal fornecida."}"
+
+DIREÇÃO CRIATIVA EXCLUSIVA DESTA GERAÇÃO: ${getCreativeDirection()}.
+${originalityRules}
+
+Não copie as notas literalmente: preserve o sentido e desenvolva somente o que elas sustentam. Use HTML (<p>, <h3>, <i>, <strong>, <ul>, <ol>). Crie um título honesto e específico. O imagePrompt deve ser em inglês, nascer do conceito deste texto e evitar clichês de vinho, café, robe, luxo genérico e mulher diante do espelho.`;
     const contents = []; 
     if (imagePart) contents.push(imagePart); 
     contents.push(prompt); 
     
     const response = await ai.models.generateContent({ 
       model: "gemini-3.6-flash", 
-      contents
+      contents,
+      config: { responseMimeType: "application/json", responseJsonSchema: postSchema, temperature: 0.85, maxOutputTokens: 2600, frequencyPenalty: 0.35 },
     }); 
-    
-    let text = response.text || ""; 
-    text = text.replace(/^```json/i, "").replace(/^```/i, "").replace(/```$/i, "").trim(); 
-    return NextResponse.json(JSON.parse(text)); 
-  } catch (error: any) { 
-    return NextResponse.json({ error: error.message }, { status: 500 }); 
+
+    const generated = parseJson<{ title: string; text: string; imagePrompt: string; openingStyle: string; structureStyle: string; closingStyle: string; notablePhrases: string[] }>(response.text);
+    await recordGeneration(supabase, user.id, { contentType: "blog", topic: `${title || ""} ${category || ""}`, title: generated.title, openingStyle: generated.openingStyle, structureStyle: generated.structureStyle, closingStyle: generated.closingStyle, notablePhrases: generated.notablePhrases, memoryIds: context.memoryIds, inputTokens: response.usageMetadata?.promptTokenCount, outputTokens: response.usageMetadata?.candidatesTokenCount });
+    await suggestMemoryFromNotes(supabase, user.id, impressions, topicTags(title, impressions, category));
+    return NextResponse.json(generated);
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Erro ao gerar postagem" }, { status: 500 });
   } 
 }

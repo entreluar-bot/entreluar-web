@@ -25,6 +25,17 @@ type EmailDelivery = {
   type: "marketing" | "resposta";
 };
 
+type LuanaMemory = {
+  id: string;
+  category: "identidade" | "rotina" | "experiencia" | "opiniao" | "linguagem" | "limite";
+  content: string;
+  tags: string[];
+  privacy: "publica" | "editorial" | "privada";
+  status: "sugerida" | "aprovada" | "arquivada";
+  allow_in_content: boolean;
+  valid_until?: string | null;
+};
+
 const compressImage = (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -72,7 +83,7 @@ const compressImage = (file: File): Promise<File> => {
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"product" | "blog" | "manage" | "inbox" | "quotes" | "drops" | "newsletter">("product");
+  const [activeTab, setActiveTab] = useState<"product" | "blog" | "manage" | "inbox" | "quotes" | "drops" | "newsletter" | "memory">("product");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
   const [impressions, setImpressions] = useState("");
@@ -84,6 +95,8 @@ export default function AdminDashboard() {
   const [postDate, setPostDate] = useState("");
   const [productCategory, setProductCategory] = useState("SkinCare");
   const [isAccessory, setIsAccessory] = useState(false);
+  const [productExperience, setProductExperience] = useState<"nao_informado" | "pesquisado" | "impressao_inicial" | "testado">("nao_informado");
+  const [productTestDuration, setProductTestDuration] = useState("");
   
   const [quoteText, setQuoteText] = useState("");
   const [quotes, setQuotes] = useState<any[]>([]);
@@ -124,6 +137,14 @@ export default function AdminDashboard() {
   const [nlSubject, setNlSubject] = useState("");
   const [nlHtml, setNlHtml] = useState("");
 
+  const [memories, setMemories] = useState<LuanaMemory[]>([]);
+  const [memoryContent, setMemoryContent] = useState("");
+  const [memoryTags, setMemoryTags] = useState("");
+  const [memoryCategory, setMemoryCategory] = useState<LuanaMemory["category"]>("opiniao");
+  const [memoryPrivacy, setMemoryPrivacy] = useState<LuanaMemory["privacy"]>("editorial");
+  const [memoryAllowInContent, setMemoryAllowInContent] = useState(false);
+  const [aiUsage, setAiUsage] = useState({ inputTokens: 0, outputTokens: 0, searches: 0 });
+
   const supabase = createClient();
 
   useEffect(() => {
@@ -137,7 +158,72 @@ export default function AdminDashboard() {
     if (activeTab === "inbox") fetchEmails();
     if (activeTab === "manage") fetchManageData();
     if (activeTab === "newsletter") fetchSubscribers();
+    if (activeTab === "memory") fetchMemories();
   }, [activeTab]);
+
+  const memoryRequest = async (path = "", init?: RequestInit) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch(`/api/luana-memory${path}`, {
+      ...init,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}`, ...(init?.headers || {}) },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Não foi possível atualizar a memória.");
+    return data;
+  };
+
+  const fetchMemories = async () => {
+    try {
+      const data = await memoryRequest();
+      setMemories(data.memories || []);
+      setAiUsage(data.usage || { inputTokens: 0, outputTokens: 0, searches: 0 });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível carregar a memória.");
+    }
+  };
+
+  const handleSaveMemory = async () => {
+    if (memoryContent.trim().length < 3) return setMessage("Escreva uma lembrança um pouco mais completa.");
+    setLoading(true);
+    try {
+      await memoryRequest("", { method: "POST", body: JSON.stringify({ content: memoryContent, tags: memoryTags, category: memoryCategory, privacy: memoryPrivacy, allowInContent: memoryAllowInContent }) });
+      setMemoryContent(""); setMemoryTags(""); setMemoryAllowInContent(false);
+      setMessage("Memória aprovada e guardada ✨");
+      await fetchMemories();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível guardar a memória."); }
+    setLoading(false);
+  };
+
+  const handleMemoryStatus = async (memory: LuanaMemory, status: LuanaMemory["status"]) => {
+    try {
+      await memoryRequest("", { method: "PATCH", body: JSON.stringify({ id: memory.id, status }) });
+      await fetchMemories();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível atualizar a memória."); }
+  };
+
+  const handleEditMemory = async (memory: LuanaMemory) => {
+    const content = prompt("Corrija esta memória:", memory.content)?.trim();
+    if (!content || content === memory.content) return;
+    try {
+      await memoryRequest("", { method: "PATCH", body: JSON.stringify({ id: memory.id, content }) });
+      await fetchMemories();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível corrigir a memória."); }
+  };
+
+  const handleMemoryPrivacy = async (memory: LuanaMemory, privacy: LuanaMemory["privacy"]) => {
+    try {
+      await memoryRequest("", { method: "PATCH", body: JSON.stringify({ id: memory.id, privacy, allowInContent: privacy === "publica" ? memory.allow_in_content : false }) });
+      await fetchMemories();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível mudar a privacidade."); }
+  };
+
+  const handleDeleteMemory = async (id: string) => {
+    if (!confirm("Excluir esta memória da Luana?")) return;
+    try {
+      await memoryRequest(`?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      await fetchMemories();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível excluir a memória."); }
+  };
 
   const fetchSubscribers = async () => {
     try {
@@ -242,7 +328,7 @@ export default function AdminDashboard() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ title, link, impressions, imageUrl: tempAiImageUrl, isAccessory })
+        body: JSON.stringify({ title, link, impressions, imageUrl: tempAiImageUrl, isAccessory, experienceStatus: productExperience, testDuration: productTestDuration })
       });
 
       const textRes = await res.text();
@@ -643,8 +729,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.34</p>
-                <p>Atualizado em 20/09/2026 às 18:37</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.36</p>
+                <p>Atualizado em 20/09/2026 às 20:17</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -673,6 +759,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => setActiveTab("newsletter")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "newsletter" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
             Marketing
+          </button>
+          <button onClick={() => setActiveTab("memory")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "memory" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
+            Memória IA
           </button>
         </div>
 
@@ -731,7 +820,20 @@ export default function AdminDashboard() {
                         <input type="date" value={postDate} onChange={(e) => setPostDate(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)] mb-4" />
                       </div>
 
-                      <div className="opacity-60 hover:opacity-100 transition-opacity">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="block text-[var(--color-gold-light)] text-sm mb-1">Minha relação com este produto</label>
+                          <select value={productExperience} onChange={(e) => setProductExperience(e.target.value as typeof productExperience)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
+                            <option value="nao_informado">Não informada</option><option value="pesquisado">Ainda não usei; estou pesquisando</option><option value="impressao_inicial">Primeiras impressões</option><option value="testado">Usei e testei</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[var(--color-gold-light)] text-sm mb-1">Tempo de uso, se houver</label>
+                          <input value={productTestDuration} onChange={(e) => setProductTestDuration(e.target.value)} placeholder="Ex.: três semanas" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
+                        </div>
+                      </div>
+
+                      <div className="opacity-80 hover:opacity-100 transition-opacity">
                         <label className="block text-[var(--color-gold-light)] text-sm mb-1">Suas Notas Pessoais (Opcional)</label>
                         <textarea placeholder="Se você não digitar nada, a IA foca nos benefícios científicos." value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={2} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
                       </div>
@@ -1191,6 +1293,62 @@ export default function AdminDashboard() {
                     {emailSubscribers.length === 0 && (
                       <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-65">Nenhum e-mail cadastrado para administrar.</div>
                     )}
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {activeTab === "memory" && (
+              <div className="space-y-8">
+                <section className="rounded-2xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-6">
+                  <p className="eyebrow mb-2">Personalidade com verdade</p>
+                  <h2 className="font-display text-3xl text-[var(--color-gold-light)]">Memória da Luana</h2>
+                  <p className="mt-3 text-sm leading-6 text-[var(--color-gold-light)] opacity-75">Guarde opiniões, experiências e jeitos de falar. A IA recupera apenas o que combina com cada assunto, economizando tokens. Memórias privadas ficam no painel e nunca entram nos prompts.</p>
+                  <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs"><div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.inputTokens.toLocaleString("pt-BR")}</strong>tokens de entrada</div><div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.outputTokens.toLocaleString("pt-BR")}</strong>tokens de saída</div><div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.searches}</strong>buscas web</div></div>
+
+                  <div className="mt-6 grid gap-4 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">O que a IA deve aprender sobre você?</label>
+                      <textarea value={memoryContent} onChange={(e) => setMemoryContent(e.target.value)} rows={4} placeholder="Ex.: Eu prefiro uma rotina de pele curta e realista. Dez passos me cansam antes do sérum." className="w-full rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-4 text-[var(--color-gold-light)] focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs uppercase tracking-widest text-[var(--color-gold-light)]">Categoria</label>
+                      <select value={memoryCategory} onChange={(e) => setMemoryCategory(e.target.value as LuanaMemory["category"])} className="w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 text-[var(--color-gold-light)]">
+                        <option value="identidade">Identidade</option><option value="rotina">Rotina</option><option value="experiencia">Experiência real</option><option value="opiniao">Opinião</option><option value="linguagem">Jeito de falar</option><option value="limite">Limite editorial</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs uppercase tracking-widest text-[var(--color-gold-light)]">Privacidade</label>
+                      <select value={memoryPrivacy} onChange={(e) => { const value = e.target.value as LuanaMemory["privacy"]; setMemoryPrivacy(value); if (value !== "publica") setMemoryAllowInContent(false); }} className="w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 text-[var(--color-gold-light)]">
+                        <option value="editorial">Editorial — orienta, mas não cita</option><option value="publica">Pública — pode aparecer no texto</option><option value="privada">Privada — nunca vai ao prompt</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-xs uppercase tracking-widest text-[var(--color-gold-light)]">Assuntos relacionados, separados por vírgula</label>
+                      <input value={memoryTags} onChange={(e) => setMemoryTags(e.target.value)} placeholder="protetor solar, pele sensível, rotina" className="w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 text-[var(--color-gold-light)]" />
+                    </div>
+                    {memoryPrivacy === "publica" && <label className="md:col-span-2 flex items-center gap-3 text-sm text-[var(--color-gold-light)]"><input type="checkbox" checked={memoryAllowInContent} onChange={(e) => setMemoryAllowInContent(e.target.checked)} /> Autorizo citar esta informação nos textos quando for pertinente.</label>}
+                  </div>
+                  <button onClick={handleSaveMemory} disabled={loading} className="mt-5 w-full rounded-lg bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] py-3 font-bold uppercase tracking-widest text-[var(--color-wine-dark)] disabled:opacity-50">Guardar memória</button>
+                  {message && <p className="mt-4 text-center text-sm font-bold italic text-[#f3e5ab]">{message}</p>}
+                </section>
+
+                <section>
+                  <div className="mb-4 flex items-end justify-between gap-4"><div><h3 className="font-serif text-2xl text-[var(--color-gold)]">O que a IA sabe</h3><p className="text-sm text-[var(--color-gold-light)] opacity-60">{memories.filter((item) => item.status === "aprovada").length} memórias aprovadas</p></div></div>
+                  <div className="space-y-3">
+                    {memories.map((memory) => <article key={memory.id} className={`rounded-xl border p-4 ${memory.status === "sugerida" ? "border-[var(--color-gold)] bg-[#3a1820]" : "border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]"}`}>
+                      <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-widest"><span className="rounded-full bg-[var(--color-wine-light)] px-3 py-1 text-[var(--color-gold-light)]">{memory.category}</span><select value={memory.privacy} onChange={(e) => handleMemoryPrivacy(memory, e.target.value as LuanaMemory["privacy"])} className="rounded-full border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-1 text-[var(--color-gold)]"><option value="editorial">editorial</option><option value="publica">pública</option><option value="privada">privada</option></select><span className="opacity-60">{memory.status}</span></div>
+                      <p className="my-3 leading-6 text-[var(--color-gold-light)]">{memory.content}</p>
+                      {memory.tags?.length > 0 && <p className="mb-3 text-xs text-[var(--color-gold-light)] opacity-55">Assuntos: {memory.tags.join(", ")}</p>}
+                      <div className="flex flex-wrap gap-2">
+                        <button onClick={() => handleEditMemory(memory)} className="rounded border border-[var(--color-wine-light)] px-3 py-1 text-xs text-[var(--color-gold-light)]">Corrigir</button>
+                        {memory.status === "sugerida" && <button onClick={() => handleMemoryStatus(memory, "aprovada")} className="rounded border border-[var(--color-gold)] px-3 py-1 text-xs text-[var(--color-gold)]">Aprovar aprendizado</button>}
+                        {memory.status !== "arquivada" && <button onClick={() => handleMemoryStatus(memory, "arquivada")} className="rounded border border-[var(--color-wine-light)] px-3 py-1 text-xs text-[var(--color-gold-light)]">Arquivar</button>}
+                        {memory.status === "arquivada" && <button onClick={() => handleMemoryStatus(memory, "aprovada")} className="rounded border border-[var(--color-gold)] px-3 py-1 text-xs text-[var(--color-gold)]">Restaurar</button>}
+                        <button onClick={() => handleDeleteMemory(memory.id)} className="rounded border border-red-900 px-3 py-1 text-xs text-red-300">Excluir</button>
+                      </div>
+                    </article>)}
+                    {memories.length === 0 && <div className="rounded-xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-60">Nenhuma memória guardada ainda.</div>}
                   </div>
                 </section>
               </div>

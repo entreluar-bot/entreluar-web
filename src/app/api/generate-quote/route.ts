@@ -1,32 +1,35 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
-import { createClient } from "@supabase/supabase-js";
+import { authenticateAiRequest } from "@/lib/ai/auth";
+import { loadAiContext, recordGeneration } from "@/lib/ai/context";
+import { LUANA_VOICE, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-
-    const token = authHeader.replace("Bearer ", "");
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-    const { data: { user } } = await supabase.auth.getUser(token);
-    
-    if (!user) return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
-
+    const { supabase, user } = await authenticateAiRequest(req);
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-    const prompt = `Você é a Luana, mulher madura (50+). Crie um LOTE DE 15 "pílulas de motivação diária" muito curtas (1 a 2 frases cada), impactantes, bem humoradas, acolhedoras ou debochadas sobre a vida da mulher madura, menopausa, skincare ou amor próprio. Nada de clichês cafonas. Tem que ser algo que faça a mulher sorrir, se sentir poderosa ou rir da própria idade tomando um café.
+    const context = await loadAiContext(supabase, user.id, "quote", ["menopausa", "maturidade", "autocuidado", "humor"]);
+    const prompt = `${LUANA_VOICE}
+${TRUTH_RULES}
+${SIMPLE_LANGUAGE_RULES}
+${context.memoryPrompt}
+${context.antiRepetitionPrompt}
 
-Retorne EXATAMENTE 15 frases. CADA FRASE EM UMA NOVA LINHA. Não coloque números, nem aspas, nem marcadores (bullets). Apenas o texto de cada frase em uma linha separada.`;
+Crie exatamente 15 pílulas de 1 ou 2 frases. Distribua o lote: liberdade na maturidade, corpo sem guerra, menopausa sem dramatização, autocuidado possível e humor sobre a vida cotidiana. Cada frase deve ter ideia e construção próprias. Evite café, vinho, espelho, colágeno, "se priorize", "sua melhor versão", "idade é só um número" e outras frases de autoajuda genéricas. Não faça piada que diminua a mulher madura.
 
+Retorne uma frase por linha, sem números, aspas, marcadores ou comentários.`;
     const response = await ai.models.generateContent({
       model: "gemini-3.6-flash",
-      contents: prompt
+      contents: prompt,
+      config: { temperature: 0.95, maxOutputTokens: 700, frequencyPenalty: 0.65 },
     });
-
-    return NextResponse.json({ text: response.text });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const lines = (response.text || "").split("\n").map((line) => line.trim()).filter(Boolean).slice(0, 15);
+    await recordGeneration(supabase, user.id, { contentType: "quote", notablePhrases: lines.slice(0, 3), memoryIds: context.memoryIds, inputTokens: response.usageMetadata?.promptTokenCount, outputTokens: response.usageMetadata?.candidatesTokenCount });
+    return NextResponse.json({ text: lines.join("\n") });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erro ao gerar pílulas";
+    return NextResponse.json({ error: message }, { status: message.includes("autoriz") || message.includes("Sessão") ? 401 : 500 });
   }
 }
