@@ -490,20 +490,21 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
-  if (!user) return <div className="min-h-screen bg-[var(--color-wine-dark)] flex items-center justify-center text-[var(--color-gold)]">Carregando...</div>;
+  if (!user) return <div className="admin-shell grid min-h-screen place-items-center text-[var(--color-gold)]"><div className="glass-panel rounded-3xl px-8 py-6">Preparando o seu ateliê… ✨</div></div>;
 
   return (
-    <div className="min-h-screen bg-[var(--color-wine-dark)] p-8" onPaste={handlePaste}>
-      <div className="max-w-4xl mx-auto">
-        <header className="flex justify-between items-center mb-12 border-b border-[var(--color-wine-light)] pb-6">
+    <div className="admin-shell min-h-screen px-4 py-6 md:p-8" onPaste={handlePaste}>
+      <div className="mx-auto max-w-5xl">
+        <header className="glass-panel mb-8 flex flex-col gap-5 rounded-[28px] p-5 md:flex-row md:items-center md:justify-between md:p-7">
           <div>
-            <h1 className="text-3xl font-serif text-[var(--color-gold)]">Painel da Luana</h1>
-            <p className="text-[var(--color-gold-light)] opacity-70">Aperte Ctrl+V para colar fotos.</p>
+            <p className="eyebrow mb-2">Ateliê de conteúdo</p>
+            <h1 className="font-display text-4xl text-[var(--color-gold-light)]">Painel da Luana</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">Crie, revise e publique. Para colar fotos, use Ctrl+V.</p>
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.27</p>
-                <p>Atualizado em 20/09/2026 às 14:50</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.28</p>
+                <p>Atualizado em 20/09/2026 às 15:18</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -511,7 +512,7 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <div className="flex gap-2 mb-8 flex-wrap">
+        <div className="admin-tabs mb-8 flex gap-2 overflow-x-auto pb-2">
           <button onClick={() => { setActiveTab("product"); setGeneratedReview(""); }} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "product" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
             Vitrine (Mágica)
           </button>
@@ -532,8 +533,8 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 -mt-8">
-          <div className="bg-[var(--color-wine)] p-8 rounded-b-xl border-b border-x border-[var(--color-wine-light)] shadow-lg max-w-3xl mx-auto w-full">
+        <div className="grid grid-cols-1 gap-8">
+          <div className="glass-panel mx-auto w-full max-w-4xl rounded-[28px] p-4 shadow-lg md:p-8">
             
             {activeTab === "product" && (
               <div className="space-y-6">
