@@ -93,7 +93,6 @@ ${cachedResearch ? `PESQUISA RECENTE EM CACHE (reutilize para economizar busca; 
         responseJsonSchema: productSchema,
         temperature: isAccessory ? 0.8 : 0.55,
         maxOutputTokens: isAccessory ? 900 : 3400,
-        frequencyPenalty: 0.3,
         ...(!isAccessory && !cachedResearch ? { tools: [{ googleSearch: {} }] } : {}),
       },
     });

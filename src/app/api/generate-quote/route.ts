@@ -23,7 +23,7 @@ Retorne uma frase por linha, sem números, aspas, marcadores ou comentários.`;
     const response = await ai.models.generateContent({
       model: "gemini-3.6-flash",
       contents: prompt,
-      config: { temperature: 0.95, maxOutputTokens: 700, frequencyPenalty: 0.65 },
+      config: { temperature: 0.95, maxOutputTokens: 700 },
     });
     const lines = (response.text || "").split("\n").map((line) => line.trim()).filter(Boolean).slice(0, 15);
     await recordGeneration(supabase, user.id, { contentType: "quote", notablePhrases: lines.slice(0, 3), memoryIds: context.memoryIds, inputTokens: response.usageMetadata?.promptTokenCount, outputTokens: response.usageMetadata?.candidatesTokenCount });

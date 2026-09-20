@@ -48,7 +48,7 @@ REGRAS DE CONTEÚDO:
 - ctaUrl deve ser a URL https específica informada no contexto; se nenhuma for fornecida, retorne string vazia.
 - subject abre uma curiosidade honesta; preheader complementa sem repetir; headline entrega a promessa editorial; CTA descreve o próximo passo.`;
 
-    const response = await ai.models.generateContent({ model: "gemini-3.6-flash", contents: prompt, config: { responseMimeType: "application/json", responseJsonSchema: newsletterSchema, temperature: 0.8, maxOutputTokens: 900, frequencyPenalty: 0.35 } });
+    const response = await ai.models.generateContent({ model: "gemini-3.6-flash", contents: prompt, config: { responseMimeType: "application/json", responseJsonSchema: newsletterSchema, temperature: 0.8, maxOutputTokens: 900 } });
     const generated = parseJson<AiEmail>(response.text);
     if (!generated.subject || !generated.preheader || !generated.headline || !generated.bodyHtml || !generated.ctaText) throw new Error("A IA não devolveu todos os campos do e-mail.");
     await recordGeneration(supabase, user.id, { contentType: `newsletter_${emailType}`, topic: body.contextText, title: generated.subject, openingStyle: generated.openingStyle, notablePhrases: generated.notablePhrases, memoryIds: context.memoryIds, inputTokens: response.usageMetadata?.promptTokenCount, outputTokens: response.usageMetadata?.candidatesTokenCount });

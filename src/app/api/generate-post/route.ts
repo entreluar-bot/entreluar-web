@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       const response = await ai.models.generateContent({ 
         model: "gemini-3.6-flash", 
         contents: prompt,
-        config: { temperature: 0.9, maxOutputTokens: 350, frequencyPenalty: 0.5 },
+        config: { temperature: 0.9, maxOutputTokens: 350 },
       }); 
       await recordGeneration(supabase, user.id, { contentType: "brainstorm", notablePhrases: (response.text || "").split("\n").slice(0, 3), memoryIds: context.memoryIds, inputTokens: response.usageMetadata?.promptTokenCount, outputTokens: response.usageMetadata?.candidatesTokenCount });
       return NextResponse.json({ text: response.text }); 
@@ -52,7 +52,7 @@ Não copie as notas literalmente: preserve o sentido e desenvolva somente o que 
     const response = await ai.models.generateContent({ 
       model: "gemini-3.6-flash", 
       contents,
-      config: { responseMimeType: "application/json", responseJsonSchema: postSchema, temperature: 0.85, maxOutputTokens: 2600, frequencyPenalty: 0.35 },
+      config: { responseMimeType: "application/json", responseJsonSchema: postSchema, temperature: 0.85, maxOutputTokens: 2600 },
     }); 
 
     const generated = parseJson<{ title: string; text: string; imagePrompt: string; openingStyle: string; structureStyle: string; closingStyle: string; notablePhrases: string[] }>(response.text);
