@@ -60,6 +60,9 @@ export default function AdminDashboard() {
   const [price, setPrice] = useState("");
   const [productCategory, setProductCategory] = useState("SkinCare");
   
+  const [quoteText, setQuoteText] = useState("");
+  const [quotes, setQuotes] = useState<any[]>([]);
+  
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -103,6 +106,8 @@ export default function AdminDashboard() {
     if (pData) setProducts(pData);
     const { data: jData } = await supabase.from("journal").select("*").order("created_at", { ascending: false });
     if (jData) setJournals(jData);
+    const { data: qData } = await supabase.from("quotes").select("*").order("created_at", { ascending: false });
+    if (qData) setQuotes(qData);
   };
 
   useEffect(() => {
@@ -278,6 +283,43 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
+  const handleGenerateQuote = async () => {
+    setLoading(true);
+    setMessage("Buscando inspiração nas estrelas...");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      const res = await fetch("/api/generate-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
+      });
+      
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setQuoteText(data.text);
+      setMessage("Pílula gerada! Revise e publique.");
+    } catch (error: any) {
+      setMessage("Erro: " + error.message);
+    }
+    setLoading(false);
+  };
+
+  const handlePublishQuote = async () => {
+    if (!quoteText) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("quotes").insert([{ quote: quoteText }]);
+      if (error) throw error;
+      setQuoteText("");
+      setMessage("Pílula publicada com sucesso!");
+    } catch (error: any) {
+      setMessage("Erro ao publicar: " + error.message);
+    }
+    setLoading(false);
+  };
+
   const handlePublish = async () => {
     if (!generatedReview && !generatedBlogPost) return;
     
@@ -365,10 +407,19 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteJournal = async (id: string) => {
-    if (confirm("Certeza que deseja deletar este artigo do diário?")) {
+    if (!confirm("Deletar este artigo?")) return;
+    try {
       await supabase.from("journal").delete().eq("id", id);
       fetchManageData();
-    }
+    } catch (e: any) { alert(e.message); }
+  };
+
+  const handleDeleteQuote = async (id: string) => {
+    if (!confirm("Deletar esta pílula?")) return;
+    try {
+      await supabase.from("quotes").delete().eq("id", id);
+      fetchManageData();
+    } catch (e: any) { alert(e.message); }
   };
 
   const handleUpdateItem = async () => {
@@ -400,8 +451,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
              <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.08</p>
-                <p>Atualizado em 20/09/2026 às 11:05</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.09</p>
+                <p>Atualizado em 20/09/2026 às 11:20</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -418,6 +469,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => setActiveTab("manage")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "manage" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
             Gerenciar
+          </button>
+          <button onClick={() => { setActiveTab("quotes"); setQuoteText(""); }} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "quotes" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
+            Pílulas (Quotes)
           </button>
           <button onClick={() => setActiveTab("inbox")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "inbox" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
             E-mails
@@ -705,8 +759,47 @@ export default function AdminDashboard() {
                         </div>
                       ))}
                     </div>
+
+                    <div className="mt-12">
+                      <h3 className="text-2xl text-[var(--color-gold)] mb-6 font-serif border-b border-[var(--color-wine-light)] pb-2">Pílulas Diárias (Motivação)</h3>
+                      {quotes.length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhuma pílula publicada.</p> : quotes.map(q => (
+                        <div key={q.id} className="flex justify-between items-center bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)]">
+                          <div>
+                            <span className="text-[var(--color-gold-light)] block italic">"{q.quote}"</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => handleDeleteQuote(q.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </>
                 )}
+              </div>
+            )}
+
+            {activeTab === "quotes" && (
+              <div className="space-y-8">
+                <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
+                  <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif text-center">Gerador de Pílulas Diárias</h3>
+                  <p className="text-center text-[var(--color-gold-light)] opacity-70 mb-6 text-sm">Crie frases curtas e acolhedoras para aparecerem todos os dias na página principal.</p>
+                  
+                  <div className="flex justify-center mb-6">
+                    <button onClick={handleGenerateQuote} disabled={loading} className="bg-[var(--color-gold)] text-[var(--color-wine-dark)] px-8 py-3 rounded-full uppercase tracking-widest font-bold hover:scale-105 transition-transform flex items-center gap-2">
+                      ✨ {loading ? "Buscando..." : "Gerar Nova Pílula Mágica"} ✨
+                    </button>
+                  </div>
+
+                  {quoteText && (
+                    <div className="mt-8 border-t border-[var(--color-wine-light)] pt-6">
+                      <textarea value={quoteText} onChange={(e) => setQuoteText(e.target.value)} rows={4} className="w-full bg-[var(--color-wine)] border border-[var(--color-wine-light)] rounded p-6 text-[var(--color-gold-light)] font-serif text-lg text-center focus:outline-none resize-none leading-relaxed italic" placeholder="Sua frase aqui..."></textarea>
+                      <button onClick={handlePublishQuote} disabled={loading} className="w-full mt-4 bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] text-[var(--color-wine-dark)] py-3 rounded font-bold uppercase hover:scale-105 transition-transform">
+                        {loading ? "Publicando..." : "Publicar Pílula"}
+                      </button>
+                    </div>
+                  )}
+                  {message && <p className="text-sm text-[#f3e5ab] mt-4 italic text-center font-bold">{message}</p>}
+                </div>
               </div>
             )}
 
