@@ -563,8 +563,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.31</p>
-                <p>Atualizado em 20/09/2026 às 16:21</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.30</p>
+                <p>Atualizado em 20/09/2026 às 16:40</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -1057,28 +1057,53 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif">Mensagens Recebidas</h3>
-                  {emails.length === 0 ? (
-                    <p className="text-[var(--color-gold-light)] opacity-70">Nenhuma mensagem recebida ainda.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {emails.map((email) => (
-                        <div key={email.id} className="bg-[var(--color-wine-dark)] p-4 rounded-xl border border-[var(--color-wine-light)]">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <p className="text-[var(--color-gold)] font-bold text-sm">De: {email.sender}</p>
-                              <p className="text-[var(--color-gold-light)] font-serif">{email.subject}</p>
+                  <div className="grid md:grid-cols-2 gap-8">
+                    <div>
+                      <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif">Caixa de Entrada</h3>
+                      {emails.filter(e => !e.sender.includes("luana@entreluar.com.br") && !e.sender.includes("Enviado para")).length === 0 ? (
+                        <p className="text-[var(--color-gold-light)] opacity-70">Nenhuma mensagem recebida ainda.</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {emails.filter(e => !e.sender.includes("luana@entreluar.com.br") && !e.sender.includes("Enviado para")).map((email) => (
+                            <div key={email.id} className="bg-[var(--color-wine-dark)] p-4 rounded-xl border border-[var(--color-wine-light)]">
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <p className="text-[var(--color-gold)] font-bold text-sm">De: {email.sender}</p>
+                                  <p className="text-[var(--color-gold-light)] font-serif">{email.subject}</p>
+                                </div>
+                                <button onClick={() => { setReplyTo(email.sender.match(/<([^>]+)>/)?.[1] || email.sender); setReplySubject(`Re: ${email.subject}`); window.scrollTo(0, 0); }} className="text-xs border border-[var(--color-gold)] text-[var(--color-gold)] px-3 py-1 rounded hover:bg-[var(--color-gold)] hover:text-[var(--color-wine-dark)] transition-colors">
+                                  Responder
+                                </button>
+                              </div>
+                              <p className="text-sm text-[var(--color-gold-light)] opacity-80 mt-2 line-clamp-3 whitespace-pre-wrap">{email.body}</p>
                             </div>
-                            <button onClick={() => { setReplyTo(email.sender.match(/<([^>]+)>/)?.[1] || email.sender); setReplySubject(`Re: ${email.subject}`); window.scrollTo(0, 0); }} className="text-xs border border-[var(--color-gold)] text-[var(--color-gold)] px-3 py-1 rounded hover:bg-[var(--color-gold)] hover:text-[var(--color-wine-dark)] transition-colors">
-                              Responder
-                            </button>
-                          </div>
-                          <p className="text-sm text-[var(--color-gold-light)] opacity-80 mt-2 line-clamp-3">{email.body}</p>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
+
+                    <div>
+                      <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif">Itens Enviados</h3>
+                      {emails.filter(e => e.sender.includes("luana@entreluar.com.br") || e.sender.includes("Enviado para")).length === 0 ? (
+                        <p className="text-[var(--color-gold-light)] opacity-70">Nenhum envio registrado.</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {emails.filter(e => e.sender.includes("luana@entreluar.com.br") || e.sender.includes("Enviado para")).map((email) => (
+                            <div key={email.id} className="bg-[var(--color-wine-dark)] p-4 rounded-xl border border-[var(--color-gold)] opacity-80">
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <p className="text-[var(--color-gold)] font-bold text-sm">{email.sender}</p>
+                                  <p className="text-[var(--color-gold-light)] font-serif">{email.subject}</p>
+                                  <p className="text-xs text-[var(--color-gold-light)] opacity-50">{new Date(email.created_at).toLocaleString('pt-BR')}</p>
+                                </div>
+                              </div>
+                              <div className="text-sm text-[var(--color-gold-light)] mt-2 line-clamp-3 bg-[#1a0f12] p-2 rounded" dangerouslySetInnerHTML={{ __html: email.body }}></div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div></div>
               </div>
             )}
 

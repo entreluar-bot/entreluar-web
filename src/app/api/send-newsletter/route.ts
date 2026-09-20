@@ -30,8 +30,8 @@ export async function POST(req: Request) {
 
     const emails = subscribers.map(s => s.email);
     
-    // Divide os emails em lotes de 50 (limite do BCC)
-    const chunkSize = 50;
+    // O Resend Batch permite no máximo 100 emails por requisição.
+    const chunkSize = 100;
     const chunks = [];
     for (let i = 0; i < emails.length; i += chunkSize) {
       chunks.push(emails.slice(i, i + chunkSize));
@@ -40,15 +40,25 @@ export async function POST(req: Request) {
     let successCount = 0;
 
     for (const chunk of chunks) {
-      const data = await resend.emails.send({ 
-        from: "Luana <luana@entreluar.com.br>", 
-        to: ["luana@entreluar.com.br"], // E-mail principal
-        bcc: chunk, // E-mails dos assinantes escondidos
-        subject, 
-        html 
-      });
+      // Monta os objetos de email individuais
+      const batchPayload = chunk.map(email => ({
+        from: "Luana <luana@entreluar.com.br>",
+        to: [email],
+        subject,
+        html
+      }));
+
+      // Dispara o lote
+      await resend.batch.send(batchPayload);
       successCount += chunk.length;
     }
+
+    // Salva o histórico de disparo na tabela emails para controle interno
+    await supabase.from("emails").insert([{ 
+      sender: "Marketing (luana@entreluar.com.br)", 
+      subject: `[DISPARO] ${subject}`, 
+      body: html 
+    }]);
 
     return NextResponse.json({ success: true, count: successCount }); 
   } catch (error: any) { 
