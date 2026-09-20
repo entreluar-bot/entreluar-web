@@ -49,7 +49,7 @@ const compressImage = (file: File): Promise<File> => {
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"product" | "blog" | "manage" | "inbox" | "quotes">("product");
+  const [activeTab, setActiveTab] = useState<"product" | "blog" | "manage" | "inbox" | "quotes" | "drops">("product");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
   const [impressions, setImpressions] = useState("");
@@ -62,6 +62,10 @@ export default function AdminDashboard() {
   
   const [quoteText, setQuoteText] = useState("");
   const [quotes, setQuotes] = useState<any[]>([]);
+
+  const [dropTitle, setDropTitle] = useState("");
+  const [dropUrl, setDropUrl] = useState("");
+  const [drops, setDrops] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -108,6 +112,8 @@ export default function AdminDashboard() {
     if (jData) setJournals(jData);
     const { data: qData } = await supabase.from("quotes").select("*").order("created_at", { ascending: false });
     if (qData) setQuotes(qData);
+    const { data: dData } = await supabase.from("drops").select("*").order("created_at", { ascending: false });
+    if (dData) setDrops(dData);
   };
 
   useEffect(() => {
@@ -320,6 +326,21 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
+  const handlePublishDrop = async () => {
+    if (!dropTitle || !dropUrl) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("drops").insert([{ title: dropTitle, instagram_url: dropUrl }]);
+      if (error) throw error;
+      setDropTitle("");
+      setDropUrl("");
+      setMessage("Drop publicado com sucesso!");
+    } catch (error: any) {
+      setMessage("Erro ao publicar Drop: " + error.message);
+    }
+    setLoading(false);
+  };
+
   const handlePublish = async () => {
     if (!generatedReview && !generatedBlogPost) return;
     
@@ -422,6 +443,14 @@ export default function AdminDashboard() {
     } catch (e: any) { alert(e.message); }
   };
 
+  const handleDeleteDrop = async (id: string) => {
+    if (!confirm("Deletar este Drop?")) return;
+    try {
+      await supabase.from("drops").delete().eq("id", id);
+      fetchManageData();
+    } catch (e: any) { alert(e.message); }
+  };
+
   const handleUpdateItem = async () => {
     if (!editingItem) return;
     setLoading(true);
@@ -451,8 +480,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
              <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.13</p>
-                <p>Atualizado em 20/09/2026 às 11:57</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.14</p>
+                <p>Atualizado em 20/09/2026 às 12:13</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -472,6 +501,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => { setActiveTab("quotes"); setQuoteText(""); }} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "quotes" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
             Pílulas (Quotes)
+          </button>
+          <button onClick={() => setActiveTab("drops")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "drops" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
+            Drops (Insta)
           </button>
           <button onClick={() => setActiveTab("inbox")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "inbox" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
             E-mails
@@ -612,8 +644,7 @@ export default function AdminDashboard() {
                       <select value={blogCategory} onChange={(e) => setBlogCategory(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
                         <option value="Confissões de Madrugada">🍷 Confissões de Madrugada</option>
                         <option value="Sobrevivendo com Humor">😂 Sobrevivendo com Humor</option>
-                        <option value="Estudei para te explicar">🔬 Estudei para te explicar</option>
-                        <option value="Drops do Insta">📱 Drops do Insta</option>
+                        <option value="Estudei para te explicar">🧠 Estudei para te explicar</option>
                       </select>
                     </div>
 
@@ -714,7 +745,6 @@ export default function AdminDashboard() {
                             <option value="Confissões de Madrugada">Confissões de Madrugada</option>
                             <option value="Sobrevivendo com Humor">Sobrevivendo com Humor</option>
                             <option value="Estudei para te explicar">Estudei para te explicar</option>
-                            <option value="Drops do Insta">Drops do Insta</option>
                           </>
                         )}
                       </select>
@@ -773,6 +803,21 @@ export default function AdminDashboard() {
                         </div>
                       ))}
                     </div>
+
+                    <div className="mt-12">
+                      <h3 className="text-2xl text-[var(--color-gold)] mb-6 font-serif border-b border-[var(--color-wine-light)] pb-2">Drops do Instagram</h3>
+                      {drops.length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhum drop publicado.</p> : drops.map(d => (
+                        <div key={d.id} className="flex justify-between items-center bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)]">
+                          <div>
+                            <span className="text-[var(--color-gold-light)] font-bold block">{d.title}</span>
+                            <span className="text-[var(--color-gold-light)] opacity-50 text-xs break-all">{d.instagram_url}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => handleDeleteDrop(d.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </>
                 )}
               </div>
@@ -799,6 +844,31 @@ export default function AdminDashboard() {
                     </div>
                   )}
                   {message && <p className="text-sm text-[#f3e5ab] mt-4 italic text-center font-bold">{message}</p>}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "drops" && (
+              <div className="space-y-8">
+                <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
+                  <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif text-center">Drops do Instagram</h3>
+                  <p className="text-center text-[var(--color-gold-light)] opacity-70 mb-6 text-sm">Cole aqui o link do Reels ou Post do seu Instagram para ele aparecer na galeria exclusiva de Drops.</p>
+                  
+                  <div className="space-y-4 max-w-2xl mx-auto">
+                    <div>
+                      <label className="block text-[var(--color-gold-light)] text-sm mb-2 uppercase tracking-widest">Título / Descrição Curta</label>
+                      <input type="text" value={dropTitle} onChange={(e) => setDropTitle(e.target.value)} placeholder="Ex: Minha rotina matinal ☀️" className="w-full bg-[var(--color-wine)] border border-[var(--color-wine-light)] rounded p-4 text-[var(--color-gold-light)] focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-[var(--color-gold-light)] text-sm mb-2 uppercase tracking-widest">Link do Instagram</label>
+                      <input type="text" value={dropUrl} onChange={(e) => setDropUrl(e.target.value)} placeholder="https://www.instagram.com/p/..." className="w-full bg-[var(--color-wine)] border border-[var(--color-wine-light)] rounded p-4 text-[var(--color-gold-light)] focus:outline-none" />
+                    </div>
+                    
+                    <button onClick={handlePublishDrop} disabled={loading || !dropUrl || !dropTitle} className="w-full mt-4 bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase hover:scale-105 transition-transform disabled:opacity-50">
+                      {loading ? "Publicando..." : "Publicar Drop"}
+                    </button>
+                    {message && <p className="text-sm text-[#f3e5ab] mt-4 italic text-center font-bold">{message}</p>}
+                  </div>
                 </div>
               </div>
             )}

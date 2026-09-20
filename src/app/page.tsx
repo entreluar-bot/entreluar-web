@@ -60,10 +60,14 @@ export default async function Home() {
             </Link>
           </div>
 
-          {/* Opção Secundária (História) */}
-          <div className="mt-4">
-            <Link href="/sobre" className="text-[var(--color-gold-light)] opacity-70 hover:opacity-100 text-xs md:text-sm border-b border-[var(--color-wine-light)] hover:border-[var(--color-gold)] pb-1 transition-all uppercase tracking-[0.15em]">
+          {/* Opções Secundárias (História / Drops) */}
+          <div className="mt-4 flex gap-6 items-center">
+            <Link href="/sobre" className="text-[var(--color-gold-light)] opacity-70 hover:opacity-100 text-xs md:text-sm border-b border-transparent hover:border-[var(--color-gold)] pb-1 transition-all uppercase tracking-[0.15em]">
               Nossa História
+            </Link>
+            <span className="text-[var(--color-wine-light)]">|</span>
+            <Link href="/drops" className="text-[var(--color-gold-light)] opacity-70 hover:opacity-100 text-xs md:text-sm border-b border-transparent hover:border-[var(--color-gold)] pb-1 transition-all uppercase tracking-[0.15em]">
+              Drops (Insta)
             </Link>
           </div>
 

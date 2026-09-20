@@ -7,7 +7,7 @@ export default async function Blog() {
   const supabase = await createClient();
   const { data: journal } = await supabase.from("journal").select("*").order("created_at", { ascending: false });
 
-  const categories = ["Confissões de Madrugada", "Sobrevivendo com Humor", "Estudei para te explicar", "Drops do Insta", "Geral"];
+  const categories = ["Confissões de Madrugada", "Sobrevivendo com Humor", "Estudei para te explicar", "Geral"];
   const groupedJournal: Record<string, any[]> = {};
   categories.forEach(c => groupedJournal[c] = []);
 
