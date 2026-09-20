@@ -77,8 +77,8 @@ export default async function Home() {
               Drops (Insta)
             </Link>
             <span className="text-[var(--color-wine-light)] hidden sm:inline">|</span>
-            <a href="https://instagram.com/entreluar_beauty" target="_blank" rel="noopener noreferrer" className="text-[var(--color-gold-light)] opacity-70 hover:opacity-100 text-xs md:text-sm border-b border-transparent hover:border-[var(--color-gold)] pb-1 transition-all uppercase tracking-[0.15em] flex items-center gap-1">
-              @entreluar_beauty
+            <a href="https://instagram.com/entreluarBeauty" target="_blank" rel="noopener noreferrer" className="text-[var(--color-gold-light)] opacity-70 hover:opacity-100 text-xs md:text-sm border-b border-transparent hover:border-[var(--color-gold)] pb-1 transition-all uppercase tracking-[0.15em] flex items-center gap-1">
+              @entreluarBeauty
             </a>
           </div>
 
