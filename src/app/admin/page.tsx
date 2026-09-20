@@ -89,7 +89,7 @@ export default function AdminDashboard() {
   
   // Newsletter
   const [subscribersCount, setSubscribersCount] = useState(0);
-  const [nlType, setNlType] = useState("site");
+  const [nlType, setNlType] = useState<"site" | "blog" | "produto" | "resenha" | "pilula">("site");
   const [nlContext, setNlContext] = useState("");
   const [nlSubject, setNlSubject] = useState("");
   const [nlHtml, setNlHtml] = useState("");
@@ -337,7 +337,7 @@ export default function AdminDashboard() {
       const res = await fetch("/api/send-newsletter", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ subject: nlSubject, html: nlHtml })
+        body: JSON.stringify({ subject: nlSubject, html: nlHtml, emailType: nlType })
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -563,8 +563,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.29</p>
-                <p>Atualizado em 20/09/2026 às 16:10</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.30</p>
+                <p>Atualizado em 20/09/2026 às 16:16</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -940,15 +940,17 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="space-y-4">
-                  <label className="block text-[var(--color-gold-light)] text-sm">Qual o objetivo do e-mail?</label>
-                  <select value={nlType} onChange={(e) => setNlType(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)] focus:outline-none">
-                    <option value="site">Apresentar o site (Boas-vindas/Geral)</option>
-                    <option value="blog">Avisar sobre novo post no Papo de Mulher</option>
-                    <option value="produto">Avisar sobre novo Achadinho na Vitrine</option>
+                  <label className="block text-[var(--color-gold-light)] text-sm">Qual experiência você quer criar?</label>
+                  <select value={nlType} onChange={(e) => setNlType(e.target.value as typeof nlType)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)] focus:outline-none">
+                    <option value="site">Boas-vindas à Entreluar</option>
+                    <option value="blog">Nova conversa no Diário</option>
+                    <option value="produto">Novo achado na Vitrine</option>
+                    <option value="resenha">Nova resenha com ciência</option>
+                    <option value="pilula">Pílula de inspiração e autocuidado</option>
                   </select>
 
                   <textarea 
-                    placeholder="O que você quer falar neste e-mail? (Ex: 'Quero falar do creme que postei ontem', ou 'Apenas dar bom dia e dizer que estou sumida')" 
+                    placeholder="Conte o tema, o sentimento que quer transmitir e, se houver, cole o link exato da página. Ex.: 'Apresentar minha resenha sobre vitamina C: https://entreluar.com.br/resenhas/...'" 
                     value={nlContext} 
                     onChange={(e) => setNlContext(e.target.value)} 
                     rows={3} 
@@ -981,7 +983,10 @@ export default function AdminDashboard() {
                       ></textarea>
                     </div>
 
-                    <div className="bg-white text-black p-6 rounded-lg overflow-auto max-h-96" dangerouslySetInnerHTML={{ __html: nlHtml }}></div>
+                    <div>
+                      <div className="mb-2 flex items-center justify-between"><label className="text-sm text-[var(--color-gold-light)]">Prévia fiel do e-mail</label><span className="eyebrow">Desktop e mobile</span></div>
+                      <iframe title="Prévia do e-mail premium" srcDoc={nlHtml} className="h-[620px] w-full rounded-[22px] border border-[var(--line)] bg-[#12070a]" sandbox="allow-popups allow-popups-to-escape-sandbox" />
+                    </div>
 
                     <button onClick={handleSendNewsletter} disabled={loading || subscribersCount === 0} className="w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform text-lg mt-4 shadow-xl">
                       🚀 Disparar para {subscribersCount} Assinantes
