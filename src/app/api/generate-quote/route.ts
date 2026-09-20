@@ -20,7 +20,6 @@ export async function POST(req: Request) {
 
 Retorne EXATAMENTE 15 frases. CADA FRASE EM UMA NOVA LINHA. Não coloque números, nem aspas, nem marcadores (bullets). Apenas o texto de cada frase em uma linha separada.`;
 
-    // Utilizando o modelo 1.5-flash que é absurdamente mais barato (quase de graça) para textos
     const response = await ai.models.generateContent({
       model: "gemini-3.6-flash",
       contents: prompt
