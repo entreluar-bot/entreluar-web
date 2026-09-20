@@ -42,7 +42,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
 
           <div 
             className="prose prose-invert prose-lg max-w-none text-[var(--color-gold-light)] opacity-90 prose-headings:text-[var(--color-gold)] prose-headings:font-serif prose-a:text-[var(--color-gold)] hover:prose-a:text-white prose-strong:text-[var(--color-gold)] leading-relaxed mb-12"
-            dangerouslySetInnerHTML={{ __html: produto.description }}
+            dangerouslySetInnerHTML={{ __html: produto.description.replace(/href="\/blog"/g, 'href="/resenhas"') }}
           />
 
           <div className="flex justify-center border-t border-[var(--color-wine-light)] pt-12">

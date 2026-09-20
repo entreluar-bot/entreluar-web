@@ -32,15 +32,21 @@ export default async function Blog() {
           </Link>
         </div>
 
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-6xl font-serif text-[var(--color-gold)] mb-4">O Diário</h1>
+        <div className="text-center mb-16 relative">
+          {/* Decorative Sparkles and Glow */}
+          <div className="absolute -top-10 left-1/4 w-32 h-32 bg-[var(--color-gold)] rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
+          <div className="absolute top-10 right-1/4 w-32 h-32 bg-[#ffc0cb] rounded-full blur-[100px] opacity-10 pointer-events-none"></div>
+          
+          <h1 className="text-4xl md:text-6xl font-serif text-[var(--color-gold)] mb-4 flex items-center justify-center gap-4">
+            🍷 Papo de Mulher 🌙
+          </h1>
           <p className="text-[var(--color-gold-light)] opacity-70 text-lg max-w-2xl mx-auto mb-8">
-            Relatos de uma mulher real. Aqui falamos sobre autocuidado, menopausa, ciência e rimos das nossas próprias crises.
+            Um diário aberto de uma mulher real. Aqui sentamos na varanda, tomamos um vinho e falamos sobre menopausa, crises existenciais, vitórias e rimos muito de nós mesmas!
           </p>
 
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-4 relative z-20">
             {activeCategories.map(cat => (
-              <a key={cat} href={`#${cat.replace(/\s+/g, "-")}`} className="border border-[var(--color-wine-light)] text-[var(--color-gold)] px-4 py-2 rounded-full text-sm uppercase tracking-widest hover:bg-[var(--color-wine)] transition-colors">
+              <a key={cat} href={`#${cat.replace(/\s+/g, "-")}`} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-[var(--color-wine-light)] transition-colors shadow-lg">
                 {cat}
               </a>
             ))}
@@ -49,31 +55,36 @@ export default async function Blog() {
 
         {activeCategories.map(category => {
           const posts = groupedJournal[category];
+          let categoryEmoji = "✨";
+          if (category === "Confissões de Madrugada") categoryEmoji = "🌌";
+          if (category === "Sobrevivendo com Humor") categoryEmoji = "😂";
+          
           return (
             <div key={category} id={category.replace(/\s+/g, "-")} className="mb-20 pt-8 scroll-mt-8">
-              <h2 className="text-3xl font-serif text-[var(--color-gold)] border-b border-[var(--color-wine-light)] pb-4 mb-8">
-                {category}
+              <h2 className="text-3xl font-serif text-[var(--color-gold)] border-b border-[var(--color-wine-light)] pb-4 mb-8 flex items-center gap-3">
+                <span>{categoryEmoji}</span> {category}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {posts.map((post) => (
-                  <article key={post.id} className="bg-[var(--color-wine)] rounded-xl overflow-hidden border border-[var(--color-wine-light)] shadow-xl hover:shadow-[0_0_20px_rgba(212,175,55,0.15)] transition-all group flex flex-col h-full">
+                  <article key={post.id} className="bg-[var(--color-wine)] rounded-xl overflow-hidden border border-[var(--color-gold)] shadow-[0_0_15px_rgba(212,175,55,0.05)] hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] hover:-translate-y-1 transition-all duration-300 group flex flex-col h-full">
                     {post.image_url && (
-                      <div className="h-48 overflow-hidden">
+                      <div className="h-48 overflow-hidden relative">
+                        <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-wine)] to-transparent z-10"></div>
                         <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       </div>
                     )}
-                    <div className="p-6 flex flex-col flex-1">
-                      <span className="text-[10px] uppercase tracking-widest text-[var(--color-gold-light)] opacity-50 mb-2 block">
+                    <div className="p-6 flex flex-col flex-1 relative z-20 -mt-4">
+                      <span className="text-[10px] uppercase tracking-widest text-[var(--color-gold-light)] opacity-70 mb-2 block font-bold">
                         {new Date(post.created_at).toLocaleDateString("pt-BR")}
                       </span>
-                      <h3 className="text-xl font-serif text-[var(--color-gold)] mb-3 line-clamp-2">
+                      <h3 className="text-xl font-serif text-white mb-3 line-clamp-2">
                         {post.title}
                       </h3>
                       <p className="text-[var(--color-gold-light)] opacity-80 text-sm line-clamp-3 flex-1 mb-6">
                         {post.content.replace(/<[^>]+>/g, "")}
                       </p>
-                      <Link href={`/blog/${post.id}`} className="inline-block border border-[var(--color-gold)] text-[var(--color-gold)] px-6 py-2 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-[var(--color-gold)] hover:text-[var(--color-wine-dark)] transition-colors text-center mt-auto">
-                        Ler Completo
+                      <Link href={`/blog/${post.id}`} className="inline-block border border-[var(--color-gold)] text-[var(--color-gold)] px-6 py-2 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-[var(--color-gold)] hover:text-[var(--color-wine-dark)] transition-colors text-center mt-auto shadow-md">
+                        Ler Desabafo
                       </Link>
                     </div>
                   </article>
@@ -82,6 +93,10 @@ export default async function Blog() {
             </div>
           );
         })}
+
+        {(!journal || journal.length === 0) && (
+          <p className="text-center text-[var(--color-gold-light)] opacity-70 mt-10">O diário está em branco por enquanto...</p>
+        )}
 
         <div className="mt-12 text-center pb-12">
           <Link href="/" className="text-[var(--color-gold)] hover:text-white transition-colors text-xs md:text-sm uppercase tracking-widest font-bold">
