@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 
 export const revalidate = 0;
 
-export default async function BlogPost({ params }: { params: { id: string } }) {
+export default async function BlogPost({ params }: { params: any }) {
+  const { id } = await params;
   const supabase = await createClient();
-  const { data: post } = await supabase.from("journal").select("*").eq("id", params.id).single();
+  const { data: post } = await supabase.from("journal").select("*").eq("id", id).single();
 
   if (!post) {
     notFound();
