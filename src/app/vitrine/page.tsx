@@ -62,6 +62,12 @@ export default async function Vitrine() {
             </div>
           );
         })}
+
+        <div className="mt-12 text-center pb-12">
+          <Link href="/" className="text-[var(--color-gold)] hover:text-white transition-colors text-xs md:text-sm uppercase tracking-widest font-bold">
+            &larr; Voltar para a Home
+          </Link>
+        </div>
       </main>
     </div>
   );
