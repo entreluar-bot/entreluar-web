@@ -49,7 +49,7 @@ const compressImage = (file: File): Promise<File> => {
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"product" | "blog" | "manage" | "inbox">("product");
+  const [activeTab, setActiveTab] = useState<"product" | "blog" | "manage" | "inbox" | "quotes">("product");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
   const [impressions, setImpressions] = useState("");
@@ -451,8 +451,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
              <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.09</p>
-                <p>Atualizado em 20/09/2026 às 11:20</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.10</p>
+                <p>Atualizado em 20/09/2026 às 11:30</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
