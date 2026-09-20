@@ -22,7 +22,7 @@ Retorne EXATAMENTE 15 frases. CADA FRASE EM UMA NOVA LINHA. Não coloque número
 
     // Utilizando o modelo 1.5-flash que é absurdamente mais barato (quase de graça) para textos
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       contents: prompt
     });
 

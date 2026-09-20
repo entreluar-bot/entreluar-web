@@ -67,15 +67,19 @@ export default async function Home() {
             </Link>
           </div>
 
-          {/* Opções Secundárias (História / Drops) */}
-          <div className="mt-4 flex gap-6 items-center">
+          {/* Opções Secundárias (História / Drops / Instagram) */}
+          <div className="mt-4 flex flex-wrap justify-center gap-4 md:gap-6 items-center px-4">
             <Link href="/sobre" className="text-[var(--color-gold-light)] opacity-70 hover:opacity-100 text-xs md:text-sm border-b border-transparent hover:border-[var(--color-gold)] pb-1 transition-all uppercase tracking-[0.15em]">
               Nossa História
             </Link>
-            <span className="text-[var(--color-wine-light)]">|</span>
+            <span className="text-[var(--color-wine-light)] hidden sm:inline">|</span>
             <Link href="/drops" className="text-[var(--color-gold-light)] opacity-70 hover:opacity-100 text-xs md:text-sm border-b border-transparent hover:border-[var(--color-gold)] pb-1 transition-all uppercase tracking-[0.15em]">
               Drops (Insta)
             </Link>
+            <span className="text-[var(--color-wine-light)] hidden sm:inline">|</span>
+            <a href="https://instagram.com/entreluar_beauty" target="_blank" rel="noopener noreferrer" className="text-[var(--color-gold-light)] opacity-70 hover:opacity-100 text-xs md:text-sm border-b border-transparent hover:border-[var(--color-gold)] pb-1 transition-all uppercase tracking-[0.15em] flex items-center gap-1">
+              @entreluar_beauty
+            </a>
           </div>
 
         </div>

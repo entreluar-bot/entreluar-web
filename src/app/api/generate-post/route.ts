@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     if (body.action === "brainstorm") { 
       const prompt = `Você é a Luana, mulher madura (50+) e criadora da Entreluar Beauty. Gere 3 ideias de temas/títulos BEM humorados, polemicos, íntimos ou desabafos sobre menopausa, autocuidado da pele madura, ou vida de mulher, para a coluna do seu Diário. Não use markdown. Ex: 1. A libertação que é parar de tingir o cabelo e focar no colágeno.`; 
       const response = await ai.models.generateContent({ 
-        model: "gemini-2.0-flash", 
+        model: "gemini-2.5-flash", 
         contents: prompt 
       }); 
       return NextResponse.json({ text: response.text }); 
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     contents.push(prompt); 
     
     const response = await ai.models.generateContent({ 
-      model: "gemini-2.0-flash", 
+      model: "gemini-2.5-flash", 
       contents
     }); 
     
