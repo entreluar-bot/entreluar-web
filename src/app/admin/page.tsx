@@ -332,12 +332,11 @@ export default function AdminDashboard() {
   };
 
   const handlePublishDrop = async () => {
-    if (!dropTitle || !dropUrl) return;
+    if (!dropUrl) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from("drops").insert([{ title: dropTitle, instagram_url: dropUrl }]);
+      const { error } = await supabase.from("drops").insert([{ title: "Drop", instagram_url: dropUrl }]);
       if (error) throw error;
-      setDropTitle("");
       setDropUrl("");
       setMessage("Drop publicado com sucesso!");
     } catch (error: any) {
@@ -503,8 +502,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.24</p>
-                <p>Atualizado em 20/09/2026 às 14:31</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.25</p>
+                <p>Atualizado em 20/09/2026 às 14:34</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -889,15 +888,11 @@ export default function AdminDashboard() {
                   
                   <div className="space-y-4 max-w-2xl mx-auto">
                     <div>
-                      <label className="block text-[var(--color-gold-light)] text-sm mb-2 uppercase tracking-widest">Título / Descrição Curta</label>
-                      <input type="text" value={dropTitle} onChange={(e) => setDropTitle(e.target.value)} placeholder="Ex: Minha rotina matinal ☀️" className="w-full bg-[var(--color-wine)] border border-[var(--color-wine-light)] rounded p-4 text-[var(--color-gold-light)] focus:outline-none" />
-                    </div>
-                    <div>
                       <label className="block text-[var(--color-gold-light)] text-sm mb-2 uppercase tracking-widest">Link do Instagram</label>
                       <input type="text" value={dropUrl} onChange={(e) => setDropUrl(e.target.value)} placeholder="https://www.instagram.com/p/..." className="w-full bg-[var(--color-wine)] border border-[var(--color-wine-light)] rounded p-4 text-[var(--color-gold-light)] focus:outline-none" />
                     </div>
                     
-                    <button onClick={handlePublishDrop} disabled={loading || !dropUrl || !dropTitle} className="w-full mt-4 bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase hover:scale-105 transition-transform disabled:opacity-50">
+                    <button onClick={handlePublishDrop} disabled={loading || !dropUrl} className="w-full mt-4 bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase hover:scale-105 transition-transform disabled:opacity-50">
                       {loading ? "Publicando..." : "Publicar Drop"}
                     </button>
                     {message && <p className="text-sm text-[#f3e5ab] mt-4 italic text-center font-bold">{message}</p>}
