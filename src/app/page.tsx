@@ -23,8 +23,12 @@ export default async function Home() {
       <main className="flex-1 flex flex-col items-center px-6 md:px-8 relative z-10 w-full mx-auto">
         
         {/* PRIMEIRA DOBRA (HERO) - FOCO EM CONVERSÃO E ELEGÂNCIA */}
-        <div className="w-full min-h-[85vh] flex flex-col items-center justify-center py-10 md:py-16 text-center animate-fade-in mt-6 md:mt-8">
+        <div className="w-full min-h-[85vh] flex flex-col items-center justify-center py-10 md:py-16 text-center animate-fade-in mt-6 md:mt-8 relative">
           
+          {/* Efeitos de Fundo Elegantes (Orbes) */}
+          <div className="absolute top-0 left-0 w-64 h-64 bg-[var(--color-gold)] rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
+          <div className="absolute bottom-10 right-0 w-64 h-64 bg-[#ffc0cb] rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
+
           {/* Logo / Título sutil */}
           <h2 className="text-[var(--color-gold)] font-serif text-3xl md:text-4xl mb-8 tracking-widest opacity-80">Entreluar</h2>
 
@@ -57,13 +61,16 @@ export default async function Home() {
             </div>
           )}
 
-          {/* 2 Opções Principais (Call-to-Actions) */}
-          <div className="flex flex-col sm:flex-row w-full gap-4 justify-center items-center max-w-lg mx-auto mb-10 px-4 sm:px-0">
-            <Link href="/vitrine" className="w-full sm:w-auto bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:scale-105 hover:shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all text-xs md:text-sm shadow-xl flex-1 flex items-center justify-center gap-2">
-              <span>Meus Achados</span>
+          {/* 3 Opções Principais (Call-to-Actions) */}
+          <div className="flex flex-col sm:flex-row w-full gap-4 justify-center items-center max-w-3xl mx-auto mb-10 px-4 sm:px-0 relative z-20">
+            <Link href="/vitrine" className="w-full sm:w-auto bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] px-6 py-4 rounded-full font-bold uppercase tracking-widest hover:scale-105 hover:shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all text-xs md:text-sm shadow-xl flex-1 flex items-center justify-center gap-2">
+              ✨ Meus Achados
             </Link>
-            <Link href="/blog" className="w-full sm:w-auto bg-[var(--color-wine)] border border-[var(--color-gold)] text-[var(--color-gold)] px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-[var(--color-wine-light)] hover:scale-105 transition-all text-xs md:text-sm shadow-xl flex-1 flex items-center justify-center gap-2">
-              <span>Papo de Mulher</span>
+            <Link href="/blog" className="w-full sm:w-auto bg-[var(--color-wine)] border border-[var(--color-gold)] text-[var(--color-gold)] px-6 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-[var(--color-wine-light)] hover:scale-105 hover:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all text-xs md:text-sm shadow-xl flex-1 flex items-center justify-center gap-2">
+              🍷 Papo de Mulher
+            </Link>
+            <Link href="/resenhas" className="w-full sm:w-auto bg-gradient-to-r from-[var(--color-wine)] to-[var(--color-wine-dark)] border border-[#ffc0cb] text-[#ffc0cb] px-6 py-4 rounded-full font-bold uppercase tracking-widest hover:scale-105 hover:shadow-[0_0_20px_rgba(255,192,203,0.2)] transition-all text-xs md:text-sm shadow-xl flex-1 flex items-center justify-center gap-2">
+              🔬 A Ciência
             </Link>
           </div>
 

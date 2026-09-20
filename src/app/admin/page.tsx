@@ -367,27 +367,37 @@ export default function AdminDashboard() {
 
       setMessage("Publicando nos canais...");
 
+      let journalId = null;
+      if (generatedBlogPost) {
+        const { data: journalData, error: blogError } = await supabase.from("journal").insert([{
+          title: generatedBlogTitle,
+          content: generatedBlogPost,
+          image_url: finalPublicUrl,
+          category: blogCategory
+        }]).select("id").single();
+        
+        if (blogError) throw blogError;
+        journalId = journalData?.id;
+      }
+
       if (activeTab === "product" && generatedReview) {
         const finalTitle = generatedProductName || title;
+        
+        // Se gerou um post de diário, atualizar o link genérico para o link exato da resenha
+        let finalReview = generatedReview;
+        if (journalId) {
+          finalReview = finalReview.replace(/href="\/blog"/g, `href="/resenhas/${journalId}"`);
+        }
+
         const { error: prodError } = await supabase.from("products").insert([{
           title: finalTitle,
-          description: generatedReview,
+          description: finalReview,
           shopee_link: link,
           image_url: finalPublicUrl,
           price,
           category: productCategory
         }]);
         if (prodError) throw prodError;
-      }
-
-      if (generatedBlogPost) {
-        const { error: blogError } = await supabase.from("journal").insert([{
-          title: generatedBlogTitle,
-          content: generatedBlogPost,
-          image_url: finalPublicUrl,
-          category: blogCategory
-        }]);
-        if (blogError) throw blogError;
       }
 
       setMessage("Sucesso! Tudo publicado no ar!");
@@ -484,8 +494,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.20</p>
-                <p>Atualizado em 20/09/2026 às 13:28</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.21</p>
+                <p>Atualizado em 20/09/2026 às 13:43</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
