@@ -1,3 +1,28 @@
-import{createClient}from"@/utils/supabase/server";import ProductCard from"../ProductCard";import type{Product}from"../types";
-export const revalidate=0;const categories=["SkinCare","Maquiagem","Cabelos","Suplementos","Geral"];
-export default async function Vitrine(){const supabase=await createClient();const{data}=await supabase.from("products").select("*").order("created_at",{ascending:false});const products=(data||[])as Product[];const active=categories.filter(c=>products.some(p=>(p.category||"Geral")===c));return <main className="site-shell"><div className="content-wrap"><header className="page-intro"><p className="eyebrow">Testado, estudado e contado sem filtro</p><h1 className="section-title mt-4">A minha coleção<br/><em>de achados</em></h1><p>Eu testo cada escolha como se fosse indicar para uma amiga — porque é exatamente isso que estou fazendo.</p><div className="chip-row">{active.map(c=><a className="chip" href={`#${c}`} key={c}>{c}</a>)}</div></header>{active.length?active.map(c=><section key={c} id={c} className="section-space scroll-mt-28"><div className="section-kicker"><h2 className="eyebrow">{c}</h2></div><div className="editorial-grid">{products.filter(p=>(p.category||"Geral")===c).map(p=><ProductCard key={p.id} produto={p}/>)}</div></section>):<div className="empty-state">Minha penteadeira está sendo organizada. Os novos achados chegam já já. ✨</div>}</div></main>}
+import { createClient } from "@/utils/supabase/server";
+import type { Product } from "../types";
+import ProductFilters from "./ProductFilters";
+
+export const revalidate = 0;
+
+export default async function Vitrine() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("products").select("*").order("created_at", { ascending: false });
+  const products = (data || []) as Product[];
+
+  return (
+    <main className="site-shell">
+      <div className="content-wrap">
+        <header className="page-intro">
+          <p className="eyebrow">Testado, estudado e contado sem filtro</p>
+          <h1 className="section-title mt-4">A minha coleção<br /><em>de achados</em></h1>
+          <p>Eu testo cada escolha como se fosse indicar para uma amiga — porque é exatamente isso que estou fazendo.</p>
+        </header>
+        {products.length > 0 ? (
+          <ProductFilters products={products} />
+        ) : (
+          <div className="empty-state">Minha penteadeira está sendo organizada. Os novos achados chegam já já. ✨</div>
+        )}
+      </div>
+    </main>
+  );
+}

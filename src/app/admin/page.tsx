@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 
 type NewsletterStatus = "idle" | "preparing" | "sending" | "complete" | "partial" | "failed";
 
@@ -528,6 +529,9 @@ export default function AdminDashboard() {
           image_url: finalPublicUrl,
           price,
           category: productCategory,
+          is_featured: false,
+          is_most_purchased: false,
+          is_most_viewed: false,
           ...insertPayload
         }]);
         if (prodError) throw prodError;
@@ -604,12 +608,22 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       if (editingItem.type === "product") {
-        await supabase.from("products").update({ title: editingItem.title, description: editingItem.content, category: editingItem.category }).eq("id", editingItem.id);
+        const { error } = await supabase.from("products").update({
+          title: editingItem.title,
+          description: editingItem.content,
+          category: editingItem.category,
+          is_featured: Boolean(editingItem.is_featured),
+          is_most_purchased: Boolean(editingItem.is_most_purchased),
+          is_most_viewed: Boolean(editingItem.is_most_viewed),
+        }).eq("id", editingItem.id);
+        if (error) throw error;
       } else {
-        await supabase.from("journal").update({ title: editingItem.title, content: editingItem.content, category: editingItem.category }).eq("id", editingItem.id);
+        const { error } = await supabase.from("journal").update({ title: editingItem.title, content: editingItem.content, category: editingItem.category }).eq("id", editingItem.id);
+        if (error) throw error;
       }
       setEditingItem(null);
       fetchManageData();
+      setMessage("Atualizado com sucesso! As classificações já estão refletidas nos filtros.");
     } catch (error: any) {
       alert(error.message);
     }
@@ -629,8 +643,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.33</p>
-                <p>Atualizado em 20/09/2026 às 18:02</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.34</p>
+                <p>Atualizado em 20/09/2026 às 18:37</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -707,16 +721,7 @@ export default function AdminDashboard() {
                       <div>
                         <label className="block text-[var(--color-gold-light)] text-sm mb-1">Categoria</label>
                         <select value={productCategory} onChange={(e) => setProductCategory(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
-                            <option value="SkinCare">SkinCare</option>
-                            <option value="Maquiagem">Maquiagem</option>
-                            <option value="Cabelos">Cabelos</option>
-                            <option value="Corpo">Corpo</option>
-                            <option value="Mãos">Mãos</option>
-                            <option value="Unhas">Unhas</option>
-                            <option value="Suplementos">Suplementos</option>
-                            <option value="Acessórios">Acessórios</option>
-                            <option value="Roupas">Roupas</option>
-                            <option value="Outros Achadinhos">Outros Achadinhos</option>
+                            {PRODUCT_CATEGORIES.map((category) => <option value={category} key={category}>{category}</option>)}
                         </select>
                       </div>
                     </div>
@@ -920,14 +925,7 @@ export default function AdminDashboard() {
                       <select value={editingItem.category || ""} onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })} className="w-48 bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-2 py-2 text-[var(--color-gold-light)] text-sm">
                         {editingItem.type === "product" ? (
                           <>
-                            <option value="SkinCare">SkinCare</option>
-                            <option value="Maquiagem">Maquiagem</option>
-                            <option value="Cabelos">Cabelos</option>
-                            <option value="Corpo">Corpo</option>
-                            <option value="Mãos">Mãos</option>
-                            <option value="Unhas">Unhas</option>
-                            <option value="Suplementos">Suplementos</option>
-                            <option value="Outros Achadinhos">Outros Achadinhos</option>
+                            {PRODUCT_CATEGORIES.map((category) => <option value={category} key={category}>{category}</option>)}
                           </>
                         ) : (
                           <>
@@ -938,6 +936,24 @@ export default function AdminDashboard() {
                         )}
                       </select>
                     </div>
+                    {editingItem.type === "product" && (
+                      <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                        <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Filtros especiais</legend>
+                        <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">Você pode marcar mais de uma opção. Os selos e filtros aparecem imediatamente em Achados.</p>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          {[
+                            ["is_featured", "Em destaque", "Curadoria principal"],
+                            ["is_most_purchased", "Mais comprado", "Favorito de compra"],
+                            ["is_most_viewed", "Mais visto", "Muito procurado"],
+                          ].map(([field, label, description]) => (
+                            <label key={field} className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${editingItem[field] ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
+                              <input type="checkbox" checked={Boolean(editingItem[field])} onChange={(event) => setEditingItem({ ...editingItem, [field]: event.target.checked })} className="h-5 w-5 accent-[var(--color-gold)]" />
+                              <span><span className="block text-sm font-bold text-[var(--color-gold-light)]">{label}</span><span className="block text-[11px] text-[var(--color-gold-light)] opacity-55">{description}</span></span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                    )}
                     <textarea value={editingItem.content} onChange={(e) => setEditingItem({ ...editingItem, content: e.target.value })} rows={15} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed border border-[var(--color-wine-light)] p-4 rounded" ></textarea>
                     <div className="flex gap-4 mt-4">
                       <button onClick={() => setEditingItem(null)} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-3 rounded font-bold uppercase">
@@ -953,10 +969,18 @@ export default function AdminDashboard() {
                     <div>
                       <h3 className="text-2xl text-[var(--color-gold)] mb-6 font-serif border-b border-[var(--color-wine-light)] pb-2">Vitrine (Produtos)</h3>
                       {products.length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhum produto publicado.</p> : products.map(p => (
-                        <div key={p.id} className="flex justify-between items-center bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)]">
-                          <span className="text-[var(--color-gold-light)] font-bold">{p.title}</span>
+                        <div key={p.id} className="flex flex-col justify-between gap-3 bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)] sm:flex-row sm:items-center">
+                          <div>
+                            <span className="text-[var(--color-gold-light)] font-bold">{p.title}</span>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              <span className="rounded-full border border-[var(--color-wine-light)] px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold-light)] opacity-70">{p.category || "Sem categoria"}</span>
+                              {p.is_featured && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Destaque</span>}
+                              {p.is_most_purchased && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Mais comprado</span>}
+                              {p.is_most_viewed && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Mais visto</span>}
+                            </div>
+                          </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "product", id: p.id, title: p.title, content: p.description, category: p.category || "SkinCare" })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => setEditingItem({ type: "product", id: p.id, title: p.title, content: p.description, category: p.category || "SkinCare", is_featured: Boolean(p.is_featured), is_most_purchased: Boolean(p.is_most_purchased), is_most_viewed: Boolean(p.is_most_viewed) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteProduct(p.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>
