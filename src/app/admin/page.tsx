@@ -58,6 +58,7 @@ export default function AdminDashboard() {
   const [displayImageFile, setDisplayImageFile] = useState<File | null>(null);
   const [displayPreviewUrl, setDisplayPreviewUrl] = useState<string | null>(null);
   const [price, setPrice] = useState("");
+  const [productCategory, setProductCategory] = useState("SkinCare");
   
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -306,7 +307,8 @@ export default function AdminDashboard() {
           description: generatedReview,
           shopee_link: link,
           image_url: finalPublicUrl,
-          price
+          price,
+          category: productCategory
         }]);
         if (prodError) throw prodError;
       }
@@ -374,9 +376,9 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       if (editingItem.type === "product") {
-        await supabase.from("products").update({ title: editingItem.title, description: editingItem.content }).eq("id", editingItem.id);
+        await supabase.from("products").update({ title: editingItem.title, description: editingItem.content, category: editingItem.category }).eq("id", editingItem.id);
       } else {
-        await supabase.from("journal").update({ title: editingItem.title, content: editingItem.content }).eq("id", editingItem.id);
+        await supabase.from("journal").update({ title: editingItem.title, content: editingItem.content, category: editingItem.category }).eq("id", editingItem.id);
       }
       setEditingItem(null);
       fetchManageData();
@@ -398,8 +400,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
              <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.07</p>
-                <p>Atualizado em 20/09/2026 às 11:00</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.08</p>
+                <p>Atualizado em 20/09/2026 às 11:05</p>
             </div>
             <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
               Sair do Painel
@@ -455,7 +457,7 @@ export default function AdminDashboard() {
                       <input type="text" value={link} onChange={(e) => setLink(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-60 hover:opacity-100 transition-opacity">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-60 hover:opacity-100 transition-opacity">
                       <div>
                         <label className="block text-[var(--color-gold-light)] text-sm mb-1">Dica de Nome (Opcional)</label>
                         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Deixe a IA descobrir" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
@@ -463,6 +465,15 @@ export default function AdminDashboard() {
                       <div>
                         <label className="block text-[var(--color-gold-light)] text-sm mb-1">Preço (Opcional)</label>
                         <input type="text" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
+                      </div>
+                      <div>
+                        <label className="block text-[var(--color-gold-light)] text-sm mb-1">Categoria</label>
+                        <select value={productCategory} onChange={(e) => setProductCategory(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
+                          <option value="SkinCare">SkinCare</option>
+                          <option value="Maquiagem">Maquiagem</option>
+                          <option value="Cabelos">Cabelos</option>
+                          <option value="Suplementos">Suplementos</option>
+                        </select>
                       </div>
                     </div>
 
@@ -634,7 +645,26 @@ export default function AdminDashboard() {
                     <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif">
                       Editando {editingItem.type === "product" ? "Produto da Vitrine" : "Artigo do Diário"}
                     </h3>
-                    <input type="text" value={editingItem.title} onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })} className="w-full bg-transparent border-b border-[var(--color-wine-light)] py-2 text-[var(--color-gold)] font-bold mb-4 focus:outline-none" />
+                    <div className="flex gap-4 mb-4">
+                      <input type="text" value={editingItem.title} onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })} className="flex-1 bg-transparent border-b border-[var(--color-wine-light)] py-2 text-[var(--color-gold)] font-bold focus:outline-none" />
+                      <select value={editingItem.category || ""} onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })} className="w-48 bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-2 py-2 text-[var(--color-gold-light)] text-sm">
+                        {editingItem.type === "product" ? (
+                          <>
+                            <option value="SkinCare">SkinCare</option>
+                            <option value="Maquiagem">Maquiagem</option>
+                            <option value="Cabelos">Cabelos</option>
+                            <option value="Suplementos">Suplementos</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="Confissões de Madrugada">Confissões de Madrugada</option>
+                            <option value="Sobrevivendo com Humor">Sobrevivendo com Humor</option>
+                            <option value="Estudei para te explicar">Estudei para te explicar</option>
+                            <option value="Drops do Insta">Drops do Insta</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
                     <textarea value={editingItem.content} onChange={(e) => setEditingItem({ ...editingItem, content: e.target.value })} rows={15} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed border border-[var(--color-wine-light)] p-4 rounded" ></textarea>
                     <div className="flex gap-4 mt-4">
                       <button onClick={() => setEditingItem(null)} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-3 rounded font-bold uppercase">
@@ -653,7 +683,7 @@ export default function AdminDashboard() {
                         <div key={p.id} className="flex justify-between items-center bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)]">
                           <span className="text-[var(--color-gold-light)] font-bold">{p.title}</span>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "product", id: p.id, title: p.title, content: p.description })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => setEditingItem({ type: "product", id: p.id, title: p.title, content: p.description, category: p.category || "SkinCare" })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteProduct(p.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>
@@ -669,7 +699,7 @@ export default function AdminDashboard() {
                             <span className="text-[var(--color-gold-light)] opacity-50 text-xs uppercase">{j.category || "Sem categoria"}</span>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral" })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteJournal(j.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>
