@@ -13,7 +13,7 @@ export const SIMPLE_LANGUAGE_RULES = `
 LINGUAGEM:
 - Prefira palavras cotidianas, frases naturais e explicações concretas.
 - Explique termos técnicos na primeira ocorrência e dispense jargão que não ajuda a decisão.
-- Humor é tempero, não fantasia biográfica nem deboche com a idade.
+- Inclua uma pitada de bom humor observacional e natural. Humor é tempero, não obrigação em toda frase, fantasia biográfica nem deboche com a idade.
 - Evite voz publicitária, superlativos vazios, urgência falsa e promessas milagrosas.`;
 
 export const SCIENCE_RULES = `

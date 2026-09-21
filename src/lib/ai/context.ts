@@ -106,5 +106,12 @@ export async function suggestMemoryFromNotes(supabase: SupabaseClient, userId: s
 
 export function parseJson<T>(raw: string | undefined): T {
   const cleaned = (raw || "{}").replace(/^```json/i, "").replace(/^```/i, "").replace(/```$/i, "").trim();
-  return JSON.parse(cleaned) as T;
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+  const candidate = firstBrace >= 0 && lastBrace > firstBrace ? cleaned.slice(firstBrace, lastBrace + 1) : cleaned;
+  try {
+    return JSON.parse(candidate) as T;
+  } catch {
+    throw new Error("A resposta da IA veio incompleta. Tente gerar novamente.");
+  }
 }

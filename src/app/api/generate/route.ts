@@ -85,7 +85,7 @@ ${cachedResearch ? `PESQUISA RECENTE EM CACHE (reutilize para economizar busca; 
     if (imagePart) contents.push(imagePart);
     contents.push(prompt);
 
-    const response = await ai.models.generateContent({
+    let response = await ai.models.generateContent({
       model: "gemini-3.6-flash",
       contents,
       config: {
@@ -97,8 +97,35 @@ ${cachedResearch ? `PESQUISA RECENTE EM CACHE (reutilize para economizar busca; 
       },
     });
 
-    const generated = parseJson<ProductGeneration>(response.text);
-    const sources = isAccessory ? [] : (cachedResearch?.sources || extractGroundingSources(response));
+    const researchResponse = response;
+    let generated: ProductGeneration;
+    try {
+      generated = parseJson<ProductGeneration>(response.text);
+    } catch {
+      const retryPrompt = `${prompt}
+
+A resposta anterior veio incompleta. Gere novamente TODO o objeto JSON, do início ao fim, seguindo o schema solicitado. Seja mais concisa, preserve os fatos já apurados e não acrescente pesquisa ou alegações novas. Não explique a correção e não use markdown.
+
+RASCUNHO PARCIAL PARA RECUPERAR FATOS, SEM COPIAR O CORTE FINAL:
+${(response.text || "").slice(0, 12000)}`;
+      const retryContents: Array<string | { inlineData: { data: string; mimeType: string } }> = [];
+      if (imagePart) retryContents.push(imagePart);
+      retryContents.push(retryPrompt);
+      response = await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: retryContents,
+        config: {
+          responseMimeType: "application/json",
+          responseJsonSchema: productSchema,
+          temperature: 0.35,
+          maxOutputTokens: isAccessory ? 1200 : 4200,
+        },
+      });
+      generated = parseJson<ProductGeneration>(response.text);
+    }
+
+    const retried = response !== researchResponse;
+    const sources = isAccessory ? [] : (cachedResearch?.sources || extractGroundingSources(researchResponse));
     if (!isAccessory) generated.blogPost += sourcesHtml(sources);
     if (!isAccessory && cacheKey && !cachedResearch && generated.researchSummary) {
       const expiresAt = new Date(); expiresAt.setDate(expiresAt.getDate() + 30);
@@ -113,9 +140,9 @@ ${cachedResearch ? `PESQUISA RECENTE EM CACHE (reutilize para economizar busca; 
       notablePhrases: generated.notablePhrases,
       memoryIds: context.memoryIds,
       sourceCount: sources.length,
-      inputTokens: response.usageMetadata?.promptTokenCount,
-      outputTokens: response.usageMetadata?.candidatesTokenCount,
-      searchQueries: response.candidates?.[0]?.groundingMetadata?.webSearchQueries?.length || 0,
+      inputTokens: (researchResponse.usageMetadata?.promptTokenCount || 0) + (retried ? response.usageMetadata?.promptTokenCount || 0 : 0),
+      outputTokens: (researchResponse.usageMetadata?.candidatesTokenCount || 0) + (retried ? response.usageMetadata?.candidatesTokenCount || 0 : 0),
+      searchQueries: researchResponse.candidates?.[0]?.groundingMetadata?.webSearchQueries?.length || 0,
     });
     await suggestMemoryFromNotes(supabase, user.id, impressions, topicTags(title, impressions, isAccessory ? "moda acessorio" : "skincare cosmetico"));
     return NextResponse.json({ ...generated, sources });
