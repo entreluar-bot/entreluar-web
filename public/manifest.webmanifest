@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Entreluar",
+  "short_name": "Entreluar",
+  "description": "Beleza madura, menopausa e autocuidado numa conversa entre amigas.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#16070b",
+  "theme_color": "#16070b",
+  "categories": ["lifestyle", "beauty"],
+  "icons": [
+    { "src": "/icons/entreluar-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/entreluar-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/entreluar-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

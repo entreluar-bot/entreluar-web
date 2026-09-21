@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
+import InstallAppButton from "../ui/InstallAppButton";
 
 type NewsletterStatus = "idle" | "preparing" | "sending" | "complete" | "partial" | "failed";
 
@@ -122,7 +123,10 @@ export default function AdminDashboard() {
   const [journals, setJournals] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
   
-  const [blogCategory, setBlogCategory] = useState("Confissões de Madrugada");
+  const [blogCategory, setBlogCategory] = useState("Papo de Mulher Madura");
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [isMostViewed, setIsMostViewed] = useState(false);
+  const [isNew, setIsNew] = useState(true);
   
   // Newsletter
   const [subscribersCount, setSubscribersCount] = useState(0);
@@ -592,11 +596,18 @@ export default function AdminDashboard() {
           content: generatedBlogPost,
           image_url: finalPublicUrl,
           category: blogCategory,
+          is_featured: isFeatured,
+          is_most_viewed: isMostViewed,
+          is_new: isNew,
           ...insertPayload
         }]).select("id").single();
         
         if (blogError) throw blogError;
         journalId = journalData?.id;
+
+        if (isNew && journalId) {
+          await supabase.from("journal").update({ is_new: false }).eq("category", blogCategory).neq("id", journalId);
+        }
       }
 
       if (activeTab === "product" && generatedReview) {
@@ -608,19 +619,24 @@ export default function AdminDashboard() {
           finalReview = finalReview.replace(/href="\/blog"/g, `href="/resenhas/${journalId}"`);
         }
 
-        const { error: prodError } = await supabase.from("products").insert([{
+        const { data: prodData, error: prodError } = await supabase.from("products").insert([{
           title: finalTitle,
           description: finalReview,
           shopee_link: link,
           image_url: finalPublicUrl,
           price,
           category: productCategory,
-          is_featured: false,
-          is_most_purchased: false,
-          is_most_viewed: false,
+          is_featured: isFeatured,
+          is_most_purchased: isMostViewed,
+          is_most_viewed: isMostViewed,
+          is_new: isNew,
           ...insertPayload
-        }]);
+        }]).select("id").single();
         if (prodError) throw prodError;
+
+        if (isNew && prodData?.id) {
+          await supabase.from("products").update({ is_new: false }).neq("id", prodData.id);
+        }
       }
 
       setMessage("Sucesso! Tudo publicado no ar!");
@@ -701,10 +717,18 @@ export default function AdminDashboard() {
           is_featured: Boolean(editingItem.is_featured),
           is_most_purchased: Boolean(editingItem.is_most_purchased),
           is_most_viewed: Boolean(editingItem.is_most_viewed),
+          is_new: Boolean(editingItem.is_new),
         }).eq("id", editingItem.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("journal").update({ title: editingItem.title, content: editingItem.content, category: editingItem.category }).eq("id", editingItem.id);
+        const { error } = await supabase.from("journal").update({ 
+          title: editingItem.title, 
+          content: editingItem.content, 
+          category: editingItem.category,
+          is_featured: Boolean(editingItem.is_featured),
+          is_most_viewed: Boolean(editingItem.is_most_viewed),
+          is_new: Boolean(editingItem.is_new)
+        }).eq("id", editingItem.id);
         if (error) throw error;
       }
       setEditingItem(null);
@@ -729,12 +753,15 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.42</p>
-                <p>Atualizado em 20/09/2026 às 22:02</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.44</p>
+                <p>Atualizado em 21/09/2026 às 08:14</p>
             </div>
-            <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
-              Sair do Painel
-            </button>
+            <div className="flex flex-wrap justify-end gap-2">
+              <InstallAppButton variant="admin" />
+              <button onClick={() => { supabase.auth.signOut(); window.location.href = "/admin/login"; }} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine-light)] transition-colors">
+                Sair do Painel
+              </button>
+            </div>
           </div>
         </header>
 
@@ -743,7 +770,7 @@ export default function AdminDashboard() {
             Vitrine (Mágica)
           </button>
           <button onClick={() => { setActiveTab("blog"); setGeneratedBlogPost(""); }} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "blog" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
-            Crônicas (Diário)
+            Papo de Mulher Madura
           </button>
           <button onClick={() => setActiveTab("manage")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "manage" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
             Gerenciar
@@ -816,9 +843,27 @@ export default function AdminDashboard() {
                     </div>
 
                       <div>
-                        <label className="block text-[var(--color-gold-light)] text-sm mb-1">Data Retroativa (Opcional)</label>
+                        <label className="block text-[var(--color-gold-light)] text-sm mb-1 font-bold">Data da Postagem (Opcional)</label>
                         <input type="date" value={postDate} onChange={(e) => setPostDate(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)] mb-4" />
                       </div>
+
+                      <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                        <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Filtros Especiais da Postagem</legend>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                            <label className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${isFeatured ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
+                              <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} className="h-5 w-5 accent-[var(--color-gold)]" />
+                              <span><span className="block text-sm font-bold text-[var(--color-gold-light)]">Em destaque</span></span>
+                            </label>
+                            <label className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${isMostViewed ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
+                              <input type="checkbox" checked={isMostViewed} onChange={(e) => setIsMostViewed(e.target.checked)} className="h-5 w-5 accent-[var(--color-gold)]" />
+                              <span><span className="block text-sm font-bold text-[var(--color-gold-light)]">Mais Lido/Visto</span></span>
+                            </label>
+                            <label className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${isNew ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
+                              <input type="checkbox" checked={isNew} onChange={(e) => setIsNew(e.target.checked)} className="h-5 w-5 accent-[var(--color-gold)]" />
+                              <span><span className="block text-sm font-bold text-[var(--color-gold-light)]">Selo "Novo"</span><span className="block text-[11px] text-[var(--color-gold-light)] opacity-55">Apaga post anterior</span></span>
+                            </label>
+                        </div>
+                      </fieldset>
 
                       <div className="grid gap-4 md:grid-cols-2">
                         <div>
@@ -929,16 +974,33 @@ export default function AdminDashboard() {
                     <div>
                       <label className="block text-[var(--color-gold-light)] text-sm mb-1">Categoria no Diário</label>
                       <select value={blogCategory} onChange={(e) => setBlogCategory(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
-                        <option value="Confissões de Madrugada">🍷 Confissões de Madrugada</option>
-                        <option value="Sobrevivendo com Humor">😂 Sobrevivendo com Humor</option>
+                        <option value="Papo de Mulher Madura">🍷 Papo de Mulher Madura</option>
                         <option value="Estudei para te explicar">🧠 Estudei para te explicar</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Data Retroativa (Opcional)</label>
+                      <label className="block text-[var(--color-gold-light)] text-sm mb-1 font-bold">Data da Postagem (Opcional)</label>
                       <input type="date" value={postDate} onChange={(e) => setPostDate(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)] mb-4" />
                     </div>
+
+                    <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                      <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Filtros Especiais da Postagem</legend>
+                      <div className="grid gap-3 sm:grid-cols-3">
+                          <label className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${isFeatured ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
+                            <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} className="h-5 w-5 accent-[var(--color-gold)]" />
+                            <span><span className="block text-sm font-bold text-[var(--color-gold-light)]">Em destaque</span></span>
+                          </label>
+                          <label className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${isMostViewed ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
+                            <input type="checkbox" checked={isMostViewed} onChange={(e) => setIsMostViewed(e.target.checked)} className="h-5 w-5 accent-[var(--color-gold)]" />
+                            <span><span className="block text-sm font-bold text-[var(--color-gold-light)]">Mais Lido/Visto</span></span>
+                          </label>
+                          <label className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${isNew ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
+                            <input type="checkbox" checked={isNew} onChange={(e) => setIsNew(e.target.checked)} className="h-5 w-5 accent-[var(--color-gold)]" />
+                            <span><span className="block text-sm font-bold text-[var(--color-gold-light)]">Selo "Novo"</span><span className="block text-[11px] text-[var(--color-gold-light)] opacity-55">Apaga post anterior</span></span>
+                          </label>
+                      </div>
+                    </fieldset>
 
                     <div>
                       <label className="block text-[var(--color-gold-light)] text-sm mb-1">Suas Impressões / Anotações (A IA vai transformar isso em texto!)</label>
@@ -1031,22 +1093,38 @@ export default function AdminDashboard() {
                           </>
                         ) : (
                           <>
-                            <option value="Confissões de Madrugada">Confissões de Madrugada</option>
-                            <option value="Sobrevivendo com Humor">Sobrevivendo com Humor</option>
+                            <option value="Papo de Mulher Madura">Papo de Mulher Madura</option>
                             <option value="Estudei para te explicar">Estudei para te explicar</option>
                           </>
                         )}
                       </select>
                     </div>
-                    {editingItem.type === "product" && (
+                    {editingItem.type === "product" ? (
                       <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                         <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Filtros especiais</legend>
                         <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">Você pode marcar mais de uma opção. Os selos e filtros aparecem imediatamente em Achados.</p>
-                        <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="grid gap-3 sm:grid-cols-4">
                           {[
                             ["is_featured", "Em destaque", "Curadoria principal"],
                             ["is_most_purchased", "Mais comprado", "Favorito de compra"],
                             ["is_most_viewed", "Mais visto", "Muito procurado"],
+                            ["is_new", "Novo", "Postagem recente"],
+                          ].map(([field, label, description]) => (
+                            <label key={field} className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${editingItem[field] ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
+                              <input type="checkbox" checked={Boolean(editingItem[field])} onChange={(event) => setEditingItem({ ...editingItem, [field]: event.target.checked })} className="h-5 w-5 accent-[var(--color-gold)]" />
+                              <span><span className="block text-sm font-bold text-[var(--color-gold-light)]">{label}</span><span className="block text-[11px] text-[var(--color-gold-light)] opacity-55">{description}</span></span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                    ) : (
+                      <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                        <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Filtros especiais</legend>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          {[
+                            ["is_featured", "Em destaque", "Destaque"],
+                            ["is_most_viewed", "Mais lido", "Top acessos"],
+                            ["is_new", "Novo", "Postagem recente"],
                           ].map(([field, label, description]) => (
                             <label key={field} className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${editingItem[field] ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
                               <input type="checkbox" checked={Boolean(editingItem[field])} onChange={(event) => setEditingItem({ ...editingItem, [field]: event.target.checked })} className="h-5 w-5 accent-[var(--color-gold)]" />
@@ -1090,15 +1168,41 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="mt-12">
-                      <h3 className="text-2xl text-[var(--color-gold)] mb-6 font-serif border-b border-[var(--color-wine-light)] pb-2">Diário (Artigos)</h3>
-                      {journals.length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhum artigo publicado.</p> : journals.map(j => (
+                      <h3 className="text-2xl text-[var(--color-gold)] mb-6 font-serif border-b border-[var(--color-wine-light)] pb-2">Papo de Mulher Madura</h3>
+                      {journals.filter(j => j.category !== "Estudei para te explicar").length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhum artigo publicado.</p> : journals.filter(j => j.category !== "Estudei para te explicar").map(j => (
                         <div key={j.id} className="flex justify-between items-center bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)]">
                           <div>
                             <span className="text-[var(--color-gold-light)] font-bold block">{j.title}</span>
                             <span className="text-[var(--color-gold-light)] opacity-50 text-xs uppercase">{j.category || "Sem categoria"}</span>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {j.is_featured && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Destaque</span>}
+                              {j.is_most_viewed && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Mais lido</span>}
+                              {j.is_new && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Novo</span>}
+                            </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral" })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => handleDeleteJournal(j.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-12">
+                      <h3 className="text-2xl text-[var(--color-gold)] mb-6 font-serif border-b border-[var(--color-wine-light)] pb-2">Estudei para te explicar</h3>
+                      {journals.filter(j => j.category === "Estudei para te explicar").length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhuma resenha publicada.</p> : journals.filter(j => j.category === "Estudei para te explicar").map(j => (
+                        <div key={j.id} className="flex justify-between items-center bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)]">
+                          <div>
+                            <span className="text-[var(--color-gold-light)] font-bold block">{j.title}</span>
+                            <span className="text-[var(--color-gold-light)] opacity-50 text-xs uppercase">{j.category || "Sem categoria"}</span>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {j.is_featured && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Destaque</span>}
+                              {j.is_most_viewed && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Mais lido</span>}
+                              {j.is_new && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Novo</span>}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteJournal(j.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>

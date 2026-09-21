@@ -1,0 +1,20 @@
+{
+  "id": "/admin/",
+  "name": "Ateliê da Luana",
+  "short_name": "Ateliê",
+  "description": "Painel de conteúdo da Entreluar.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#21090f",
+  "theme_color": "#3b101a",
+  "categories": ["productivity"],
+  "icons": [
+    { "src": "/icons/admin-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/admin-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/admin-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

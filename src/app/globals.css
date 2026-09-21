@@ -18,3 +18,11 @@ input,textarea,select{border-color:var(--line)!important;border-radius:14px!impo
 .admin-shell{background:linear-gradient(rgba(22,7,11,.78),rgba(22,7,11,.96)),url('/entreluar-lustre.png') center/cover fixed,var(--ink)}.admin-tabs button{flex:0 0 auto;min-width:145px;border:1px solid transparent;border-radius:16px!important}.admin-tabs button[class*="bg-[var(--color-wine)]"]{border-color:var(--line)!important;background:rgba(111,35,53,.55)!important;box-shadow:0 10px 30px rgba(0,0,0,.2)}
 @media(min-width:760px){.site-shell{padding:112px 34px 90px}.desktop-nav{display:flex}.header-cta{display:inline-flex}.newsletter-trigger__full{display:inline}.newsletter-trigger__short{display:none}.bottom-nav{display:none}.hero{grid-template-columns:minmax(0,.9fr) minmax(420px,1.1fr);gap:54px}.hero-portrait{min-height:690px}.editorial-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* PWA installation controls and safe-area accommodation. */
+.site-header{top:max(12px,env(safe-area-inset-top))}
+.install-app-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;border:1px solid rgba(230,189,120,.48);border-radius:999px;padding:0 12px;color:var(--champagne-pale);background:rgba(230,189,120,.1);font-size:.62rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;transition:border-color .25s ease,background .25s ease,transform .25s ease}
+.install-app-button:hover{border-color:var(--champagne);background:rgba(230,189,120,.18);transform:translateY(-1px)}
+.install-app-button__icon{font-size:1rem;line-height:1}
+.install-app-button--admin{border-radius:8px;padding-inline:14px;color:var(--color-gold);background:rgba(230,189,120,.08)}
+@media(max-width:430px){.install-app-button:not(.install-app-button--admin){width:44px;padding:0}.install-app-button:not(.install-app-button--admin) .install-app-button__label{display:none}.site-header__inner{padding-left:14px}.brand{font-size:1.48rem}}
