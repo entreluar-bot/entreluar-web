@@ -52,7 +52,7 @@ Não copie as notas literalmente: preserve o sentido e desenvolva somente o que 
     const response = await ai.models.generateContent({ 
       model: "gemini-3.6-flash", 
       contents,
-      config: { responseMimeType: "application/json", responseJsonSchema: postSchema, temperature: 0.85, maxOutputTokens: 2600 },
+      config: { responseMimeType: "application/json", responseJsonSchema: postSchema, temperature: 0.85, maxOutputTokens: 8192 },
     }); 
 
     const generated = parseJson<{ title: string; text: string; imagePrompt: string; openingStyle: string; structureStyle: string; closingStyle: string; notablePhrases: string[] }>(response.text);
