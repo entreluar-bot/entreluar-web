@@ -46,7 +46,8 @@ export async function POST(req: Request) {
 
     const contentType = isAccessory ? "accessory" : "review";
     const context = await loadAiContext(supabase, user.id, contentType, topicTags(title, impressions, isAccessory ? "moda acessorio" : "skincare cosmetico"));
-    const cacheKey = String(title || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 120);
+    const cacheSubject = String(title || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 112);
+    const cacheKey = cacheSubject ? `review-v2-${cacheSubject}` : "";
     const { data: cachedResearch } = !isAccessory && cacheKey
       ? await supabase.from("ai_research_cache").select("summary,sources").eq("user_id", user.id).eq("cache_key", cacheKey).gt("expires_at", new Date().toISOString()).maybeSingle()
       : { data: null };
@@ -81,16 +82,25 @@ Notas pessoais: "${impressions || "Nenhuma experiência pessoal informada; trate
 Status confirmado pelas informações da Luana: ${resolvedExperienceStatus}. Tempo de uso: ${testDuration || "não informado"}. Respeite exatamente esse status no campo experienceStatus e na narrativa. Quando as notas disserem que ela usa, usou, testou, sentiu ou percebeu algo, isso é experiência pessoal válida mesmo que o seletor tenha ficado inicialmente em "não informado".
 ${cachedResearch ? `PESQUISA RECENTE EM CACHE (reutilize para economizar busca; não extrapole): ${cachedResearch.summary}` : "Faça uma pesquisa web fundamentada nesta geração."}
 
-As notas pessoais são o coração da resenha. A pesquisa científica sustenta e esclarece a opinião da Luana, mas nunca pode transformar o texto em relatório, ficha técnica ou fala impessoal.
+As notas pessoais são o coração da productReview. O blogPost pertence à coluna "Estudei para te explicar": nele, a estrutura editorial fixa gera reconhecimento e autoridade, enquanto a voz continua sendo a da Luana em primeira pessoa.
 
 1. Identifique nome e marca apenas com a confiança permitida pelos dados.
-2. Pesquise composição, alegações e evidências atuais. Priorize Anvisa, Ministério da Saúde, sociedades médicas, PubMed e periódicos científicos; material comercial serve apenas para composição, uso e alegações da marca.
-3. Escreva productReview em primeira pessoa, como a opinião curta e sincera da Luana para uma amiga. Comece pelo que ela contou nas notas: como encaixa o produto na rotina, o que sentiu, percebeu, gostou ou questionou. Use 2 a 4 frases naturais, próximas e com uma pitada de bom humor. Nunca comece por ingredientes, marca, pesquisa ou descrição técnica.
-4. Escreva blogPost em primeira pessoa e tom de conversa entre amigas. A experiência e as impressões da Luana conduzem o texto; composição e evidências entram depois, traduzidas em linguagem cotidiana para ajudar a leitora a entender a opinião. Alterne observação pessoal, explicação simples e utilidade prática, sem criar uma estrutura rígida ou professoral.
-5. Use HTML (<p>, <h3>, <i>, <strong>, <ul>, <li>) e 3 a 5 subtítulos específicos. Explique promessa, evidência, utilidade para pele madura, limitações e uso prático sem perder a voz pessoal. Não inclua a lista de fontes: o sistema fará isso.
-6. Se não houver experiência pessoal confirmada, continue em primeira pessoa como opinião de pesquisa: "quando olhei a fórmula", "o que me chamou atenção" ou equivalentes honestos; nunca finja uso.
-7. Termine naturalmente e inclua apenas então: <br><br><a href="${link || "#"}" target="_blank" class="text-[var(--color-gold)] font-bold underline">✨ Ver o produto indicado pela Luana</a>
-8. researchSummary deve conter, em até 600 caracteres, apenas fatos reutilizáveis e limitações da pesquisa.`;
+2. Comece a pesquisa pela página oficial deste produto no site da marca/fabricante. Use o link fornecido como pista, mas diferencie site oficial de loja ou marketplace. Confirme ali a lista de ingredientes, os ativos destacados, o modo de uso e as promessas da marca. Se a fórmula não estiver disponível em fonte oficial ou rótulo legível, diga isso claramente e não invente ativos.
+3. Depois, pesquise para que servem os principais ativos confirmados. Priorize Anvisa, Ministério da Saúde, sociedades médicas, PubMed, revisões sistemáticas e periódicos científicos. Material da marca serve apenas para fórmula, modo de uso e alegações comerciais. Evidência de ingrediente isolado não comprova o desempenho do produto pronto.
+4. Escreva productReview em primeira pessoa, como a opinião curta e sincera da Luana para uma amiga. Comece pelo que ela contou nas notas: como encaixa o produto na rotina, o que sentiu, percebeu, gostou ou questionou. Use 2 a 4 frases naturais, próximas e com uma pitada de bom humor. Nunca comece por ingredientes, marca, pesquisa ou descrição técnica.
+5. Crie blogTitle obrigatoriamente no padrão: "Estudei para te explicar: [nome específico do produto ou ativo central]".
+6. Escreva blogPost em primeira pessoa, com autoridade acolhedora e linguagem de conversa entre amigas. Use exatamente esta ordem e estes títulos em HTML:
+   <i>[uma frase curta e original que sintetize a conclusão, sem promessa milagrosa]</i>
+   <h3>📣 A Promessa da Indústria</h3> — explique o que a marca promete e separe claramente promessa de evidência.
+   <h3>🧴 Afinal, o que tem na fórmula?</h3> — apresente os principais ativos confirmados no site oficial ou no rótulo, preferencialmente em <ul><li>; diga de modo simples o papel cosmético de cada um.
+   <h3>🔬 O que a ciência diz sobre esses ativos?</h3> — explique o nível e os limites das evidências confiáveis para cada ativo relevante, sem confundir estudo do ingrediente com teste do produto final.
+   <h3>✨ E a nossa pele madura, ganha o quê com isso?</h3> — traduza o que pode ser útil para pele madura, menopausa e rotina real, sem generalizar resultados.
+   <h3>🪞 Manual de Sobrevivência</h3> — ensine como usar, em que etapa da rotina, frequência e cuidados; siga o fabricante e sinalize quando depender de avaliação dermatológica.
+   <h3>⚖️ É hype ou é milagre?</h3> — dê o veredito pessoal da Luana, recupere as notas e diga com honestidade para quem pode valer a pena. Milagre nunca é uma conclusão válida.
+7. Mantenha parágrafos curtos, use <p>, <strong>, <ul> e <li>, e acrescente uma pitada de bom humor sem diminuir a autoridade. Não inclua a lista de fontes: o sistema fará isso automaticamente.
+8. Se não houver experiência pessoal confirmada, continue em primeira pessoa como opinião de pesquisa: "quando olhei a fórmula", "o que me chamou atenção" ou equivalentes honestos; nunca finja uso.
+9. Termine naturalmente e inclua apenas então: <br><br><a href="${link || "#"}" target="_blank" class="text-[var(--color-gold)] font-bold underline">✨ Ver o produto indicado pela Luana</a>
+10. researchSummary deve conter, em até 900 caracteres, os ativos confirmados, suas funções, o domínio da fonte oficial consultada e as limitações da pesquisa, para reutilização segura do cache.`;
     }
 
     const contents: Array<string | { inlineData: { data: string; mimeType: string } }> = [];
@@ -104,7 +114,7 @@ As notas pessoais são o coração da resenha. A pesquisa científica sustenta e
         responseMimeType: "application/json",
         responseJsonSchema: productSchema,
         temperature: isAccessory ? 0.8 : 0.65,
-        maxOutputTokens: isAccessory ? 900 : 3400,
+        maxOutputTokens: isAccessory ? 900 : 4200,
         ...(!isAccessory && !cachedResearch ? { tools: [{ googleSearch: {} }] } : {}),
       },
     });
@@ -130,7 +140,7 @@ ${(response.text || "").slice(0, 12000)}`;
           responseMimeType: "application/json",
           responseJsonSchema: productSchema,
           temperature: 0.35,
-          maxOutputTokens: isAccessory ? 1200 : 4200,
+          maxOutputTokens: isAccessory ? 1200 : 5200,
         },
       });
       generated = parseJson<ProductGeneration>(response.text);
