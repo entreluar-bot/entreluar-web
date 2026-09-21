@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { getCreativeDirection, originalityRules } from "@/lib/creative-direction";
 import { authenticateAiRequest } from "@/lib/ai/auth";
 import { loadAiContext, parseJson, recordGeneration, suggestMemoryFromNotes, topicTags } from "@/lib/ai/context";
-import { extractGroundingSources, sourcesHtml } from "@/lib/ai/grounding";
+import { extractGroundingSources } from "@/lib/ai/grounding";
 import { LUANA_VOICE, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 import { productSchema } from "@/lib/ai/schemas";
 
@@ -99,7 +99,7 @@ As notas pessoais são o coração da productReview. O blogPost pertence à colu
    <h3>✨ E a nossa pele madura, ganha o quê com isso?</h3> — traduza o que pode ser útil para pele madura, menopausa e rotina real, sem generalizar resultados.
    <h3>🪞 Manual de Sobrevivência</h3> — ensine como usar, em que etapa da rotina, frequência e cuidados; siga o fabricante e sinalize quando depender de avaliação dermatológica.
    <h3>⚖️ É hype ou é milagre?</h3> — dê o veredito pessoal da Luana, recupere as notas e diga com honestidade para quem pode valer a pena. Milagre nunca é uma conclusão válida.
-7. Mantenha parágrafos curtos, use <p>, <strong>, <ul> e <li>, e acrescente uma pitada de bom humor sem diminuir a autoridade. Não inclua a lista de fontes: o sistema fará isso automaticamente.
+7. Mantenha parágrafos curtos, use <p>, <strong>, <ul> e <li>, e acrescente uma pitada de bom humor sem diminuir a autoridade. Não escreva lista de fontes, referências, citações, nomes de sites ou URLs no productReview nem no blogPost. A pesquisa serve somente para fundamentar o texto nos bastidores.
 8. Se não houver experiência pessoal confirmada, continue em primeira pessoa como opinião de pesquisa: "quando olhei a fórmula", "o que me chamou atenção" ou equivalentes honestos; nunca finja uso.
 9. Termine naturalmente e inclua apenas então: <br><br><a href="${link || "#"}" target="_blank" class="text-[var(--color-gold)] font-bold underline">✨ Ver o produto indicado pela Luana</a>
 10. researchSummary deve conter, em até 900 caracteres, os ativos confirmados, suas funções, o domínio da fonte oficial consultada e as limitações da pesquisa, para reutilização segura do cache.`;
@@ -155,7 +155,6 @@ ${(response.text || "").slice(0, 12000)}`;
 
     const retried = response !== researchResponse;
     const sources = isAccessory ? [] : (cachedResearch?.sources || extractGroundingSources(researchResponse));
-    if (!isAccessory) generated.blogPost += sourcesHtml(sources);
     if (!isAccessory && cacheKey && !cachedResearch && generated.researchSummary) {
       const expiresAt = new Date(); expiresAt.setDate(expiresAt.getDate() + 30);
       await supabase.from("ai_research_cache").upsert({ user_id: user.id, cache_key: cacheKey, subject: generated.productName || title || cacheKey, summary: generated.researchSummary.slice(0, 1200), sources, expires_at: expiresAt.toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id,cache_key" });
