@@ -30,6 +30,14 @@ export async function POST(req: Request) {
     const { title, link, impressions, imageUrl, isAccessory, experienceStatus, testDuration } = await req.json();
     let imagePart = null;
 
+    const normalizedNotes = String(impressions || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const notesConfirmUse = /\b(uso|usei|testei|aplico|apliquei|estou usando|venho usando)\b/.test(normalizedNotes);
+    const notesConfirmImpression = /\b(gostei|adorei|percebi|senti|minha pele|minha impressao)\b/.test(normalizedNotes);
+    const selectedExperienceStatus = experienceStatus || "nao_informado";
+    const resolvedExperienceStatus = selectedExperienceStatus !== "nao_informado"
+      ? selectedExperienceStatus
+      : notesConfirmUse ? "testado" : notesConfirmImpression ? "impressao_inicial" : "nao_informado";
+
     if (imageUrl && imageUrl.startsWith("http")) {
       const imgRes = await fetch(imageUrl);
       const arrayBuffer = await imgRes.arrayBuffer();
@@ -54,7 +62,7 @@ ${originalityRules}
 
 Produto de estilo: "${title || "Identifique somente se a imagem permitir"}". Link: ${link || "não informado"}.
 Notas pessoais: "${impressions || "Nenhuma experiência pessoal informada."}"
-Status informado pela Luana: ${experienceStatus || "nao_informado"}. Tempo de uso: ${testDuration || "não informado"}.
+Status confirmado pelas informações da Luana: ${resolvedExperienceStatus}. Tempo de uso: ${testDuration || "não informado"}.
 
 Crie uma productReview breve, concreta e fluida, com no máximo 1 emoji. Avalie apenas o que estiver visível ou informado: acabamento aparente, versatilidade, ocasião e combinações. Não afirme conforto, durabilidade ou uso pessoal sem confirmação. Se nome ou marca não estiverem legíveis, use um nome descritivo e marque identificationConfidence como baixa. Não fale de ciência ou pele. blogTitle, blogPost e researchSummary devem ser vazios; evidenceLevel deve ser nao_aplicavel.`;
     } else {
@@ -70,15 +78,19 @@ ${originalityRules}
 
 Produto: "${title || "Identifique somente se a imagem permitir"}". Link: ${link || "não informado"}.
 Notas pessoais: "${impressions || "Nenhuma experiência pessoal informada; trate como pesquisa, nunca como teste."}"
-Status informado pela Luana: ${experienceStatus || "nao_informado"}. Tempo de uso: ${testDuration || "não informado"}. Respeite exatamente esse status no campo experienceStatus e na narrativa.
+Status confirmado pelas informações da Luana: ${resolvedExperienceStatus}. Tempo de uso: ${testDuration || "não informado"}. Respeite exatamente esse status no campo experienceStatus e na narrativa. Quando as notas disserem que ela usa, usou, testou, sentiu ou percebeu algo, isso é experiência pessoal válida mesmo que o seletor tenha ficado inicialmente em "não informado".
 ${cachedResearch ? `PESQUISA RECENTE EM CACHE (reutilize para economizar busca; não extrapole): ${cachedResearch.summary}` : "Faça uma pesquisa web fundamentada nesta geração."}
+
+As notas pessoais são o coração da resenha. A pesquisa científica sustenta e esclarece a opinião da Luana, mas nunca pode transformar o texto em relatório, ficha técnica ou fala impessoal.
 
 1. Identifique nome e marca apenas com a confiança permitida pelos dados.
 2. Pesquise composição, alegações e evidências atuais. Priorize Anvisa, Ministério da Saúde, sociedades médicas, PubMed e periódicos científicos; material comercial serve apenas para composição, uso e alegações da marca.
-3. Crie productReview breve e concreta. Se não houve teste, apresente como achado pesquisado.
-4. Crie blogPost em HTML (<p>, <h3>, <i>, <strong>, <ul>, <li>) com 3 a 5 subtítulos específicos. Explique promessa, evidência, utilidade para pele madura, limitações e uso prático. Não inclua a lista de fontes: o sistema fará isso.
-5. Termine naturalmente e inclua apenas então: <br><br><a href="${link || "#"}" target="_blank" class="text-[var(--color-gold)] font-bold underline">✨ Ver o produto indicado pela Luana</a>
-6. researchSummary deve conter, em até 600 caracteres, apenas fatos reutilizáveis e limitações da pesquisa.`;
+3. Escreva productReview em primeira pessoa, como a opinião curta e sincera da Luana para uma amiga. Comece pelo que ela contou nas notas: como encaixa o produto na rotina, o que sentiu, percebeu, gostou ou questionou. Use 2 a 4 frases naturais, próximas e com uma pitada de bom humor. Nunca comece por ingredientes, marca, pesquisa ou descrição técnica.
+4. Escreva blogPost em primeira pessoa e tom de conversa entre amigas. A experiência e as impressões da Luana conduzem o texto; composição e evidências entram depois, traduzidas em linguagem cotidiana para ajudar a leitora a entender a opinião. Alterne observação pessoal, explicação simples e utilidade prática, sem criar uma estrutura rígida ou professoral.
+5. Use HTML (<p>, <h3>, <i>, <strong>, <ul>, <li>) e 3 a 5 subtítulos específicos. Explique promessa, evidência, utilidade para pele madura, limitações e uso prático sem perder a voz pessoal. Não inclua a lista de fontes: o sistema fará isso.
+6. Se não houver experiência pessoal confirmada, continue em primeira pessoa como opinião de pesquisa: "quando olhei a fórmula", "o que me chamou atenção" ou equivalentes honestos; nunca finja uso.
+7. Termine naturalmente e inclua apenas então: <br><br><a href="${link || "#"}" target="_blank" class="text-[var(--color-gold)] font-bold underline">✨ Ver o produto indicado pela Luana</a>
+8. researchSummary deve conter, em até 600 caracteres, apenas fatos reutilizáveis e limitações da pesquisa.`;
     }
 
     const contents: Array<string | { inlineData: { data: string; mimeType: string } }> = [];
@@ -91,7 +103,7 @@ ${cachedResearch ? `PESQUISA RECENTE EM CACHE (reutilize para economizar busca; 
       config: {
         responseMimeType: "application/json",
         responseJsonSchema: productSchema,
-        temperature: isAccessory ? 0.8 : 0.55,
+        temperature: isAccessory ? 0.8 : 0.65,
         maxOutputTokens: isAccessory ? 900 : 3400,
         ...(!isAccessory && !cachedResearch ? { tools: [{ googleSearch: {} }] } : {}),
       },
@@ -123,6 +135,8 @@ ${(response.text || "").slice(0, 12000)}`;
       });
       generated = parseJson<ProductGeneration>(response.text);
     }
+
+    generated.experienceStatus = resolvedExperienceStatus;
 
     const retried = response !== researchResponse;
     const sources = isAccessory ? [] : (cachedResearch?.sources || extractGroundingSources(researchResponse));
