@@ -16,5 +16,21 @@
     { "src": "/icons/entreluar-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/entreluar-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icons/entreluar-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Entreluar (Site Público)",
+      "short_name": "Site",
+      "description": "Abrir o site normal",
+      "url": "/",
+      "icons": [{ "src": "/icons/entreluar-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ateliê da Luana (Painel)",
+      "short_name": "Admin",
+      "description": "Abrir painel administrativo",
+      "url": "/admin",
+      "icons": [{ "src": "/icons/admin-192.png", "sizes": "192x192" }]
+    }
   ]
 }
