@@ -87,7 +87,9 @@ As notas pessoais são o coração da productReview. O blogPost pertence à colu
 1. Identifique nome e marca apenas com a confiança permitida pelos dados.
 2. Comece a pesquisa pela página oficial deste produto no site da marca/fabricante. Use o link fornecido como pista, mas diferencie site oficial de loja ou marketplace. Confirme ali a lista de ingredientes, os ativos destacados, o modo de uso e as promessas da marca. Se a fórmula não estiver disponível em fonte oficial ou rótulo legível, diga isso claramente e não invente ativos.
 3. Depois, pesquise para que servem os principais ativos confirmados. Priorize Anvisa, Ministério da Saúde, sociedades médicas, PubMed, revisões sistemáticas e periódicos científicos. Material da marca serve apenas para fórmula, modo de uso e alegações comerciais. Evidência de ingrediente isolado não comprova o desempenho do produto pronto.
-4. Escreva productReview em primeira pessoa, como a opinião curta e sincera da Luana para uma amiga. Comece pelo que ela contou nas notas: como encaixa o produto na rotina, o que sentiu, percebeu, gostou ou questionou. Use 2 a 4 frases naturais, próximas e com uma pitada de bom humor. Nunca comece por ingredientes, marca, pesquisa ou descrição técnica.
+4. Escreva productReview em primeira pessoa, como a opinião curta, calorosa e sincera da Luana para uma amiga. Faça um parágrafo de 4 a 7 frases: comece pela experiência ou impressão registrada nas notas; conte como o produto entrou na rotina e o que ela percebeu; mencione de leve 1 ou 2 ativos principais confirmados e, em linguagem cotidiana, para que costumam ser usados; conecte isso à opinião da Luana sem atribuir ao ativo um resultado que as fontes não sustentem. Use de 1 a 3 emojis bem escolhidos. Não transforme a Vitrine em ficha técnica: a ciência entra em uma ou duas frases, como curiosidade que abre o apetite para o artigo completo.
+   Varie a composição entre resultado percebido, confissão, pergunta específica, opinião direta ou descoberta. Não copie sempre a abertura do exemplo, não invente cenas de espelho ou fim de semana e não use a mesma sequência narrativa das resenhas recentes.
+   Termine productReview exatamente com: <br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>
 5. Crie blogTitle obrigatoriamente no padrão: "Estudei para te explicar: [nome específico do produto ou ativo central]".
 6. Escreva blogPost em primeira pessoa, com autoridade acolhedora e linguagem de conversa entre amigas. Use exatamente esta ordem e estes títulos em HTML:
    <i>[uma frase curta e original que sintetize a conclusão, sem promessa milagrosa]</i>
@@ -147,6 +149,9 @@ ${(response.text || "").slice(0, 12000)}`;
     }
 
     generated.experienceStatus = resolvedExperienceStatus;
+    if (!isAccessory && !generated.productReview.includes('href="/resenhas"')) {
+      generated.productReview += `<br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>`;
+    }
 
     const retried = response !== researchResponse;
     const sources = isAccessory ? [] : (cachedResearch?.sources || extractGroundingSources(researchResponse));
