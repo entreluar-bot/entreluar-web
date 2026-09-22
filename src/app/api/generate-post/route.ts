@@ -44,7 +44,7 @@ Escreva um artigo completo para a categoria "${category || "Diário"}" do blog. 
 DIREÇÃO CRIATIVA EXCLUSIVA DESTA GERAÇÃO: ${getCreativeDirection()}.
 ${originalityRules}
 
-Não copie as notas literalmente: preserve o sentido e desenvolva somente o que elas sustentam. Use HTML (<p>, <h3>, <i>, <strong>, <ul>, <ol>). Crie um título honesto e específico. O imagePrompt deve ser em inglês, nascer do conceito deste texto e evitar clichês de vinho, café, robe, luxo genérico e mulher diante do espelho.`;
+Não copie as notas literalmente: preserve o sentido e desenvolva somente o que elas sustentam. Use HTML (<p>, <h3>, <i>, <strong>, <ul>, <ol>). Crie um título com um hook (gancho) fascinante, elegante e instigante que desperte o desejo imediato de leitura na nossa audiência. O título não deve soar falso ou como "clickbait barato", mas sim como um segredo irresistível sendo compartilhado. O imagePrompt deve ser em inglês, nascer do conceito deste texto e evitar clichês de vinho, café, robe, luxo genérico e mulher diante do espelho.`;
     const contents = []; 
     if (imagePart) contents.push(imagePart); 
     contents.push(prompt); 
