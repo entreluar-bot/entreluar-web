@@ -32,6 +32,38 @@ export const productSchema = {
   additionalProperties: false,
 };
 
+export const accessorySchema = {
+  ...productSchema,
+  properties: {
+    ...productSchema.properties,
+    inputDetailsUsed: { type: "array", items: { type: "string" }, maxItems: 4 },
+    humorApplied: { type: "boolean" },
+  },
+  required: [...productSchema.required, "inputDetailsUsed", "humorApplied"],
+};
+
+export const quoteBatchSchema = {
+  type: "object",
+  properties: {
+    items: {
+      type: "array",
+      minItems: 15,
+      maxItems: 15,
+      items: {
+        type: "object",
+        properties: {
+          text: { type: "string" },
+          theme: { type: "string", enum: ["humor_cotidiano", "liberdade", "corpo", "menopausa", "motivacao"] },
+        },
+        required: ["text", "theme"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["items"],
+  additionalProperties: false,
+};
+
 export const newsletterSchema = {
   type: "object",
   properties: {

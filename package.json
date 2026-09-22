@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:visual": "playwright test tests/home-first-fold.spec.ts"
+    "test:visual": "playwright test tests/home-first-fold.spec.ts",
+    "test:unit": "playwright test tests/ai-copy.spec.ts",
+    "test:ai-live": "playwright test tests/ai-live.spec.ts"
   },
   "dependencies": {
     "@google/genai": "^2.23.0",

@@ -4,9 +4,11 @@ import { GoogleGenAI } from "@google/genai";
 import { getCreativeDirection, originalityRules } from "@/lib/creative-direction";
 import { authenticateAiRequest } from "@/lib/ai/auth";
 import { loadAiContext, parseJson, recordGeneration, suggestMemoryFromNotes, topicTags } from "@/lib/ai/context";
+import { validateAccessoryTrace } from "@/lib/ai/copy-quality";
 import { extractGroundingSources } from "@/lib/ai/grounding";
 import { LUANA_VOICE, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
-import { productSchema } from "@/lib/ai/schemas";
+import { buildAccessoryPrompt } from "@/lib/ai/prompts";
+import { accessorySchema, productSchema } from "@/lib/ai/schemas";
 import { combineUsage, generateAi, normalizeCacheSubject, type AiUsage } from "@/lib/ai/runtime";
 
 export const maxDuration = 60;
@@ -17,6 +19,7 @@ type ProductGeneration = {
   evidenceLevel: "forte" | "moderada" | "inicial" | "nao_verificada" | "nao_aplicavel";
   experienceStatus: "testado" | "impressao_inicial" | "pesquisado" | "nao_informado";
   researchSummary: string; openingStyle: string; structureStyle: string; notablePhrases: string[];
+  inputDetailsUsed?: string[]; humorApplied?: boolean;
 };
 type ResearchResult = { summary: string; evidenceLevel: ProductGeneration["evidenceLevel"] };
 
@@ -59,7 +62,8 @@ export async function POST(req: Request) {
     const imageStartedAt = Date.now();
     const image = (!title || isAccessory) ? await fetchImagePart(imageUrl) : null;
     timings.image = Date.now() - imageStartedAt;
-    const requestHash = createHash("sha256").update(JSON.stringify({ title, link, impressions, isAccessory, experienceStatus, testDuration, image: image?.hash || "" })).digest("hex");
+    const promptVersion = isAccessory ? "accessory-v2" : "review-v3";
+    const requestHash = createHash("sha256").update(JSON.stringify({ promptVersion, title, link, impressions, isAccessory, experienceStatus, testDuration, image: image?.hash || "" })).digest("hex");
     const cacheStartedAt = Date.now();
     const { data: responseCache } = await supabase.from("ai_response_cache").select("response").eq("user_id", user.id).eq("request_hash", requestHash).gt("expires_at", new Date().toISOString()).maybeSingle();
     timings.responseCache = Date.now() - cacheStartedAt;
@@ -73,17 +77,38 @@ export async function POST(req: Request) {
     const resolvedStatus = resolveExperienceStatus(experienceStatus, impressions);
     if (isAccessory) {
       const context = await contextPromise;
-      const prompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}\n${originalityRules}
-
-Produto de estilo: "${title || "Identifique somente se a imagem permitir"}". Link: ${link || "não informado"}.
-Notas pessoais: "${impressions || "Nenhuma experiência pessoal informada."}". Status: ${resolvedStatus}. Tempo de uso: ${testDuration || "não informado"}.
-Crie uma productReview breve, concreta e fluida, com no máximo 1 emoji. Avalie apenas o visível ou informado: acabamento aparente, versatilidade, ocasião e combinações. Não afirme conforto, durabilidade ou uso pessoal sem confirmação. Se nome ou marca não estiverem legíveis, use nome descritivo e confiança baixa. blogTitle, blogPost e researchSummary devem ser vazios; evidenceLevel deve ser nao_aplicavel.`;
       const started = Date.now();
-      const { response, usage } = await generateAi(ai, "accessory", { contents: image ? [image.part, prompt] : prompt, config: { responseMimeType: "application/json", responseJsonSchema: productSchema, temperature: 0.8, mediaResolution: "MEDIA_RESOLUTION_LOW" } });
-      timings.writing = Date.now() - started; usages.push(usage);
-      const generated = parseJson<ProductGeneration>(response.text);
+      let generated: ProductGeneration | null = null;
+      let retryFeedback: string[] | undefined;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const prompt = buildAccessoryPrompt({
+          title,
+          link,
+          impressions,
+          experienceStatus: resolvedStatus,
+          testDuration,
+          memoryPrompt: context.memoryPrompt,
+          antiRepetitionPrompt: context.antiRepetitionPrompt,
+          retryFeedback,
+        });
+        const { response, usage } = await generateAi(ai, "accessory", {
+          contents: image ? [image.part, prompt] : prompt,
+          config: { responseMimeType: "application/json", responseJsonSchema: accessorySchema, temperature: attempt === 0 ? 0.8 : 0.55, mediaResolution: "MEDIA_RESOLUTION_LOW" },
+        });
+        usages.push(usage);
+        generated = parseJson<ProductGeneration>(response.text);
+        const trace = validateAccessoryTrace(impressions || "", generated.inputDetailsUsed || [], Boolean(generated.humorApplied), generated.productReview);
+        if (trace.valid) break;
+        retryFeedback = trace.errors;
+      }
+      timings.writing = Date.now() - started;
+      if (!generated) throw new Error("A resposta da IA veio incompleta.");
+      const trace = validateAccessoryTrace(impressions || "", generated.inputDetailsUsed || [], Boolean(generated.humorApplied), generated.productReview);
+      if (!trace.valid) throw new Error(`A resposta da IA veio incompleta: ${trace.errors.join(" ")}`);
       generated.experienceStatus = resolvedStatus;
-      await finalizeGeneration({ supabase, userId: user.id, requestHash, requestId, generated, context, contentType, title, usages, timings, cacheHit: false, retryCount: 0, searchQueries: 0 });
+      generated.inputDetailsUsed ||= [];
+      generated.humorApplied = Boolean(generated.humorApplied);
+      await finalizeGeneration({ supabase, userId: user.id, requestHash, requestId, generated, context, contentType, title, usages, timings, cacheHit: false, retryCount: retryFeedback ? 1 : 0, searchQueries: 0 });
       return NextResponse.json({ ...generated, sources: [], performance: { cached: false, durationMs: Date.now() - requestStartedAt } });
     }
 

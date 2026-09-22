@@ -23,7 +23,7 @@ export type AiUsage = {
 
 const policies: Record<AiTask, TaskPolicy> = {
   brainstorm: { model: "gemini-3.5-flash-lite", maxOutputTokens: 300, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
-  quote: { model: "gemini-3.5-flash-lite", maxOutputTokens: 500, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
+  quote: { model: "gemini-3.5-flash-lite", maxOutputTokens: 1_400, timeoutMs: 15_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
   newsletter: { model: "gemini-3.1-flash-lite", maxOutputTokens: 900, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
   blog: { model: "gemini-3.1-flash-lite", maxOutputTokens: 3_200, timeoutMs: 15_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
   accessory: { model: "gemini-3.1-flash-lite", maxOutputTokens: 900, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
@@ -40,10 +40,15 @@ const prices: Record<string, { input: number; output: number }> = {
 
 export function getAiPolicy(task: AiTask): TaskPolicy {
   const policy = policies[task];
+  const safeModel = (model: string) => {
+    const normalized = model.replace(/^models\//, "");
+    if ((task === "quote" || task === "brainstorm") && normalized === "gemini-2.5-flash-lite") return policy.model;
+    return normalized;
+  };
   if (process.env.AI_FORCE_LEGACY_MODEL === "true") {
-    return { ...policy, model: process.env.AI_LEGACY_MODEL || "gemini-3.6-flash", thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } };
+    return { ...policy, model: safeModel(process.env.AI_LEGACY_MODEL || "gemini-3.6-flash"), thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } };
   }
-  return { ...policy, model: process.env[`AI_MODEL_${task.toUpperCase()}`] || policy.model };
+  return { ...policy, model: safeModel(process.env[`AI_MODEL_${task.toUpperCase()}`] || policy.model) };
 }
 
 export async function generateAi(

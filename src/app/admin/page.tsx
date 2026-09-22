@@ -138,6 +138,8 @@ export default function AdminDashboard() {
   const [generatedReview, setGeneratedReview] = useState("");
   const [generatedBlogTitle, setGeneratedBlogTitle] = useState("");
   const [generatedBlogPost, setGeneratedBlogPost] = useState("");
+  const [accessoryDetailsUsed, setAccessoryDetailsUsed] = useState<string[]>([]);
+  const [accessoryHumorApplied, setAccessoryHumorApplied] = useState(false);
 
   const [emails, setEmails] = useState<any[]>([]);
   const [replyTo, setReplyTo] = useState("");
@@ -343,6 +345,8 @@ export default function AdminDashboard() {
     if (!link) return setMessage("O link da loja é obrigatório!");
 
     setLoading(true);
+    setAccessoryDetailsUsed([]);
+    setAccessoryHumorApplied(false);
     setMessage("Iniciando mágica (pode demorar uns 15 segundos)...");
     const progressTimers = [
       window.setTimeout(() => setMessage(title ? "Consultando a pesquisa já guardada..." : "Identificando o produto na foto..."), 1200),
@@ -384,12 +388,14 @@ export default function AdminDashboard() {
         throw new Error("Erro na formatação da resposta: " + textRes.substring(0, 50));
       }
 
-      if (data.error) throw new Error(data.error);
+      if (!res.ok || data.error) throw new Error(data.error || "Não consegui gerar o texto agora.");
 
       setGeneratedProductName(data.productName);
       setGeneratedReview(data.productReview);
       setGeneratedBlogTitle(data.blogTitle);
       setGeneratedBlogPost(data.blogPost);
+      setAccessoryDetailsUsed(Array.isArray(data.inputDetailsUsed) ? data.inputDetailsUsed : []);
+      setAccessoryHumorApplied(Boolean(data.humorApplied));
       setBlogCategory("Estudei para te explicar");
       const seconds = data.performance?.durationMs ? ` em ${(data.performance.durationMs / 1000).toFixed(1)}s` : "";
       const cacheNote = data.performance?.cached ? " usando o cache econômico" : "";
@@ -564,11 +570,19 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
       });
       
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      const responseText = await res.text();
+      let data: { text?: string; quotes?: string[]; error?: string };
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error("A resposta veio incompleta. Tente gerar novamente.");
+      }
+      if (!res.ok || data.error) throw new Error(data.error || "Não consegui gerar as pílulas agora.");
 
-      setQuoteText(data.text);
-      setMessage("Pílula gerada! Revise e publique.");
+      const generatedQuotes = Array.isArray(data.quotes) ? data.quotes : String(data.text || "").split("\n").filter(Boolean);
+      if (generatedQuotes.length !== 15) throw new Error("O lote não trouxe as 15 pílulas esperadas. Tente novamente.");
+      setQuoteText(generatedQuotes.join("\n"));
+      setMessage("15 pílulas geradas! Revise, edite e só publique quando estiver feliz com o lote.");
     } catch (error: any) {
       setMessage("Erro: " + error.message);
     }
@@ -818,8 +832,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.49</p>
-                <p>Atualizado em 22/09/2026 às 00:47</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.50</p>
+                <p>Atualizado em 22/09/2026 às 14:46</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -974,6 +988,13 @@ export default function AdminDashboard() {
                         <div className={`bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)] ${isAccessory ? "md:col-span-2" : ""}`}>
                           <h3 className="text-[var(--color-gold)] font-serif text-xl mb-4 text-center">{isAccessory ? "Vitrine (Acessório/Estilo)" : `1. Vitrine: ${generatedProductName}`}</h3>
                           <textarea value={generatedReview} onChange={(e) => setGeneratedReview(e.target.value)} rows={8} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed" ></textarea>
+                          {isAccessory && (
+                            <div className="mt-4 rounded-xl border border-[var(--color-wine-light)] bg-black/15 p-4 text-sm text-[var(--color-gold-light)]">
+                              <p className="font-bold text-[var(--color-gold)]">Como a IA construiu este texto</p>
+                              <p className="mt-2"><span className="font-bold">Detalhes das suas notas:</span> {accessoryDetailsUsed.length ? accessoryDetailsUsed.join(" • ") : "nenhuma nota pessoal foi informada"}</p>
+                              <p className="mt-1"><span className="font-bold">Humor elegante:</span> {accessoryHumorApplied ? "aplicado ✓" : "não confirmado"}</p>
+                            </div>
+                          )}
                         </div>
                         {!isAccessory && (
                           <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
@@ -1008,7 +1029,7 @@ export default function AdminDashboard() {
                     {message && <p className="text-sm text-[#f3e5ab] mt-2 italic text-center font-bold">{message}</p>}
 
                     <div className="flex gap-4 mt-6">
-                       <button onClick={() => { setGeneratedReview(""); setGeneratedProductName(""); setGeneratedBlogTitle(""); setGeneratedBlogPost(""); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-4 rounded font-bold uppercase hover:bg-[var(--color-wine-dark)] transition-colors">
+                       <button onClick={() => { setGeneratedReview(""); setGeneratedProductName(""); setGeneratedBlogTitle(""); setGeneratedBlogPost(""); setAccessoryDetailsUsed([]); setAccessoryHumorApplied(false); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-4 rounded font-bold uppercase hover:bg-[var(--color-wine-dark)] transition-colors">
                         Refazer Tudo
                       </button>
                       <button onClick={handlePublish} disabled={loading} className="flex-2 w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform">
@@ -1530,19 +1551,20 @@ export default function AdminDashboard() {
               <div className="space-y-8">
                 <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
                   <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif text-center">Gerador de Pílulas Diárias</h3>
-                  <p className="text-center text-[var(--color-gold-light)] opacity-70 mb-6 text-sm">Crie frases curtas e acolhedoras para aparecerem todos os dias na página principal.</p>
+                  <p className="text-center text-[var(--color-gold-light)] opacity-70 mb-6 text-sm">Gere 15 frases bem-humoradas e positivas para revisar antes de publicar na rotação diária.</p>
                   
                   <div className="flex justify-center mb-6">
                     <button onClick={handleGenerateQuote} disabled={loading} className="bg-[var(--color-gold)] text-[var(--color-wine-dark)] px-8 py-3 rounded-full uppercase tracking-widest font-bold hover:scale-105 transition-transform flex items-center gap-2">
-                      ✨ {loading ? "Buscando..." : "Gerar Nova Pílula Mágica"} ✨
+                      ✨ {loading ? "Criando o lote..." : "Gerar 15 novas pílulas"} ✨
                     </button>
                   </div>
 
                   {quoteText && (
                     <div className="mt-8 border-t border-[var(--color-wine-light)] pt-6">
-                      <textarea value={quoteText} onChange={(e) => setQuoteText(e.target.value)} rows={4} className="w-full bg-[var(--color-wine)] border border-[var(--color-wine-light)] rounded p-6 text-[var(--color-gold-light)] font-serif text-lg text-center focus:outline-none resize-none leading-relaxed italic" placeholder="Sua frase aqui..."></textarea>
+                      <p className="mb-3 text-center text-xs uppercase tracking-widest text-[var(--color-gold)]">Rascunho — uma pílula por linha</p>
+                      <textarea value={quoteText} onChange={(e) => setQuoteText(e.target.value)} rows={15} className="w-full bg-[var(--color-wine)] border border-[var(--color-wine-light)] rounded p-6 text-[var(--color-gold-light)] font-serif text-base focus:outline-none resize-y leading-relaxed" placeholder="As 15 frases aparecerão aqui para sua revisão."></textarea>
                       <button onClick={handlePublishQuote} disabled={loading} className="w-full mt-4 bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] text-[var(--color-wine-dark)] py-3 rounded font-bold uppercase hover:scale-105 transition-transform">
-                        {loading ? "Publicando..." : "Publicar Pílula"}
+                        {loading ? "Publicando..." : "Publicar lote revisado"}
                       </button>
                     </div>
                   )}
