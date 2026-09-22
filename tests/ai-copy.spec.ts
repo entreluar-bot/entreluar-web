@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { friendlyAiError, type QuoteCandidate, validateAccessoryTrace, validateQuoteBatch } from "../src/lib/ai/copy-quality";
-import { buildAccessoryPrompt } from "../src/lib/ai/prompts";
+import { buildAccessoryPrompt, buildQuotePrompt } from "../src/lib/ai/prompts";
 import { getAiPolicy } from "../src/lib/ai/runtime";
 
 const themes = ["humor_cotidiano", "liberdade", "corpo", "menopausa", "motivacao"] as const;
@@ -20,8 +20,19 @@ test("modelo antigo de pílulas é substituído pelo modelo estável", () => {
   else process.env.AI_MODEL_QUOTE = previous;
 });
 
-test("lote válido contém 15 frases, três de cada tema", () => {
+test("lote válido contém 15 frases sem cotas temáticas", () => {
   expect(validateQuoteBatch(validQuoteBatch(), []).valid).toBe(true);
+  expect(validateQuoteBatch(validQuoteBatch().map(({ text }) => ({ text })), []).valid).toBe(true);
+});
+
+test("prompt recupera motivação e deboche sem bloquear café ou colágeno", () => {
+  const prompt = buildQuotePrompt({ existingQuotes: [] });
+  expect(prompt).toContain("acolhedoras ou debochadas");
+  expect(prompt).toContain("se sentir poderosa");
+  expect(prompt).not.toContain("PROIBIDO");
+  const candidates = validQuoteBatch();
+  candidates[0].text = "Meu café está forte, meu colágeno nem tanto, mas minha vontade de viver continua de pé.";
+  expect(validateQuoteBatch(candidates, []).valid).toBe(true);
 });
 
 test("lote rejeita clichês, repetições e frases publicadas", () => {

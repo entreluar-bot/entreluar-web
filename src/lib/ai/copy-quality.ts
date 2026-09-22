@@ -2,27 +2,13 @@ export type QuoteTheme = "humor_cotidiano" | "liberdade" | "corpo" | "menopausa"
 
 export type QuoteCandidate = {
   text: string;
-  theme: QuoteTheme;
-};
-
-const REQUIRED_THEMES: Record<QuoteTheme, number> = {
-  humor_cotidiano: 3,
-  liberdade: 3,
-  corpo: 3,
-  menopausa: 3,
-  motivacao: 3,
+  theme?: QuoteTheme;
 };
 
 const BANNED_QUOTE_PATTERNS = [
-  /\bcaf[eé]\b/i,
-  /\bvinho\b|\btaça\b/i,
-  /\bcol[aá]geno\b/i,
-  /\bespelho\b/i,
   /melhor vers[aã]o/i,
   /idade [eé] s[oó] um n[uú]mero/i,
   /se priorize/i,
-  /\bcoroa\b/i,
-  /\banti-?idade\b/i,
   /construir a vida que/i,
   /agrega valor/i,
   /investir no pr[oó]prio/i,
@@ -83,12 +69,11 @@ export function validateQuoteBatch(candidates: QuoteCandidate[], existingQuotes:
     }
   }
 
-  for (const [theme, expected] of Object.entries(REQUIRED_THEMES) as Array<[QuoteTheme, number]>) {
-    const actual = candidates.filter((candidate) => candidate.theme === theme).length;
-    if (actual !== expected) errors.push(`O tema ${theme} trouxe ${actual} frases; precisa trazer ${expected}.`);
-  }
-
   return { valid: errors.length === 0, errors: Array.from(new Set(errors)) };
+}
+
+export function parseQuoteLines(text: string): QuoteCandidate[] {
+  return text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((text) => ({ text }));
 }
 
 export function validateAccessoryTrace(notes: string, detailsUsed: string[], humorApplied: boolean, review: string) {

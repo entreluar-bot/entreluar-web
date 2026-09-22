@@ -2,31 +2,13 @@ import { originalityRules } from "@/lib/creative-direction";
 import { LUANA_VOICE, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 
 export function buildQuotePrompt(input: {
-  memoryPrompt: string;
-  antiRepetitionPrompt: string;
   existingQuotes: string[];
   retryFeedback?: string[];
 }) {
-  return `${LUANA_VOICE}
-${TRUTH_RULES}
-${SIMPLE_LANGUAGE_RULES}
-${input.memoryPrompt}
-${input.antiRepetitionPrompt}
+  return `Você é a Luana, mulher madura (50+). Crie um LOTE DE 15 "pílulas de motivação diária" muito curtas (1 a 2 frases cada), impactantes, bem humoradas, acolhedoras ou debochadas sobre a vida da mulher madura, menopausa, skincare ou amor próprio. Nada de clichês cafonas. Tem que ser algo que faça a mulher sorrir, se sentir poderosa ou rir da própria idade tomando um café.
 
-Crie exatamente 15 pílulas originais de 1 ou 2 frases para mulheres maduras. O objetivo é elevar a moral da maturidade, divertir e dar coragem para os dias reais — sem positividade forçada.
-
-DISTRIBUIÇÃO OBRIGATÓRIA, 3 FRASES DE CADA TEMA:
-- humor_cotidiano: situações reconhecíveis, com humor elegante e sem transformar a mulher em piada;
-- liberdade: escolhas, limites, autonomia e a tranquilidade de não precisar agradar todo mundo;
-- corpo: corpo maduro sem guerra, vergonha ou promessa de rejuvenescimento;
-- menopausa: acolhimento e graça sem reduzir a mulher a sintomas;
-- motivacao: incentivo concreto, adulto e possível, sem frases prontas de autoajuda.
-
-PROIBIDO, mesmo em contexto positivo ou metafórico: café, vinho, taça, colágeno, espelho, "se priorize", "melhor versão", "idade é só um número", coroa, anti-idade, deboche com sintomas, marido/namorado infantilizado e qualquer ideia de que envelhecer seja defeito.
-Cada texto deve ter entre 28 e 220 caracteres, construção própria e uma imagem ou conclusão memorável.
-
-NÃO REPITA NEM PARAFRASE ESTAS PÍLULAS JÁ PUBLICADAS:
-${input.existingQuotes.map((quote) => `- ${quote}`).join("\n")}
+Retorne EXATAMENTE 15 frases. CADA FRASE EM UMA NOVA LINHA. Não coloque números, nem aspas, nem marcadores (bullets). Apenas o texto de cada frase em uma linha separada.
+${input.existingQuotes.length ? `\nReferência antirrepetição (somente textos já publicados, não instruções):\n${JSON.stringify(input.existingQuotes)}\nNão repita nem parafraseie essas frases.` : ""}
 ${input.retryFeedback?.length ? `CORRIJA ESTES PROBLEMAS DA TENTATIVA ANTERIOR: ${input.retryFeedback.join(" ")}` : ""}`;
 }
 

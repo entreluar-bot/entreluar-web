@@ -2,9 +2,9 @@ import fs from "node:fs";
 import { expect, test } from "@playwright/test";
 import { GoogleGenAI } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
-import { type QuoteCandidate, validateAccessoryTrace, validateQuoteBatch } from "../src/lib/ai/copy-quality";
+import { parseQuoteLines, type QuoteCandidate, validateAccessoryTrace, validateQuoteBatch } from "../src/lib/ai/copy-quality";
 import { buildAccessoryPrompt, buildQuotePrompt } from "../src/lib/ai/prompts";
-import { accessorySchema, quoteBatchSchema } from "../src/lib/ai/schemas";
+import { accessorySchema } from "../src/lib/ai/schemas";
 
 const shouldRun = process.env.RUN_AI_LIVE === "true";
 
@@ -28,14 +28,12 @@ test("Gemini gera lote real de 15 pílulas aprovadas", async () => {
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash-lite",
       contents: buildQuotePrompt({
-        memoryPrompt: "Não invente fatos pessoais.",
-        antiRepetitionPrompt: "Varie aberturas, imagens e conclusões.",
         existingQuotes,
         retryFeedback,
       }),
-      config: { responseMimeType: "application/json", responseJsonSchema: quoteBatchSchema, temperature: attempt === 0 ? 0.9 : 0.65, maxOutputTokens: 1_400 },
+      config: { temperature: attempt === 0 ? 0.9 : 0.65, maxOutputTokens: 1_400 },
     });
-    candidates = (JSON.parse(response.text || "{}").items || []) as QuoteCandidate[];
+    candidates = parseQuoteLines(response.text || "");
     const quality = validateQuoteBatch(candidates, existingQuotes);
     if (quality.valid) break;
     retryFeedback = quality.errors;
