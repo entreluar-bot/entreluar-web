@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { getCreativeDirection, originalityRules } from "@/lib/creative-direction";
@@ -6,176 +7,184 @@ import { loadAiContext, parseJson, recordGeneration, suggestMemoryFromNotes, top
 import { extractGroundingSources } from "@/lib/ai/grounding";
 import { LUANA_VOICE, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 import { productSchema } from "@/lib/ai/schemas";
+import { combineUsage, generateAi, normalizeCacheSubject, type AiUsage } from "@/lib/ai/runtime";
 
 export const maxDuration = 60;
 
 type ProductGeneration = {
-  productName: string;
-  productReview: string;
-  blogTitle: string;
-  blogPost: string;
+  productName: string; productReview: string; blogTitle: string; blogPost: string;
   identificationConfidence: "alta" | "media" | "baixa";
   evidenceLevel: "forte" | "moderada" | "inicial" | "nao_verificada" | "nao_aplicavel";
   experienceStatus: "testado" | "impressao_inicial" | "pesquisado" | "nao_informado";
-  researchSummary: string;
-  openingStyle: string;
-  structureStyle: string;
-  notablePhrases: string[];
+  researchSummary: string; openingStyle: string; structureStyle: string; notablePhrases: string[];
+};
+type ResearchResult = { summary: string; evidenceLevel: ProductGeneration["evidenceLevel"] };
+
+const identificationSchema = {
+  type: "object", properties: { productName: { type: "string" }, brand: { type: "string" }, confidence: { type: "string", enum: ["alta", "media", "baixa"] } },
+  required: ["productName", "brand", "confidence"], additionalProperties: false,
+};
+const researchSchema = {
+  type: "object", properties: { summary: { type: "string" }, evidenceLevel: { type: "string", enum: ["forte", "moderada", "inicial", "nao_verificada"] } },
+  required: ["summary", "evidenceLevel"], additionalProperties: false,
 };
 
+function resolveExperienceStatus(experienceStatus: string | undefined, impressions: string | undefined) {
+  if (experienceStatus && experienceStatus !== "nao_informado") return experienceStatus as ProductGeneration["experienceStatus"];
+  const notes = String(impressions || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (/\b(uso|usei|testei|aplico|apliquei|estou usando|venho usando)\b/.test(notes)) return "testado";
+  if (/\b(gostei|adorei|percebi|senti|minha pele|minha impressao)\b/.test(notes)) return "impressao_inicial";
+  return "nao_informado";
+}
+
+async function fetchImagePart(imageUrl: string | undefined) {
+  if (!imageUrl?.startsWith("http")) return null;
+  const response = await fetch(imageUrl, { signal: AbortSignal.timeout(4_000) });
+  if (!response.ok) return null;
+  const data = Buffer.from(await response.arrayBuffer());
+  return { part: { inlineData: { data: data.toString("base64"), mimeType: response.headers.get("content-type") || "image/jpeg" } }, hash: createHash("sha256").update(data).digest("hex") };
+}
+
 export async function POST(req: Request) {
+  const requestStartedAt = Date.now();
   try {
     const { supabase, user } = await authenticateAiRequest(req);
+    const body = await req.json();
+    const { title, link, impressions, imageUrl, isAccessory, experienceStatus, testDuration } = body;
+    const requestId = String(body.requestId || req.headers.get("x-request-id") || crypto.randomUUID());
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-    const { title, link, impressions, imageUrl, isAccessory, experienceStatus, testDuration } = await req.json();
-    let imagePart = null;
+    const timings: Record<string, number> = {};
+    const usages: AiUsage[] = [];
 
-    const normalizedNotes = String(impressions || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const notesConfirmUse = /\b(uso|usei|testei|aplico|apliquei|estou usando|venho usando)\b/.test(normalizedNotes);
-    const notesConfirmImpression = /\b(gostei|adorei|percebi|senti|minha pele|minha impressao)\b/.test(normalizedNotes);
-    const selectedExperienceStatus = experienceStatus || "nao_informado";
-    const resolvedExperienceStatus = selectedExperienceStatus !== "nao_informado"
-      ? selectedExperienceStatus
-      : notesConfirmUse ? "testado" : notesConfirmImpression ? "impressao_inicial" : "nao_informado";
-
-    if (imageUrl && imageUrl.startsWith("http")) {
-      const imgRes = await fetch(imageUrl);
-      const arrayBuffer = await imgRes.arrayBuffer();
-      imagePart = { inlineData: { data: Buffer.from(arrayBuffer).toString("base64"), mimeType: imgRes.headers.get("content-type") || "image/jpeg" } };
+    const imageStartedAt = Date.now();
+    const image = (!title || isAccessory) ? await fetchImagePart(imageUrl) : null;
+    timings.image = Date.now() - imageStartedAt;
+    const requestHash = createHash("sha256").update(JSON.stringify({ title, link, impressions, isAccessory, experienceStatus, testDuration, image: image?.hash || "" })).digest("hex");
+    const cacheStartedAt = Date.now();
+    const { data: responseCache } = await supabase.from("ai_response_cache").select("response").eq("user_id", user.id).eq("request_hash", requestHash).gt("expires_at", new Date().toISOString()).maybeSingle();
+    timings.responseCache = Date.now() - cacheStartedAt;
+    if (responseCache?.response) {
+      await recordGeneration(supabase, user.id, { contentType: isAccessory ? "accessory" : "review", topic: title, cacheHit: true, requestId, stageTimings: timings });
+      return NextResponse.json({ ...(responseCache.response as ProductGeneration), performance: { cached: true, durationMs: Date.now() - requestStartedAt } });
     }
 
     const contentType = isAccessory ? "accessory" : "review";
-    const context = await loadAiContext(supabase, user.id, contentType, topicTags(title, impressions, isAccessory ? "moda acessorio" : "skincare cosmetico"));
-    const cacheSubject = String(title || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 112);
-    const cacheKey = cacheSubject ? `review-v2-${cacheSubject}` : "";
-    const { data: cachedResearch } = !isAccessory && cacheKey
-      ? await supabase.from("ai_research_cache").select("summary,sources").eq("user_id", user.id).eq("cache_key", cacheKey).gt("expires_at", new Date().toISOString()).maybeSingle()
-      : { data: null };
-    let prompt: string;
-
+    const contextPromise = loadAiContext(supabase, user.id, contentType, topicTags(title, impressions, isAccessory ? "moda acessorio" : "skincare cosmetico"));
+    const resolvedStatus = resolveExperienceStatus(experienceStatus, impressions);
     if (isAccessory) {
-      prompt = `${LUANA_VOICE}
-${TRUTH_RULES}
-${SIMPLE_LANGUAGE_RULES}
-${context.memoryPrompt}
-${context.antiRepetitionPrompt}
-${originalityRules}
+      const context = await contextPromise;
+      const prompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}\n${originalityRules}
 
 Produto de estilo: "${title || "Identifique somente se a imagem permitir"}". Link: ${link || "não informado"}.
-Notas pessoais: "${impressions || "Nenhuma experiência pessoal informada."}"
-Status confirmado pelas informações da Luana: ${resolvedExperienceStatus}. Tempo de uso: ${testDuration || "não informado"}.
-
-Crie uma productReview breve, concreta e fluida, com no máximo 1 emoji. Avalie apenas o que estiver visível ou informado: acabamento aparente, versatilidade, ocasião e combinações. Não afirme conforto, durabilidade ou uso pessoal sem confirmação. Se nome ou marca não estiverem legíveis, use um nome descritivo e marque identificationConfidence como baixa. Não fale de ciência ou pele. blogTitle, blogPost e researchSummary devem ser vazios; evidenceLevel deve ser nao_aplicavel.`;
-    } else {
-      prompt = `${LUANA_VOICE}
-${TRUTH_RULES}
-${SIMPLE_LANGUAGE_RULES}
-${SCIENCE_RULES}
-${context.memoryPrompt}
-${context.antiRepetitionPrompt}
-
-DIREÇÃO CRIATIVA: ${getCreativeDirection()}.
-${originalityRules}
-
-Produto: "${title || "Identifique somente se a imagem permitir"}". Link: ${link || "não informado"}.
-Notas pessoais: "${impressions || "Nenhuma experiência pessoal informada; trate como pesquisa, nunca como teste."}"
-Status confirmado pelas informações da Luana: ${resolvedExperienceStatus}. Tempo de uso: ${testDuration || "não informado"}. Respeite exatamente esse status no campo experienceStatus e na narrativa. Quando as notas disserem que ela usa, usou, testou, sentiu ou percebeu algo, isso é experiência pessoal válida mesmo que o seletor tenha ficado inicialmente em "não informado".
-${cachedResearch ? `PESQUISA RECENTE EM CACHE (reutilize para economizar busca; não extrapole): ${cachedResearch.summary}` : "Faça uma pesquisa web fundamentada nesta geração."}
-
-As notas pessoais são o coração da productReview. O blogPost pertence à coluna "Estudei para te explicar": nele, a estrutura editorial fixa gera reconhecimento e autoridade, enquanto a voz continua sendo a da Luana em primeira pessoa.
-
-1. Identifique nome e marca apenas com a confiança permitida pelos dados.
-2. Comece a pesquisa pela página oficial deste produto no site da marca/fabricante. Use o link fornecido como pista, mas diferencie site oficial de loja ou marketplace. Confirme ali a lista de ingredientes, os ativos destacados, o modo de uso e as promessas da marca. Se a fórmula não estiver disponível em fonte oficial ou rótulo legível, diga isso claramente e não invente ativos.
-3. Depois, pesquise para que servem os principais ativos confirmados. Priorize Anvisa, Ministério da Saúde, sociedades médicas, PubMed, revisões sistemáticas e periódicos científicos. Material da marca serve apenas para fórmula, modo de uso e alegações comerciais. Evidência de ingrediente isolado não comprova o desempenho do produto pronto.
-4. Escreva productReview em primeira pessoa, como a opinião curta, calorosa e sincera da Luana para uma amiga. Faça um parágrafo de 4 a 7 frases: comece pela experiência ou impressão registrada nas notas; conte como o produto entrou na rotina e o que ela percebeu; mencione de leve 1 ou 2 ativos principais confirmados e, em linguagem cotidiana, para que costumam ser usados; conecte isso à opinião da Luana sem atribuir ao ativo um resultado que as fontes não sustentem. Use de 1 a 3 emojis bem escolhidos. Não transforme a Vitrine em ficha técnica: a ciência entra em uma ou duas frases, como curiosidade que abre o apetite para o artigo completo.
-   Varie a composição entre resultado percebido, confissão, pergunta específica, opinião direta ou descoberta. Não copie sempre a abertura do exemplo, não invente cenas de espelho ou fim de semana e não use a mesma sequência narrativa das resenhas recentes.
-   Termine productReview exatamente com: <br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>
-5. Crie blogTitle obrigatoriamente no padrão: "Estudei para te explicar: [nome específico do produto ou ativo central]".
-6. Escreva blogPost em primeira pessoa, com autoridade acolhedora e linguagem de conversa entre amigas. Use exatamente esta ordem e estes títulos em HTML:
-   <i>[uma frase curta e original que sintetize a conclusão, sem promessa milagrosa]</i>
-   <h3>📣 A Promessa da Indústria</h3> — explique o que a marca promete e separe claramente promessa de evidência.
-   <h3>🧴 Afinal, o que tem na fórmula?</h3> — apresente os principais ativos confirmados no site oficial ou no rótulo, preferencialmente em <ul><li>; diga de modo simples o papel cosmético de cada um.
-   <h3>🔬 O que a ciência diz sobre esses ativos?</h3> — explique o nível e os limites das evidências confiáveis para cada ativo relevante, sem confundir estudo do ingrediente com teste do produto final.
-   <h3>✨ E a nossa pele madura, ganha o quê com isso?</h3> — traduza o que pode ser útil para pele madura, menopausa e rotina real, sem generalizar resultados.
-   <h3>🪞 Manual de Sobrevivência</h3> — ensine como usar, em que etapa da rotina, frequência e cuidados; siga o fabricante e sinalize quando depender de avaliação dermatológica.
-   <h3>⚖️ É hype ou é milagre?</h3> — dê o veredito pessoal da Luana, recupere as notas e diga com honestidade para quem pode valer a pena. Milagre nunca é uma conclusão válida.
-7. Mantenha parágrafos curtos, use <p>, <strong>, <ul> e <li>, e acrescente uma pitada de bom humor sem diminuir a autoridade. Não escreva lista de fontes, referências, citações, nomes de sites ou URLs no productReview nem no blogPost. A pesquisa serve somente para fundamentar o texto nos bastidores.
-8. Se não houver experiência pessoal confirmada, continue em primeira pessoa como opinião de pesquisa: "quando olhei a fórmula", "o que me chamou atenção" ou equivalentes honestos; nunca finja uso.
-9. Termine naturalmente e inclua apenas então: <br><br><a href="${link || "#"}" target="_blank" class="text-[var(--color-gold)] font-bold underline">✨ Ver o produto indicado pela Luana</a>
-10. researchSummary deve conter, em até 900 caracteres, os ativos confirmados, suas funções, o domínio da fonte oficial consultada e as limitações da pesquisa, para reutilização segura do cache.`;
+Notas pessoais: "${impressions || "Nenhuma experiência pessoal informada."}". Status: ${resolvedStatus}. Tempo de uso: ${testDuration || "não informado"}.
+Crie uma productReview breve, concreta e fluida, com no máximo 1 emoji. Avalie apenas o visível ou informado: acabamento aparente, versatilidade, ocasião e combinações. Não afirme conforto, durabilidade ou uso pessoal sem confirmação. Se nome ou marca não estiverem legíveis, use nome descritivo e confiança baixa. blogTitle, blogPost e researchSummary devem ser vazios; evidenceLevel deve ser nao_aplicavel.`;
+      const started = Date.now();
+      const { response, usage } = await generateAi(ai, "accessory", { contents: image ? [image.part, prompt] : prompt, config: { responseMimeType: "application/json", responseJsonSchema: productSchema, temperature: 0.8, mediaResolution: "MEDIA_RESOLUTION_LOW" } });
+      timings.writing = Date.now() - started; usages.push(usage);
+      const generated = parseJson<ProductGeneration>(response.text);
+      generated.experienceStatus = resolvedStatus;
+      await finalizeGeneration({ supabase, userId: user.id, requestHash, requestId, generated, context, contentType, title, usages, timings, cacheHit: false, retryCount: 0, searchQueries: 0 });
+      return NextResponse.json({ ...generated, sources: [], performance: { cached: false, durationMs: Date.now() - requestStartedAt } });
     }
 
-    const contents: Array<string | { inlineData: { data: string; mimeType: string } }> = [];
-    if (imagePart) contents.push(imagePart);
-    contents.push(prompt);
+    let productName = String(title || "").trim();
+    let identificationConfidence: ProductGeneration["identificationConfidence"] = productName ? "alta" : "baixa";
+    if (!productName && image) {
+      const started = Date.now();
+      const { response, usage } = await generateAi(ai, "identify", { contents: [image.part, "Leia a embalagem. Retorne nome exato do produto, marca e confiança. Não invente texto ilegível."], config: { responseMimeType: "application/json", responseJsonSchema: identificationSchema, mediaResolution: "MEDIA_RESOLUTION_LOW" } });
+      timings.identification = Date.now() - started; usages.push(usage);
+      const identified = parseJson<{ productName: string; brand: string; confidence: ProductGeneration["identificationConfidence"] }>(response.text);
+      productName = [identified.brand, identified.productName].filter(Boolean).join(" ").trim();
+      identificationConfidence = identified.confidence;
+    }
+    if (!productName) productName = "Produto não identificado";
 
-    let response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents,
-      config: {
-        responseMimeType: "application/json",
-        responseJsonSchema: productSchema,
-        temperature: isAccessory ? 0.8 : 0.65,
-        maxOutputTokens: isAccessory ? 900 : 4200,
-        ...(!isAccessory && !cachedResearch ? { tools: [{ googleSearch: {} }] } : {}),
-      },
-    });
+    const cacheKey = `review-v3-${normalizeCacheSubject(productName || link || "produto")}`;
+    const researchCacheStartedAt = Date.now();
+    const { data: cachedResearch } = await supabase.from("ai_research_cache").select("summary,sources").eq("user_id", user.id).eq("cache_key", cacheKey).gt("expires_at", new Date().toISOString()).maybeSingle();
+    timings.researchCache = Date.now() - researchCacheStartedAt;
+    let research: ResearchResult;
+    let sources = cachedResearch?.sources || [];
+    let searchQueries = 0;
+    if (cachedResearch) {
+      research = parseJson<ResearchResult>(cachedResearch.summary);
+    } else {
+      const started = Date.now();
+      const researchPrompt = `${TRUTH_RULES}\n${SCIENCE_RULES}
 
-    const researchResponse = response;
+Pesquise o cosmético "${productName}". Link informado: ${link || "não informado"}.
+Comece pela página oficial da marca para fórmula, ativos, modo de uso e promessas. Depois verifique os principais ativos em Anvisa, Ministério da Saúde, sociedades médicas, PubMed, revisões e periódicos. Diferencie alegação da marca, evidência do ingrediente e teste do produto final.
+Retorne resumo factual de até 3.500 caracteres com ativos confirmados, funções, modo de uso, domínio da fonte oficial e limitações. Não escreva artigo nem opinião da Luana.`;
+      const { response, usage } = await generateAi(ai, "research", { contents: researchPrompt, config: { responseMimeType: "application/json", responseJsonSchema: researchSchema, tools: [{ googleSearch: {} }] } });
+      timings.research = Date.now() - started; usages.push(usage);
+      research = parseJson<ResearchResult>(response.text);
+      sources = extractGroundingSources(response);
+      searchQueries = response.candidates?.[0]?.groundingMetadata?.webSearchQueries?.length || 0;
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await supabase.from("ai_research_cache").upsert({ user_id: user.id, cache_key: cacheKey, subject: productName, summary: JSON.stringify(research), sources, expires_at: expiresAt.toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id,cache_key" });
+    }
+
+    const context = await contextPromise;
+    const writingPrompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${SCIENCE_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}
+
+DIREÇÃO CRIATIVA: ${getCreativeDirection()}.\n${originalityRules}
+Produto: "${productName}". Confiança: ${identificationConfidence}. Link: ${link || "não informado"}.
+Notas pessoais: "${impressions || "Nenhuma experiência pessoal informada; trate como pesquisa, nunca como teste."}". Status: ${resolvedStatus}. Tempo de uso: ${testDuration || "não informado"}.
+PESQUISA VERIFICADA, SEM EXTRAPOLAR: ${research.summary}
+
+Crie productReview em primeira pessoa, 4 a 7 frases, com as notas como coração, explicação leve de 1 ou 2 ativos e 1 a 3 emojis. Não invente uso. Termine exatamente com: <br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>
+blogTitle deve seguir "Estudei para te explicar: [produto ou ativo]". blogPost deve usar HTML, parágrafos curtos e exatamente estes títulos, nesta ordem:
+<i>[conclusão curta sem promessa milagrosa]</i>
+<h3>📣 A Promessa da Indústria</h3>
+<h3>🧴 Afinal, o que tem na fórmula?</h3>
+<h3>🔬 O que a ciência diz sobre esses ativos?</h3>
+<h3>✨ E a nossa pele madura, ganha o quê com isso?</h3>
+<h3>🪞 Manual de Sobrevivência</h3>
+<h3>⚖️ É hype ou é milagre?</h3>
+Diferencie promessa, evidência e experiência; não liste fontes ou URLs. Finalize com: <br><br><a href="${link || "#"}" target="_blank" class="text-[var(--color-gold)] font-bold underline">✨ Ver o produto indicado pela Luana</a>
+researchSummary deve reutilizar o resumo fornecido. evidenceLevel deve ser ${research.evidenceLevel}.`;
+
+    let retryCount = 0;
+    const writingStartedAt = Date.now();
     let generated: ProductGeneration;
     try {
-      generated = parseJson<ProductGeneration>(response.text);
+      const result = await generateAi(ai, "product", { contents: writingPrompt, config: { responseMimeType: "application/json", responseJsonSchema: productSchema, temperature: 0.75 } });
+      usages.push(result.usage); generated = parseJson<ProductGeneration>(result.response.text);
     } catch {
-      const retryPrompt = `${prompt}
-
-A resposta anterior veio incompleta. Gere novamente TODO o objeto JSON, do início ao fim, seguindo o schema solicitado. Seja mais concisa, preserve os fatos já apurados e não acrescente pesquisa ou alegações novas. Não explique a correção e não use markdown.
-
-RASCUNHO PARCIAL PARA RECUPERAR FATOS, SEM COPIAR O CORTE FINAL:
-${(response.text || "").slice(0, 12000)}`;
-      const retryContents: Array<string | { inlineData: { data: string; mimeType: string } }> = [];
-      if (imagePart) retryContents.push(imagePart);
-      retryContents.push(retryPrompt);
-      response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
-        contents: retryContents,
-        config: {
-          responseMimeType: "application/json",
-          responseJsonSchema: productSchema,
-          temperature: 0.35,
-          maxOutputTokens: isAccessory ? 1200 : 5200,
-        },
-      });
-      generated = parseJson<ProductGeneration>(response.text);
+      retryCount = 1;
+      const result = await generateAi(ai, "product", { contents: `${writingPrompt}\nA resposta anterior falhou na formatação. Gere o objeto completo, conciso e válido, sem nova pesquisa.`, config: { responseMimeType: "application/json", responseJsonSchema: productSchema, temperature: 0.35 } });
+      usages.push(result.usage); generated = parseJson<ProductGeneration>(result.response.text);
     }
+    timings.writing = Date.now() - writingStartedAt;
+    generated.productName ||= productName;
+    generated.identificationConfidence = identificationConfidence;
+    generated.evidenceLevel = research.evidenceLevel;
+    generated.experienceStatus = resolvedStatus;
+    generated.researchSummary = research.summary.slice(0, 3500);
+    if (!generated.productReview.includes('href="/resenhas"')) generated.productReview += `<br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>`;
 
-    generated.experienceStatus = resolvedExperienceStatus;
-    if (!isAccessory && !generated.productReview.includes('href="/resenhas"')) {
-      generated.productReview += `<br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>`;
-    }
-
-    const retried = response !== researchResponse;
-    const sources = isAccessory ? [] : (cachedResearch?.sources || extractGroundingSources(researchResponse));
-    if (!isAccessory && cacheKey && !cachedResearch && generated.researchSummary) {
-      const expiresAt = new Date(); expiresAt.setDate(expiresAt.getDate() + 30);
-      await supabase.from("ai_research_cache").upsert({ user_id: user.id, cache_key: cacheKey, subject: generated.productName || title || cacheKey, summary: generated.researchSummary.slice(0, 1200), sources, expires_at: expiresAt.toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id,cache_key" });
-    }
-    await recordGeneration(supabase, user.id, {
-      contentType,
-      topic: title,
-      title: generated.blogTitle || generated.productName,
-      openingStyle: generated.openingStyle,
-      structureStyle: generated.structureStyle,
-      notablePhrases: generated.notablePhrases,
-      memoryIds: context.memoryIds,
-      sourceCount: sources.length,
-      inputTokens: (researchResponse.usageMetadata?.promptTokenCount || 0) + (retried ? response.usageMetadata?.promptTokenCount || 0 : 0),
-      outputTokens: (researchResponse.usageMetadata?.candidatesTokenCount || 0) + (retried ? response.usageMetadata?.candidatesTokenCount || 0 : 0),
-      searchQueries: researchResponse.candidates?.[0]?.groundingMetadata?.webSearchQueries?.length || 0,
-    });
-    await suggestMemoryFromNotes(supabase, user.id, impressions, topicTags(title, impressions, isAccessory ? "moda acessorio" : "skincare cosmetico"));
-    return NextResponse.json({ ...generated, sources });
+    await finalizeGeneration({ supabase, userId: user.id, requestHash, requestId, generated, context, contentType, title: productName, usages, timings, cacheHit: Boolean(cachedResearch), retryCount, searchQueries });
+    await suggestMemoryFromNotes(supabase, user.id, impressions, topicTags(productName, impressions, "skincare cosmetico"));
+    return NextResponse.json({ ...generated, sources, performance: { cached: Boolean(cachedResearch), durationMs: Date.now() - requestStartedAt, stages: timings } });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erro ao gerar conteúdo";
     return NextResponse.json({ error: message }, { status: message.includes("autoriz") || message.includes("Sessão") ? 401 : 500 });
   }
+}
+
+async function finalizeGeneration(args: {
+  supabase: Awaited<ReturnType<typeof authenticateAiRequest>>["supabase"]; userId: string; requestHash: string; requestId: string;
+  generated: ProductGeneration; context: Awaited<ReturnType<typeof loadAiContext>>; contentType: string; title: string;
+  usages: AiUsage[]; timings: Record<string, number>; cacheHit: boolean; retryCount: number; searchQueries: number;
+}) {
+  const usage = combineUsage(args.usages);
+  usage.durationMs = Object.values(args.timings).reduce((sum, value) => sum + value, 0);
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+  await args.supabase.from("ai_response_cache").upsert({ user_id: args.userId, request_hash: args.requestHash, response: args.generated, expires_at: expiresAt.toISOString() }, { onConflict: "user_id,request_hash" });
+  await recordGeneration(args.supabase, args.userId, {
+    contentType: args.contentType, topic: args.title, title: args.generated.blogTitle || args.generated.productName,
+    openingStyle: args.generated.openingStyle, structureStyle: args.generated.structureStyle, notablePhrases: args.generated.notablePhrases,
+    memoryIds: args.context.memoryIds, usage, searchQueries: args.searchQueries, cacheHit: args.cacheHit,
+    retryCount: args.retryCount, requestId: args.requestId, stageTimings: args.timings,
+  });
 }

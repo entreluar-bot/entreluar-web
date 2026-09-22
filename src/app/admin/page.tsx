@@ -37,6 +37,18 @@ type LuanaMemory = {
   valid_until?: string | null;
 };
 
+type AiUsageSummary = {
+  inputTokens: number; outputTokens: number; thoughtTokens: number; totalTokens: number; searches: number;
+  costBrl: number; retries: number; cacheHits: number; latency: { p50: number; p95: number };
+  last24h: { costBrl: number; totalTokens: number }; last7d: { costBrl: number; totalTokens: number };
+  byType: Array<{ type: string; costBrl: number; totalTokens: number }>;
+};
+
+const emptyAiUsage: AiUsageSummary = {
+  inputTokens: 0, outputTokens: 0, thoughtTokens: 0, totalTokens: 0, searches: 0, costBrl: 0, retries: 0, cacheHits: 0,
+  latency: { p50: 0, p95: 0 }, last24h: { costBrl: 0, totalTokens: 0 }, last7d: { costBrl: 0, totalTokens: 0 }, byType: [],
+};
+
 const compressImage = (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -147,7 +159,7 @@ export default function AdminDashboard() {
   const [memoryCategory, setMemoryCategory] = useState<LuanaMemory["category"]>("opiniao");
   const [memoryPrivacy, setMemoryPrivacy] = useState<LuanaMemory["privacy"]>("editorial");
   const [memoryAllowInContent, setMemoryAllowInContent] = useState(false);
-  const [aiUsage, setAiUsage] = useState({ inputTokens: 0, outputTokens: 0, searches: 0 });
+  const [aiUsage, setAiUsage] = useState<AiUsageSummary>(emptyAiUsage);
 
   const supabase = createClient();
 
@@ -180,11 +192,17 @@ export default function AdminDashboard() {
     try {
       const data = await memoryRequest();
       setMemories(data.memories || []);
-      setAiUsage(data.usage || { inputTokens: 0, outputTokens: 0, searches: 0 });
+      setAiUsage({ ...emptyAiUsage, ...(data.usage || {}) });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Não foi possível carregar a memória.");
     }
   };
+
+  useEffect(() => {
+    if (user) fetchMemories();
+  }, [user]);
+
+  const confirmAiSpend = () => aiUsage.costBrl < 10 || confirm("A meta mensal de R$ 10 já foi alcançada. Deseja mesmo gerar outro conteúdo com custo de IA?");
 
   const handleSaveMemory = async () => {
     if (memoryContent.trim().length < 3) return setMessage("Escreva uma lembrança um pouco mais completa.");
@@ -306,11 +324,17 @@ export default function AdminDashboard() {
   }, [generatedReview, generatedBlogPost]);
 
   const handleGenerateText = async () => {
+    if (!confirmAiSpend()) return;
     if (!imageFile) return setMessage("Você precisa colar uma imagem do produto primeiro!");
     if (!link) return setMessage("O link da loja é obrigatório!");
 
     setLoading(true);
     setMessage("Iniciando mágica (pode demorar uns 15 segundos)...");
+    const progressTimers = [
+      window.setTimeout(() => setMessage(title ? "Consultando a pesquisa já guardada..." : "Identificando o produto na foto..."), 1200),
+      window.setTimeout(() => setMessage("Conferindo fórmula e evidências..."), 4500),
+      window.setTimeout(() => setMessage("Escrevendo a Vitrine e o artigo..."), 9500),
+    ];
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -332,7 +356,7 @@ export default function AdminDashboard() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ title, link, impressions, imageUrl: tempAiImageUrl, isAccessory, experienceStatus: productExperience, testDuration: productTestDuration })
+        body: JSON.stringify({ title, link, impressions, imageUrl: tempAiImageUrl, isAccessory, experienceStatus: productExperience, testDuration: productTestDuration, requestId: crypto.randomUUID() })
       });
 
       const textRes = await res.text();
@@ -353,14 +377,18 @@ export default function AdminDashboard() {
       setGeneratedBlogTitle(data.blogTitle);
       setGeneratedBlogPost(data.blogPost);
       setBlogCategory("Estudei para te explicar");
-      setMessage("Textos gerados! Revise e publique.");
+      const seconds = data.performance?.durationMs ? ` em ${(data.performance.durationMs / 1000).toFixed(1)}s` : "";
+      const cacheNote = data.performance?.cached ? " usando o cache econômico" : "";
+      setMessage(`Textos gerados${seconds}${cacheNote}! Revise e publique.`);
     } catch (error: any) {
       setMessage("Erro: " + error.message);
     }
+    progressTimers.forEach(window.clearTimeout);
     setLoading(false);
   };
 
   const handleBrainstorm = async () => {
+    if (!confirmAiSpend()) return;
     setLoading(true);
     setMessage("Pensando em ideias polêmicas e divertidas...");
     try {
@@ -382,6 +410,7 @@ export default function AdminDashboard() {
   };
 
   const handleGenerateBlogOnly = async () => {
+    if (!confirmAiSpend()) return;
     if (!title && !impressions) return setMessage("Digite um tema ou impressões para gerar o artigo!");
     setLoading(true);
     setMessage("Escrevendo crônica do Diário...");
@@ -440,6 +469,7 @@ export default function AdminDashboard() {
   };
 
   const handleGenerateNewsletter = async () => {
+    if (!confirmAiSpend()) return;
     setLoading(true);
     setNewsletterStatus("preparing");
     setMessage("Escrevendo e-mail...");
@@ -508,6 +538,7 @@ export default function AdminDashboard() {
   };
 
   const handleGenerateQuote = async () => {
+    if (!confirmAiSpend()) return;
     setLoading(true);
     setMessage("Buscando inspiração nas estrelas...");
     try {
@@ -753,8 +784,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.44</p>
-                <p>Atualizado em 21/09/2026 às 08:14</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.45</p>
+                <p>Atualizado em 21/09/2026 às 22:10</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1408,7 +1439,18 @@ export default function AdminDashboard() {
                   <p className="eyebrow mb-2">Personalidade com verdade</p>
                   <h2 className="font-display text-3xl text-[var(--color-gold-light)]">Memória da Luana</h2>
                   <p className="mt-3 text-sm leading-6 text-[var(--color-gold-light)] opacity-75">Guarde opiniões, experiências e jeitos de falar. A IA recupera apenas o que combina com cada assunto, economizando tokens. Memórias privadas ficam no painel e nunca entram nos prompts.</p>
-                  <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs"><div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.inputTokens.toLocaleString("pt-BR")}</strong>tokens de entrada</div><div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.outputTokens.toLocaleString("pt-BR")}</strong>tokens de saída</div><div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.searches}</strong>buscas web</div></div>
+                  {aiUsage.costBrl >= 8 && <div className={`mt-4 rounded-xl border p-4 text-sm font-bold ${aiUsage.costBrl >= 10 ? "border-red-400 bg-red-950/40 text-red-200" : "border-amber-400 bg-amber-950/30 text-amber-100"}`}>{aiUsage.costBrl >= 10 ? "⚠️ A meta mensal de R$ 10 foi alcançada. Confirme o custo antes de novas gerações." : "💛 O gasto estimado passou de R$ 8 neste mês e está perto da meta."}</div>}
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-center text-xs md:grid-cols-4">
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">R$ {aiUsage.costBrl.toFixed(2).replace(".", ",")}</strong>custo estimado no mês</div>
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">R$ {aiUsage.last24h.costBrl.toFixed(2).replace(".", ",")}</strong>últimas 24 horas</div>
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.thoughtTokens.toLocaleString("pt-BR")}</strong>tokens de raciocínio</div>
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{(aiUsage.latency.p95 / 1000).toFixed(1).replace(".", ",")}s</strong>tempo p95</div>
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.inputTokens.toLocaleString("pt-BR")}</strong>tokens de entrada</div>
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.outputTokens.toLocaleString("pt-BR")}</strong>tokens de texto</div>
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.cacheHits}</strong>gerações em cache</div>
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.searches}</strong>buscas web</div>
+                  </div>
+                  {aiUsage.byType.length > 0 && <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-wine-light)]"><div className="grid grid-cols-3 bg-[var(--color-wine)] px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-gold)]"><span>Conteúdo</span><span className="text-right">Tokens</span><span className="text-right">Custo</span></div>{aiUsage.byType.map((item) => <div key={item.type} className="grid grid-cols-3 border-t border-[var(--color-wine-light)] px-4 py-2 text-xs text-[var(--color-gold-light)]"><span>{item.type}</span><span className="text-right">{item.totalTokens.toLocaleString("pt-BR")}</span><span className="text-right">R$ {item.costBrl.toFixed(3).replace(".", ",")}</span></div>)}</div>}
 
                   <div className="mt-6 grid gap-4 md:grid-cols-2">
                     <div className="md:col-span-2">

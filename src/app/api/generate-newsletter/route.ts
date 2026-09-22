@@ -5,6 +5,7 @@ import { authenticateAiRequest } from "@/lib/ai/auth";
 import { loadAiContext, parseJson, recordGeneration, topicTags } from "@/lib/ai/context";
 import { LUANA_VOICE, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 import { newsletterSchema } from "@/lib/ai/schemas";
+import { generateAi } from "@/lib/ai/runtime";
 
 export const maxDuration = 60;
 
@@ -48,10 +49,10 @@ REGRAS DE CONTEÚDO:
 - ctaUrl deve ser a URL https específica informada no contexto; se nenhuma for fornecida, retorne string vazia.
 - subject abre uma curiosidade honesta; preheader complementa sem repetir; headline entrega a promessa editorial; CTA descreve o próximo passo.`;
 
-    const response = await ai.models.generateContent({ model: "gemini-3.6-flash", contents: prompt, config: { responseMimeType: "application/json", responseJsonSchema: newsletterSchema, temperature: 0.8, maxOutputTokens: 900 } });
+    const { response, usage } = await generateAi(ai, "newsletter", { contents: prompt, config: { responseMimeType: "application/json", responseJsonSchema: newsletterSchema, temperature: 0.8 } });
     const generated = parseJson<AiEmail>(response.text);
     if (!generated.subject || !generated.preheader || !generated.headline || !generated.bodyHtml || !generated.ctaText) throw new Error("A IA não devolveu todos os campos do e-mail.");
-    await recordGeneration(supabase, user.id, { contentType: `newsletter_${emailType}`, topic: body.contextText, title: generated.subject, openingStyle: generated.openingStyle, notablePhrases: generated.notablePhrases, memoryIds: context.memoryIds, inputTokens: response.usageMetadata?.promptTokenCount, outputTokens: response.usageMetadata?.candidatesTokenCount });
+    await recordGeneration(supabase, user.id, { contentType: `newsletter_${emailType}`, topic: body.contextText, title: generated.subject, openingStyle: generated.openingStyle, notablePhrases: generated.notablePhrases, memoryIds: context.memoryIds, usage });
     return NextResponse.json(renderPremiumEmail(emailType, generated));
   } catch (error: unknown) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Erro ao gerar e-mail" }, { status: 500 });

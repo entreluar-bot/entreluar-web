@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AiUsage } from "@/lib/ai/runtime";
 
 export type AiMemory = {
   id: string;
@@ -65,9 +66,11 @@ export async function loadAiContext(supabase: SupabaseClient, userId: string, co
 export async function recordGeneration(supabase: SupabaseClient, userId: string, data: {
   contentType: string; topic?: string; title?: string; openingStyle?: string; structureStyle?: string;
   closingStyle?: string; notablePhrases?: string[]; memoryIds?: string[]; sourceCount?: number;
-  inputTokens?: number; outputTokens?: number; searchQueries?: number;
+  inputTokens?: number; outputTokens?: number; searchQueries?: number; usage?: AiUsage;
+  cacheHit?: boolean; retryCount?: number; requestId?: string; status?: string; stageTimings?: Record<string, number>;
 }) {
-  await supabase.from("ai_generation_history").insert({
+  const usage = data.usage;
+  const baseRow = {
     user_id: userId,
     content_type: data.contentType,
     topic: compact(data.topic || "", 300),
@@ -78,10 +81,27 @@ export async function recordGeneration(supabase: SupabaseClient, userId: string,
     notable_phrases: (data.notablePhrases || []).slice(0, 3).map((value) => compact(value, 140)),
     memory_ids: data.memoryIds || [],
     source_count: data.sourceCount || 0,
-    input_tokens: data.inputTokens || 0,
-    output_tokens: data.outputTokens || 0,
+    input_tokens: usage?.inputTokens ?? data.inputTokens ?? 0,
+    output_tokens: usage?.outputTokens ?? data.outputTokens ?? 0,
     search_queries: data.searchQueries || 0,
-  });
+  };
+  const extendedRow = {
+    ...baseRow,
+    model: usage?.model || "",
+    thought_tokens: usage?.thoughtTokens || 0,
+    tool_tokens: usage?.toolTokens || 0,
+    total_tokens: usage?.totalTokens || (baseRow.input_tokens + baseRow.output_tokens),
+    duration_ms: usage?.durationMs || 0,
+    estimated_cost_usd: usage?.estimatedCostUsd || 0,
+    estimated_cost_brl: usage?.estimatedCostBrl || 0,
+    cache_hit: data.cacheHit || false,
+    retry_count: data.retryCount || 0,
+    request_id: data.requestId || null,
+    status: data.status || "success",
+    stage_timings: data.stageTimings || {},
+  };
+  const { error } = await supabase.from("ai_generation_history").insert(extendedRow);
+  if (error) await supabase.from("ai_generation_history").insert(baseRow);
 
   if (data.memoryIds?.length) {
     await supabase.from("luana_memories").update({ last_used_at: new Date().toISOString() }).in("id", data.memoryIds);

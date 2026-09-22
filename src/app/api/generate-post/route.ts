@@ -5,6 +5,7 @@ import { authenticateAiRequest } from "@/lib/ai/auth";
 import { loadAiContext, parseJson, recordGeneration, suggestMemoryFromNotes, topicTags } from "@/lib/ai/context";
 import { LUANA_VOICE, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 import { postSchema } from "@/lib/ai/schemas";
+import { generateAi } from "@/lib/ai/runtime";
 
 export const maxDuration = 60; 
 
@@ -17,12 +18,11 @@ export async function POST(req: Request) {
     if (body.action === "brainstorm") { 
       const context = await loadAiContext(supabase, user.id, "brainstorm", ["menopausa", "beleza", "autocuidado"]);
       const prompt = `${LUANA_VOICE}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}\nGere 3 pautas distintas para o Diário. Misture identificação, serviço e opinião. Para cada uma, escreva em uma linha: título específico — ângulo — por que importa para a leitora. Evite clickbait, temas genéricos e variações da mesma ideia. Não numere e não use markdown.`;
-      const response = await ai.models.generateContent({ 
-        model: "gemini-3.6-flash", 
+      const { response, usage } = await generateAi(ai, "brainstorm", {
         contents: prompt,
-        config: { temperature: 0.9, maxOutputTokens: 350 },
+        config: { temperature: 0.9 },
       }); 
-      await recordGeneration(supabase, user.id, { contentType: "brainstorm", notablePhrases: (response.text || "").split("\n").slice(0, 3), memoryIds: context.memoryIds, inputTokens: response.usageMetadata?.promptTokenCount, outputTokens: response.usageMetadata?.candidatesTokenCount });
+      await recordGeneration(supabase, user.id, { contentType: "brainstorm", notablePhrases: (response.text || "").split("\n").slice(0, 3), memoryIds: context.memoryIds, usage });
       return NextResponse.json({ text: response.text }); 
     } 
     
@@ -49,14 +49,13 @@ Não copie as notas literalmente: preserve o sentido e desenvolva somente o que 
     if (imagePart) contents.push(imagePart); 
     contents.push(prompt); 
     
-    const response = await ai.models.generateContent({ 
-      model: "gemini-3.6-flash", 
+    const { response, usage } = await generateAi(ai, "blog", {
       contents,
-      config: { responseMimeType: "application/json", responseJsonSchema: postSchema, temperature: 0.85, maxOutputTokens: 8192 },
+      config: { responseMimeType: "application/json", responseJsonSchema: postSchema, temperature: 0.85 },
     }); 
 
     const generated = parseJson<{ title: string; text: string; imagePrompt: string; openingStyle: string; structureStyle: string; closingStyle: string; notablePhrases: string[] }>(response.text);
-    await recordGeneration(supabase, user.id, { contentType: "blog", topic: `${title || ""} ${category || ""}`, title: generated.title, openingStyle: generated.openingStyle, structureStyle: generated.structureStyle, closingStyle: generated.closingStyle, notablePhrases: generated.notablePhrases, memoryIds: context.memoryIds, inputTokens: response.usageMetadata?.promptTokenCount, outputTokens: response.usageMetadata?.candidatesTokenCount });
+    await recordGeneration(supabase, user.id, { contentType: "blog", topic: `${title || ""} ${category || ""}`, title: generated.title, openingStyle: generated.openingStyle, structureStyle: generated.structureStyle, closingStyle: generated.closingStyle, notablePhrases: generated.notablePhrases, memoryIds: context.memoryIds, usage });
     await suggestMemoryFromNotes(supabase, user.id, impressions, topicTags(title, impressions, category));
     return NextResponse.json(generated);
   } catch (error: unknown) {

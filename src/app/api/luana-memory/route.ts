@@ -5,15 +5,47 @@ const categories = new Set(["identidade", "rotina", "experiencia", "opiniao", "l
 const privacyLevels = new Set(["publica", "editorial", "privada"]);
 const statuses = new Set(["sugerida", "aprovada", "arquivada"]);
 
+type UsageRow = {
+  content_type?: string | null; input_tokens?: number | null; output_tokens?: number | null; thought_tokens?: number | null;
+  tool_tokens?: number | null; total_tokens?: number | null; search_queries?: number | null; duration_ms?: number | null;
+  estimated_cost_brl?: number | string | null; cache_hit?: boolean | null; retry_count?: number | null; created_at: string;
+};
+
 export async function GET(req: Request) {
   try {
     const { supabase, user } = await authenticateAiRequest(req);
-    const [{ data, error }, { data: usageRows }] = await Promise.all([
+    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    const [{ data, error }, extendedUsage] = await Promise.all([
       supabase.from("luana_memories").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
-      supabase.from("ai_generation_history").select("input_tokens,output_tokens,search_queries").eq("user_id", user.id).order("created_at", { ascending: false }).limit(100),
+      supabase.from("ai_generation_history").select("content_type,input_tokens,output_tokens,thought_tokens,tool_tokens,total_tokens,search_queries,duration_ms,estimated_cost_brl,cache_hit,retry_count,created_at")
+        .eq("user_id", user.id).gte("created_at", monthStart.toISOString()).order("created_at", { ascending: false }).limit(1000),
     ]);
     if (error) throw error;
-    const usage = (usageRows || []).reduce((total, row) => ({ inputTokens: total.inputTokens + (row.input_tokens || 0), outputTokens: total.outputTokens + (row.output_tokens || 0), searches: total.searches + (row.search_queries || 0) }), { inputTokens: 0, outputTokens: 0, searches: 0 });
+    let usageRows = (extendedUsage.data || []) as UsageRow[];
+    if (extendedUsage.error) {
+      const fallback = await supabase.from("ai_generation_history").select("content_type,input_tokens,output_tokens,search_queries,created_at").eq("user_id", user.id).gte("created_at", monthStart.toISOString()).order("created_at", { ascending: false }).limit(1000);
+      usageRows = (fallback.data || []) as UsageRow[];
+    }
+    const now = Date.now();
+    const summarize = (rows: typeof usageRows) => rows.reduce((total, row) => ({
+      inputTokens: total.inputTokens + (row.input_tokens || 0), outputTokens: total.outputTokens + (row.output_tokens || 0),
+      thoughtTokens: total.thoughtTokens + Number(row.thought_tokens || 0),
+      totalTokens: total.totalTokens + Number(row.total_tokens || Number(row.input_tokens || 0) + Number(row.output_tokens || 0)),
+      searches: total.searches + (row.search_queries || 0), costBrl: total.costBrl + Number(row.estimated_cost_brl || 0),
+      retries: total.retries + Number(row.retry_count || 0),
+    }), { inputTokens: 0, outputTokens: 0, thoughtTokens: 0, totalTokens: 0, searches: 0, costBrl: 0, retries: 0 });
+    const durations = usageRows.map((row) => Number(row.duration_ms || 0)).filter((value) => value > 0).sort((a, b) => a - b);
+    const percentile = (values: number[], ratio: number) => values.length ? values[Math.min(values.length - 1, Math.ceil(values.length * ratio) - 1)] : 0;
+    const grouped = usageRows.reduce<Record<string, UsageRow[]>>((result, row) => { const key = row.content_type || "outro"; (result[key] ||= []).push(row); return result; }, {});
+    const byType = Object.entries(grouped).map(([type, rows]) => ({ type, ...summarize(rows) })).sort((a, b) => b.costBrl - a.costBrl);
+    const usage = {
+      ...summarize(usageRows),
+      last24h: summarize(usageRows.filter((row) => now - new Date(row.created_at).getTime() <= 24 * 60 * 60 * 1000)),
+      last7d: summarize(usageRows.filter((row) => now - new Date(row.created_at).getTime() <= 7 * 24 * 60 * 60 * 1000)),
+      latency: { p50: percentile(durations, 0.5), p95: percentile(durations, 0.95) },
+      cacheHits: usageRows.filter((row) => row.cache_hit).length,
+      byType,
+    };
     return NextResponse.json({ memories: data || [], usage });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Não foi possível carregar a memória";
