@@ -44,6 +44,19 @@ type AiUsageSummary = {
   byType: Array<{ type: string; costBrl: number; totalTokens: number }>;
 };
 
+type ManageType = "papo" | "estudei" | "vitrine";
+
+const formatPostDate = (value?: string) => value
+  ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(new Date(value))
+  : "Sem data";
+
+const toDateInputValue = (value?: string) => {
+  if (!value) return "";
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(item => item.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+};
+
 const emptyAiUsage: AiUsageSummary = {
   inputTokens: 0, outputTokens: 0, thoughtTokens: 0, totalTokens: 0, searches: 0, costBrl: 0, retries: 0, cacheHits: 0,
   latency: { p50: 0, p95: 0 }, last24h: { costBrl: 0, totalTokens: 0 }, last7d: { costBrl: 0, totalTokens: 0 }, byType: [],
@@ -134,6 +147,7 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<any[]>([]);
   const [journals, setJournals] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [manageType, setManageType] = useState<ManageType>("papo");
   
   const [blogCategory, setBlogCategory] = useState("Papo de Mulher Madura");
   const [isFeatured, setIsFeatured] = useState(false);
@@ -172,7 +186,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (activeTab === "inbox") fetchEmails();
-    if (activeTab === "manage") fetchManageData();
+    if (activeTab === "manage" || activeTab === "quotes" || activeTab === "drops") fetchManageData();
     if (activeTab === "newsletter") fetchSubscribers();
     if (activeTab === "memory") fetchMemories();
   }, [activeTab]);
@@ -738,7 +752,9 @@ export default function AdminDashboard() {
 
   const handleUpdateItem = async () => {
     if (!editingItem) return;
+    if (!editingItem.created_at) return setMessage("Escolha a data da publicação antes de salvar.");
     setLoading(true);
+    const createdAt = new Date(`${editingItem.created_at}T12:00:00-03:00`).toISOString();
     try {
       if (editingItem.type === "product") {
         const { error } = await supabase.from("products").update({
@@ -749,6 +765,7 @@ export default function AdminDashboard() {
           is_most_purchased: Boolean(editingItem.is_most_purchased),
           is_most_viewed: Boolean(editingItem.is_most_viewed),
           is_new: Boolean(editingItem.is_new),
+          created_at: createdAt,
         }).eq("id", editingItem.id);
         if (error) throw error;
       } else {
@@ -758,7 +775,8 @@ export default function AdminDashboard() {
           category: editingItem.category,
           is_featured: Boolean(editingItem.is_featured),
           is_most_viewed: Boolean(editingItem.is_most_viewed),
-          is_new: Boolean(editingItem.is_new)
+          is_new: Boolean(editingItem.is_new),
+          created_at: createdAt,
         }).eq("id", editingItem.id);
         if (error) throw error;
       }
@@ -784,8 +802,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.47</p>
-                <p>Atualizado em 21/09/2026 às 23:33</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.48</p>
+                <p>Atualizado em 21/09/2026 às 23:54</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1110,14 +1128,28 @@ export default function AdminDashboard() {
 
             {activeTab === "manage" && (
               <div className="space-y-8">
+                {!editingItem && (
+                  <div className="grid gap-3 sm:grid-cols-3" role="group" aria-label="Tipo de conteúdo para gerenciar">
+                    {([
+                      ["papo", "Papo de Mulher", journals.filter(item => item.category !== "Estudei para te explicar").length],
+                      ["estudei", "Estudei", journals.filter(item => item.category === "Estudei para te explicar").length],
+                      ["vitrine", "Vitrine", products.length],
+                    ] as Array<[ManageType, string, number]>).map(([value, label, count]) => (
+                      <button key={value} type="button" onClick={() => setManageType(value)} aria-pressed={manageType === value} className={`flex min-h-16 items-center justify-between rounded-2xl border px-4 text-left transition ${manageType === value ? "border-[var(--color-gold)] bg-[var(--color-gold)]/12 text-[var(--color-gold)]" : "border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] text-[var(--color-gold-light)] opacity-70"}`}>
+                        <span className="text-sm font-bold uppercase tracking-wider">{label}</span>
+                        <span className="rounded-full border border-current px-2 py-1 text-xs">{count}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {editingItem ? (
                   <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
                     <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif">
                       Editando {editingItem.type === "product" ? "Produto da Vitrine" : "Artigo do Diário"}
                     </h3>
-                    <div className="flex gap-4 mb-4">
+                    <div className="mb-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem_11rem]">
                       <input type="text" value={editingItem.title} onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })} className="flex-1 bg-transparent border-b border-[var(--color-wine-light)] py-2 text-[var(--color-gold)] font-bold focus:outline-none" />
-                      <select value={editingItem.category || ""} onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })} className="w-48 bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-2 py-2 text-[var(--color-gold-light)] text-sm">
+                      <select value={editingItem.category || ""} onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-2 py-2 text-[var(--color-gold-light)] text-sm">
                         {editingItem.type === "product" ? (
                           <>
                             {PRODUCT_CATEGORIES.map((category) => <option value={category} key={category}>{category}</option>)}
@@ -1129,6 +1161,10 @@ export default function AdminDashboard() {
                           </>
                         )}
                       </select>
+                      <label className="text-xs font-bold uppercase tracking-wider text-[var(--color-gold-light)]">
+                        Data da publicação
+                        <input type="date" required value={editingItem.created_at || ""} onChange={(event) => setEditingItem({ ...editingItem, created_at: event.target.value })} className="mt-1 w-full px-3 text-sm normal-case tracking-normal" />
+                      </label>
                     </div>
                     {editingItem.type === "product" ? (
                       <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
@@ -1170,14 +1206,14 @@ export default function AdminDashboard() {
                       <button onClick={() => setEditingItem(null)} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-3 rounded font-bold uppercase">
                         Cancelar
                       </button>
-                      <button onClick={handleUpdateItem} disabled={loading} className="flex-2 w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-3 rounded font-bold uppercase">
+                      <button onClick={handleUpdateItem} disabled={loading || !editingItem.created_at} className="flex-2 w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-3 rounded font-bold uppercase disabled:opacity-50">
                         {loading ? "Salvando..." : "Salvar Alterações"}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div>
+                    {manageType === "vitrine" && <div>
                       <h3 className="text-2xl text-[var(--color-gold)] mb-6 font-serif border-b border-[var(--color-wine-light)] pb-2">Vitrine (Produtos)</h3>
                       {products.length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhum produto publicado.</p> : products.map(p => (
                         <div key={p.id} className="flex flex-col justify-between gap-3 bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)] sm:flex-row sm:items-center">
@@ -1185,26 +1221,28 @@ export default function AdminDashboard() {
                             <span className="text-[var(--color-gold-light)] font-bold">{p.title}</span>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               <span className="rounded-full border border-[var(--color-wine-light)] px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold-light)] opacity-70">{p.category || "Sem categoria"}</span>
+                              <span className="rounded-full border border-[var(--color-wine-light)] px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold-light)] opacity-70">{formatPostDate(p.created_at)}</span>
                               {p.is_featured && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Destaque</span>}
                               {p.is_most_purchased && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Mais comprado</span>}
                               {p.is_most_viewed && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Mais visto</span>}
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "product", id: p.id, title: p.title, content: p.description, category: p.category || "SkinCare", is_featured: Boolean(p.is_featured), is_most_purchased: Boolean(p.is_most_purchased), is_most_viewed: Boolean(p.is_most_viewed) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => setEditingItem({ type: "product", id: p.id, title: p.title, content: p.description, category: p.category || "SkinCare", created_at: toDateInputValue(p.created_at), is_featured: Boolean(p.is_featured), is_most_purchased: Boolean(p.is_most_purchased), is_most_viewed: Boolean(p.is_most_viewed), is_new: Boolean(p.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteProduct(p.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>
                       ))}
-                    </div>
+                    </div>}
 
-                    <div className="mt-12">
+                    {manageType === "papo" && <div>
                       <h3 className="text-2xl text-[var(--color-gold)] mb-6 font-serif border-b border-[var(--color-wine-light)] pb-2">Papo de Mulher Madura</h3>
                       {journals.filter(j => j.category !== "Estudei para te explicar").length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhum artigo publicado.</p> : journals.filter(j => j.category !== "Estudei para te explicar").map(j => (
-                        <div key={j.id} className="flex justify-between items-center bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)]">
+                        <div key={j.id} className="mb-4 flex flex-col justify-between gap-3 rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4 sm:flex-row sm:items-center">
                           <div>
                             <span className="text-[var(--color-gold-light)] font-bold block">{j.title}</span>
                             <span className="text-[var(--color-gold-light)] opacity-50 text-xs uppercase">{j.category || "Sem categoria"}</span>
+                            <span className="ml-2 text-[var(--color-gold-light)] opacity-50 text-xs">• {formatPostDate(j.created_at)}</span>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {j.is_featured && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Destaque</span>}
                               {j.is_most_viewed && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Mais lido</span>}
@@ -1212,20 +1250,21 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteJournal(j.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>
                       ))}
-                    </div>
+                    </div>}
 
-                    <div className="mt-12">
+                    {manageType === "estudei" && <div>
                       <h3 className="text-2xl text-[var(--color-gold)] mb-6 font-serif border-b border-[var(--color-wine-light)] pb-2">Estudei para te explicar</h3>
                       {journals.filter(j => j.category === "Estudei para te explicar").length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhuma resenha publicada.</p> : journals.filter(j => j.category === "Estudei para te explicar").map(j => (
-                        <div key={j.id} className="flex justify-between items-center bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)]">
+                        <div key={j.id} className="mb-4 flex flex-col justify-between gap-3 rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4 sm:flex-row sm:items-center">
                           <div>
                             <span className="text-[var(--color-gold-light)] font-bold block">{j.title}</span>
                             <span className="text-[var(--color-gold-light)] opacity-50 text-xs uppercase">{j.category || "Sem categoria"}</span>
+                            <span className="ml-2 text-[var(--color-gold-light)] opacity-50 text-xs">• {formatPostDate(j.created_at)}</span>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {j.is_featured && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Destaque</span>}
                               {j.is_most_viewed && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Mais lido</span>}
@@ -1233,41 +1272,12 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteJournal(j.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>
                       ))}
-                    </div>
-
-                    <div className="mt-12">
-                      <h3 className="text-2xl text-[var(--color-gold)] mb-6 font-serif border-b border-[var(--color-wine-light)] pb-2">Pílulas Diárias (Motivação)</h3>
-                      {quotes.length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhuma pílula publicada.</p> : quotes.map(q => (
-                        <div key={q.id} className="flex justify-between items-center bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)]">
-                          <div>
-                            <span className="text-[var(--color-gold-light)] block italic">"{q.quote}"</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => handleDeleteQuote(q.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="mt-12">
-                      <h3 className="text-2xl text-[var(--color-gold)] mb-6 font-serif border-b border-[var(--color-wine-light)] pb-2">Drops do Instagram</h3>
-                      {drops.length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhum drop publicado.</p> : drops.map(d => (
-                        <div key={d.id} className="flex justify-between items-center bg-[var(--color-wine-dark)] p-4 rounded mb-4 border border-[var(--color-wine-light)]">
-                          <div>
-                            <span className="text-[var(--color-gold-light)] font-bold block">{d.title}</span>
-                            <span className="text-[var(--color-gold-light)] opacity-50 text-xs break-all">{d.instagram_url}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => handleDeleteDrop(d.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    </div>}
                   </>
                 )}
               </div>
@@ -1522,6 +1532,18 @@ export default function AdminDashboard() {
                   )}
                   {message && <p className="text-sm text-[#f3e5ab] mt-4 italic text-center font-bold">{message}</p>}
                 </div>
+                <div>
+                  <h3 className="mb-6 border-b border-[var(--color-wine-light)] pb-2 font-serif text-2xl text-[var(--color-gold)]">Pílulas publicadas</h3>
+                  {quotes.length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhuma pílula publicada.</p> : quotes.map(quote => (
+                    <div key={quote.id} className="mb-4 flex items-center justify-between gap-4 rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4">
+                      <div>
+                        <span className="block italic text-[var(--color-gold-light)]">“{quote.quote}”</span>
+                        <span className="mt-1 block text-xs text-[var(--color-gold-light)] opacity-50">{formatPostDate(quote.created_at)}</span>
+                      </div>
+                      <button onClick={() => handleDeleteQuote(quote.id)} className="shrink-0 rounded bg-red-900 px-3 py-1 text-xs text-white">Deletar</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -1542,6 +1564,18 @@ export default function AdminDashboard() {
                     </button>
                     {message && <p className="text-sm text-[#f3e5ab] mt-4 italic text-center font-bold">{message}</p>}
                   </div>
+                </div>
+                <div>
+                  <h3 className="mb-6 border-b border-[var(--color-wine-light)] pb-2 font-serif text-2xl text-[var(--color-gold)]">Drops publicados</h3>
+                  {drops.length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhum drop publicado.</p> : drops.map(drop => (
+                    <div key={drop.id} className="mb-4 flex items-center justify-between gap-4 rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4">
+                      <div className="min-w-0">
+                        <span className="block font-bold text-[var(--color-gold-light)]">{drop.title || "Drop do Instagram"}</span>
+                        <span className="block break-all text-xs text-[var(--color-gold-light)] opacity-50">{drop.instagram_url}</span>
+                      </div>
+                      <button onClick={() => handleDeleteDrop(drop.id)} className="shrink-0 rounded bg-red-900 px-3 py-1 text-xs text-white">Deletar</button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
