@@ -22,8 +22,8 @@ export type AiUsage = {
 };
 
 const policies: Record<AiTask, TaskPolicy> = {
-  brainstorm: { model: "gemini-2.5-flash-lite", maxOutputTokens: 300, timeoutMs: 10_000, thinkingConfig: { thinkingBudget: 0 } },
-  quote: { model: "gemini-2.5-flash-lite", maxOutputTokens: 500, timeoutMs: 10_000, thinkingConfig: { thinkingBudget: 0 } },
+  brainstorm: { model: "gemini-3.5-flash-lite", maxOutputTokens: 300, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
+  quote: { model: "gemini-3.5-flash-lite", maxOutputTokens: 500, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
   newsletter: { model: "gemini-3.1-flash-lite", maxOutputTokens: 900, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
   blog: { model: "gemini-3.1-flash-lite", maxOutputTokens: 3_200, timeoutMs: 15_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
   accessory: { model: "gemini-3.1-flash-lite", maxOutputTokens: 900, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
@@ -33,7 +33,7 @@ const policies: Record<AiTask, TaskPolicy> = {
 };
 
 const prices: Record<string, { input: number; output: number }> = {
-  "gemini-2.5-flash-lite": { input: 0.10, output: 0.40 },
+  "gemini-3.5-flash-lite": { input: 0.30, output: 2.50 },
   "gemini-3.1-flash-lite": { input: 0.25, output: 1.50 },
   "gemini-3.6-flash": { input: 0.75, output: 3.75 },
 };

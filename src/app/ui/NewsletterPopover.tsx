@@ -26,7 +26,7 @@ export default function NewsletterPopover() {
       const data = await response.json();
       if (!response.ok || data.error) throw new Error(data.error || "Não consegui concluir a assinatura.");
       setEmail("");
-      setMessage("Pronto! Sua primeira carta chega em breve. ✨");
+      setMessage("Pronto! Agora a nossa conversa também chega por e-mail. ✨");
     } catch (error: unknown) {
       setMessage(error instanceof Error ? error.message : "Tente novamente em instantes.");
     } finally {
@@ -40,13 +40,13 @@ export default function NewsletterPopover() {
     </button>
     {open && <div id="newsletter-panel" className="newsletter-panel glass-panel">
       <button type="button" className="newsletter-close" onClick={() => setOpen(false)} aria-label="Fechar formulário">×</button>
-      <p className="eyebrow">Cartas para amigas</p>
+      <p className="eyebrow">Cartas entre amigas</p>
       <h2 className="font-display mt-2 text-3xl leading-none">Um pouco de brilho<br/>na sua caixa de entrada.</h2>
-      <p className="muted mt-3 text-sm leading-6">Achados, novas conversas e reflexões da Luana. Sem spam, prometo.</p>
+      <p className="muted mt-3 text-sm leading-6">Achados honestos, conversas novas e zero paciência para spam.</p>
       {message ? <p className="newsletter-message" role="status">{message}</p> : <form onSubmit={subscribe} className="mt-5 flex gap-2">
         <label className="sr-only" htmlFor="newsletter-email">Seu e-mail</label>
         <input id="newsletter-email" type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="Seu melhor e-mail" autoComplete="email" required className="min-w-0 flex-1 px-4" />
-        <button type="submit" disabled={loading} className="newsletter-submit">{loading ? "…" : "Quero receber"}</button>
+        <button type="submit" disabled={loading} className="newsletter-submit">{loading ? "…" : "Manda a carta"}</button>
       </form>}
     </div>}
   </div>;

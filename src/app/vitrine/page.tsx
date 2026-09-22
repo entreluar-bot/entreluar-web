@@ -13,14 +13,14 @@ export default async function Vitrine() {
     <main className="site-shell">
       <div className="content-wrap">
         <header className="page-intro">
-          <p className="eyebrow">Testado, estudado e contado sem filtro</p>
-          <h1 className="section-title mt-4">A minha coleção<br /><em>de achados</em></h1>
-          <p>Eu testo cada escolha como se fosse indicar para uma amiga — porque é exatamente isso que estou fazendo.</p>
+          <p className="eyebrow">Testado sem cerimônia</p>
+          <h1 className="section-title mt-4">Meus achados.<br /><em>Sem promessa vazia.</em></h1>
+          <p>Eu separo o que merece espaço na bancada do que só merece um belo tchau. E te conto por quê.</p>
         </header>
         {products.length > 0 ? (
           <ProductFilters products={products} />
         ) : (
-          <div className="empty-state">Minha penteadeira está sendo organizada. Os novos achados chegam já já. ✨</div>
+          <div className="empty-state">A bancada está respirando. Já já entram novos achados — só os que merecerem espaço. ✨</div>
         )}
       </div>
     </main>

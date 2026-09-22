@@ -7,10 +7,10 @@ import JournalCard from "../ui/JournalCard";
 type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | `category:${string}`;
 
 const specialFilters: Array<{ key: FilterKey; label: string }> = [
-  { key: "all", label: "Todos" },
-  { key: "featured", label: "Em destaque" },
-  { key: "most-purchased", label: "Mais comprados" },
-  { key: "most-viewed", label: "Mais vistos" },
+  { key: "all", label: "Todas as conversas" },
+  { key: "featured", label: "Meus destaques" },
+  { key: "most-purchased", label: "Os mais queridos" },
+  { key: "most-viewed", label: "Mais espiados" },
 ];
 
 export default function ReviewFilters({ posts }: { posts: JournalPost[] }) {
@@ -56,7 +56,7 @@ export default function ReviewFilters({ posts }: { posts: JournalPost[] }) {
       </div>
 
       <div className="mt-6" aria-live="polite">
-        <p className="mb-6 text-sm text-[var(--muted)]">{filteredPosts.length} {filteredPosts.length === 1 ? "resenha selecionada" : "resenhas selecionadas"}</p>
+        <p className="mb-6 text-sm text-[var(--muted)]">{filteredPosts.length} {filteredPosts.length === 1 ? "explicação nesta seleção" : "explicações nesta seleção"}</p>
         {filteredPosts.length ? (
           <div className="editorial-grid">
             {filteredPosts.map((post) => <JournalCard key={post.id} post={post} href={`/resenhas/${post.id}`} />)}
@@ -64,7 +64,7 @@ export default function ReviewFilters({ posts }: { posts: JournalPost[] }) {
         ) : (
           <div className="empty-state">
             <span className="mb-3 block text-4xl">🔬</span>
-            Ainda não há uma resenha marcada neste filtro. Minha lupa continua trabalhando.
+            Nada por aqui ainda. Minha lupa continua trabalhando — sem pressa e sem achismo.
           </div>
         )}
       </div>

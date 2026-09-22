@@ -5,8 +5,8 @@ import SiteChrome from "./ui/SiteChrome";
 const display=Cormorant_Garamond({subsets:["latin"],variable:"--font-display",weight:["400","500","600","700"]});
 const body=Manrope({subsets:["latin"],variable:"--font-body"});
 export const metadata:Metadata={
-  title:{default:"Entreluar | Beleza madura, sem pedir licença",template:"%s | Entreluar"},
-  description:"Autocuidado, beleza madura, menopausa e achados sinceros — numa conversa entre amigas.",
+  title:{default:"Entreluar | Madura. Luminosa. Sem pedir licença.",template:"%s | Entreluar"},
+  description:"Pele madura, menopausa, autocuidado e achados honestos — com ciência, humor e conversa de amiga.",
   applicationName:"Entreluar",
   manifest:"/manifest.webmanifest",
   icons:{

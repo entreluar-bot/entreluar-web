@@ -33,9 +33,9 @@ export default async function Resenhas() {
         <header className="page-intro">
           <p className="eyebrow">Ciência traduzida em conversa</p>
           <h1 className="section-title mt-4">Estudei para<br /><em>te explicar</em></h1>
-          <p>Eu pesquiso os ativos, separo promessa de evidência e te conto o que realmente importa — sem jaleco imaginário e sem enrolação.</p>
+          <p>Eu estudo os ativos, separo evidência de promessa e te conto o que importa — sem jaleco imaginário e sem enrolação.</p>
         </header>
-        {posts.length ? <ReviewFilters posts={posts} /> : <div className="empty-state">A lupa está trabalhando. Em breve tem ciência explicada como conversa de amiga. 🔬</div>}
+        {posts.length ? <ReviewFilters posts={posts} /> : <div className="empty-state">A lupa está trabalhando. Quando a evidência chegar, eu traduzo sem enrolação. 🔬</div>}
       </div>
     </main>
   );

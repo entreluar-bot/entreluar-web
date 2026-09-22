@@ -7,10 +7,10 @@ import type { Product } from "../types";
 type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | `category:${string}`;
 
 const specialFilters: Array<{ key: FilterKey; label: string }> = [
-  { key: "all", label: "Todos" },
-  { key: "featured", label: "Em destaque" },
-  { key: "most-purchased", label: "Mais comprados" },
-  { key: "most-viewed", label: "Mais vistos" },
+  { key: "all", label: "Tudo na bancada" },
+  { key: "featured", label: "Meus destaques" },
+  { key: "most-purchased", label: "Os mais queridos" },
+  { key: "most-viewed", label: "Mais espiados" },
 ];
 
 export default function ProductFilters({ products }: { products: Product[] }) {
@@ -57,7 +57,7 @@ export default function ProductFilters({ products }: { products: Product[] }) {
       </div>
 
       <div className="mt-6" aria-live="polite">
-        <p className="mb-6 text-sm text-[var(--muted)]">{filteredProducts.length} {filteredProducts.length === 1 ? "achado selecionado" : "achados selecionados"}</p>
+        <p className="mb-6 text-sm text-[var(--muted)]">{filteredProducts.length} {filteredProducts.length === 1 ? "achado nesta seleção" : "achados nesta seleção"}</p>
         {filteredProducts.length > 0 ? (
           <div className="editorial-grid">
             {filteredProducts.map((product) => <ProductCard key={product.id} produto={product} />)}
@@ -65,7 +65,7 @@ export default function ProductFilters({ products }: { products: Product[] }) {
         ) : (
           <div className="empty-state">
             <span className="mb-3 block text-4xl">◇</span>
-            Ainda não marquei nenhum achado para este filtro. Minha curadoria continua por aqui. ✨
+            Nada por aqui ainda. Minha bancada continua em investigação. ✨
           </div>
         )}
       </div>

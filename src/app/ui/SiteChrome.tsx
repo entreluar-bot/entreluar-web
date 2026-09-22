@@ -8,7 +8,7 @@ import NewsletterPopover from "./NewsletterPopover";
 const items = [
   { href: "/", label: "Início", icon: "⌂" },
   { href: "/vitrine", label: "Vitrine", icon: "◇" },
-  { href: "/blog", label: "Papo de Mulher", icon: "✦" },
+  { href: "/blog", label: "Papo de Mulher", mobileLabel: "Papo", icon: "✦" },
   { href: "/sobre", label: "Mais", icon: "☾" },
 ];
 
@@ -28,6 +28,6 @@ export default function SiteChrome() {
         <div className="header-actions"><InstallAppButton/><NewsletterPopover/><a className="luxe-button header-cta" href="https://instagram.com/entreluarBeauty" target="_blank" rel="noreferrer">Instagram ↗</a></div>
       </div>
     </header>
-    <nav className="bottom-nav" aria-label="Navegação rápida">{items.map(item => <Link key={item.href} href={item.href} data-active={active(item.href)}><span className="nav-icon" aria-hidden="true">{item.icon}</span>{item.label}</Link>)}</nav>
+    <nav className="bottom-nav" aria-label="Navegação rápida">{items.map(item => <Link key={item.href} href={item.href} data-active={active(item.href)}><span className="nav-icon" aria-hidden="true">{item.icon}</span>{"mobileLabel" in item ? item.mobileLabel : item.label}</Link>)}</nav>
   </>;
 }

@@ -651,7 +651,12 @@ export default function AdminDashboard() {
         journalId = journalData?.id;
 
         if (isNew && journalId) {
-          await supabase.from("journal").update({ is_new: false }).eq("category", blogCategory).neq("id", journalId);
+          const previousNew = supabase.from("journal").update({ is_new: false }).neq("id", journalId);
+          if (blogCategory === "Estudei para te explicar") {
+            await previousNew.eq("category", "Estudei para te explicar");
+          } else {
+            await previousNew.or('category.is.null,category.neq."Estudei para te explicar"');
+          }
         }
       }
 
@@ -768,6 +773,9 @@ export default function AdminDashboard() {
           created_at: createdAt,
         }).eq("id", editingItem.id);
         if (error) throw error;
+        if (editingItem.is_new) {
+          await supabase.from("products").update({ is_new: false }).neq("id", editingItem.id);
+        }
       } else {
         const { error } = await supabase.from("journal").update({ 
           title: editingItem.title, 
@@ -779,6 +787,14 @@ export default function AdminDashboard() {
           created_at: createdAt,
         }).eq("id", editingItem.id);
         if (error) throw error;
+        if (editingItem.is_new) {
+          const previousNew = supabase.from("journal").update({ is_new: false }).neq("id", editingItem.id);
+          if (editingItem.category === "Estudei para te explicar") {
+            await previousNew.eq("category", "Estudei para te explicar");
+          } else {
+            await previousNew.or('category.is.null,category.neq."Estudei para te explicar"');
+          }
+        }
       }
       setEditingItem(null);
       fetchManageData();
@@ -802,8 +818,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.48</p>
-                <p>Atualizado em 21/09/2026 às 23:54</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.49</p>
+                <p>Atualizado em 22/09/2026 às 00:47</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
