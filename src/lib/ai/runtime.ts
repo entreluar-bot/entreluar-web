@@ -22,14 +22,14 @@ export type AiUsage = {
 };
 
 const policies: Record<AiTask, TaskPolicy> = {
-  brainstorm: { model: "gemini-2.5-flash-lite", maxOutputTokens: 300, timeoutMs: 5_000, thinkingConfig: { thinkingBudget: 0 } },
-  quote: { model: "gemini-2.5-flash-lite", maxOutputTokens: 500, timeoutMs: 5_000, thinkingConfig: { thinkingBudget: 0 } },
-  newsletter: { model: "gemini-3.1-flash-lite", maxOutputTokens: 900, timeoutMs: 7_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
-  blog: { model: "gemini-3.1-flash-lite", maxOutputTokens: 3_200, timeoutMs: 12_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
-  accessory: { model: "gemini-3.1-flash-lite", maxOutputTokens: 900, timeoutMs: 8_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
-  identify: { model: "gemini-3.1-flash-lite", maxOutputTokens: 300, timeoutMs: 5_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
-  research: { model: "gemini-3.6-flash", maxOutputTokens: 1_400, timeoutMs: 11_000, thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } },
-  product: { model: "gemini-3.1-flash-lite", maxOutputTokens: 3_200, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
+  brainstorm: { model: "gemini-2.5-flash-lite", maxOutputTokens: 300, timeoutMs: 10_000, thinkingConfig: { thinkingBudget: 0 } },
+  quote: { model: "gemini-2.5-flash-lite", maxOutputTokens: 500, timeoutMs: 10_000, thinkingConfig: { thinkingBudget: 0 } },
+  newsletter: { model: "gemini-3.1-flash-lite", maxOutputTokens: 900, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
+  blog: { model: "gemini-3.1-flash-lite", maxOutputTokens: 3_200, timeoutMs: 15_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
+  accessory: { model: "gemini-3.1-flash-lite", maxOutputTokens: 900, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
+  identify: { model: "gemini-3.1-flash-lite", maxOutputTokens: 300, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
+  research: { model: "gemini-3.6-flash", maxOutputTokens: 1_400, timeoutMs: 12_000, thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } },
+  product: { model: "gemini-3.1-flash-lite", maxOutputTokens: 3_200, timeoutMs: 12_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
 };
 
 const prices: Record<string, { input: number; output: number }> = {
@@ -61,7 +61,6 @@ export async function generateAi(
       maxOutputTokens: policy.maxOutputTokens,
       thinkingConfig: policy.thinkingConfig,
       httpOptions: { timeout: policy.timeoutMs },
-      labels: { entreluar_task: task },
     },
   });
   return { response, usage: readUsage(policy.model, response.usageMetadata, Date.now() - startedAt) };
