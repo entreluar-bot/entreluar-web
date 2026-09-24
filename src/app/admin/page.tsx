@@ -26,6 +26,16 @@ type EmailDelivery = {
   type: "marketing" | "resposta";
 };
 
+type CampaignAnalytics = {
+  campaign: string;
+  visits: number;
+  uniqueSessions: number;
+  conversions: number;
+  conversionRate: number;
+  topPages: Array<{ path: string; visits: number }>;
+  recentConversions: Array<{ email: string; path?: string | null; source?: string | null; created_at: string }>;
+};
+
 type LuanaMemory = {
   id: string;
   category: "identidade" | "rotina" | "experiencia" | "opiniao" | "linguagem" | "limite";
@@ -168,6 +178,8 @@ export default function AdminDashboard() {
   const [nlContext, setNlContext] = useState("");
   const [nlSubject, setNlSubject] = useState("");
   const [nlHtml, setNlHtml] = useState("");
+  const [campaignAnalytics, setCampaignAnalytics] = useState<CampaignAnalytics | null>(null);
+  const [campaignAnalyticsStatus, setCampaignAnalyticsStatus] = useState("Carregando campanha...");
 
   const [memories, setMemories] = useState<LuanaMemory[]>([]);
   const [memoryContent, setMemoryContent] = useState("");
@@ -189,7 +201,10 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === "inbox") fetchEmails();
     if (activeTab === "manage" || activeTab === "quotes" || activeTab === "drops") fetchManageData();
-    if (activeTab === "newsletter") fetchSubscribers();
+    if (activeTab === "newsletter") {
+      fetchSubscribers();
+      fetchCampaignAnalytics();
+    }
     if (activeTab === "memory") fetchMemories();
   }, [activeTab]);
 
@@ -281,6 +296,23 @@ export default function AdminDashboard() {
       setEmailSubscribers([]);
       setEmailDeliveries([]);
       setSubscriberNotes(error instanceof Error ? error.message : "Não foi possível consultar a base.");
+    }
+  };
+
+  const fetchCampaignAnalytics = async () => {
+    try {
+      setCampaignAnalyticsStatus("Carregando campanha...");
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch("/api/campaign-analytics?campaign=lancamentos_50mais", {
+        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Não foi possível consultar a campanha.");
+      setCampaignAnalytics(data);
+      setCampaignAnalyticsStatus("");
+    } catch (error) {
+      setCampaignAnalytics(null);
+      setCampaignAnalyticsStatus(error instanceof Error ? error.message : "Não foi possível consultar a campanha.");
     }
   };
 
@@ -832,8 +864,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.52</p>
-                <p>Atualizado em 24/09/2026 às 09:00</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.53</p>
+                <p>Atualizado em 24/09/2026 às 09:13</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1332,6 +1364,63 @@ export default function AdminDashboard() {
                     {subscribersCount}
                   </div>
                 </div>
+
+                <section className="rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-6" aria-labelledby="campaign-analytics-title">
+                  <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <p className="eyebrow mb-2">Post patrocinado Instagram</p>
+                      <h3 id="campaign-analytics-title" className="font-serif text-2xl text-[var(--color-gold)]">Campanha lançamentos 50+</h3>
+                      <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Use no anúncio: <span className="font-mono">?utm_source=instagram&utm_medium=paid_social&utm_campaign=lancamentos_50mais&utm_content=post_patrocinado_blog</span></p>
+                    </div>
+                    <button type="button" onClick={fetchCampaignAnalytics} className="border border-[var(--color-gold)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)] hover:bg-[var(--color-wine-light)]">Atualizar</button>
+                  </div>
+
+                  {campaignAnalytics ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                          <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Visitas</p>
+                          <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{campaignAnalytics.visits.toLocaleString("pt-BR")}</p>
+                        </div>
+                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                          <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Visitantes</p>
+                          <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{campaignAnalytics.uniqueSessions.toLocaleString("pt-BR")}</p>
+                        </div>
+                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                          <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Cadastros</p>
+                          <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{campaignAnalytics.conversions.toLocaleString("pt-BR")}</p>
+                        </div>
+                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                          <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Conversão</p>
+                          <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{campaignAnalytics.conversionRate.toFixed(1).replace(".", ",")}%</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid gap-4 md:grid-cols-2">
+                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                          <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Páginas mais visitadas</p>
+                          {campaignAnalytics.topPages.length ? campaignAnalytics.topPages.map((page) => (
+                            <div key={page.path} className="flex justify-between gap-4 border-t border-[var(--color-wine-light)] py-2 text-sm text-[var(--color-gold-light)]">
+                              <span className="truncate">{page.path}</span>
+                              <strong className="text-[var(--color-gold)]">{page.visits}</strong>
+                            </div>
+                          )) : <p className="text-sm text-[var(--color-gold-light)] opacity-60">Sem visitas com UTM ainda.</p>}
+                        </div>
+                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                          <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Últimos cadastros da campanha</p>
+                          {campaignAnalytics.recentConversions.length ? campaignAnalytics.recentConversions.map((conversion) => (
+                            <div key={`${conversion.email}-${conversion.created_at}`} className="border-t border-[var(--color-wine-light)] py-2 text-sm text-[var(--color-gold-light)]">
+                              <p className="truncate font-semibold">{conversion.email}</p>
+                              <p className="text-xs opacity-55">{new Date(conversion.created_at).toLocaleString("pt-BR")} · {conversion.source || "site"}</p>
+                            </div>
+                          )) : <p className="text-sm text-[var(--color-gold-light)] opacity-60">Nenhum cadastro atribuído ainda.</p>}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4 text-sm text-[var(--color-gold-light)] opacity-70">{campaignAnalyticsStatus}</p>
+                  )}
+                </section>
 
                 <div className="space-y-4">
                   <label className="block text-[var(--color-gold-light)] text-sm">Qual experiência você quer criar?</label>

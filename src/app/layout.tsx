@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import SiteChrome from "./ui/SiteChrome";
 import JsonLd from "./ui/JsonLd";
+import CampaignTracker from "./ui/CampaignTracker";
 
 const display=Cormorant_Garamond({subsets:["latin"],variable:"--font-display",weight:["400","500","600","700"]});
 const body=Manrope({subsets:["latin"],variable:"--font-body"});
@@ -57,6 +58,7 @@ export default function RootLayout({children}:LayoutProps<"/">){
     <html lang="pt-BR" className={`${display.variable} ${body.variable}`}>
       <body>
         <JsonLd data={jsonLdData} />
+        <CampaignTracker/>
         <SiteChrome/>
         {children}
       </body>
