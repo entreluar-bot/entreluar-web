@@ -79,7 +79,7 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
         <header className="p-6 md:p-12">
           <p className="eyebrow">{post.category || "Papo de Mulher"} • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
           <h1 className="section-title my-6">{post.title}</h1>
-          <ShareButton title={post.title} url={shareUrl} className="mb-8" />
+          <ShareButton title={post.title} url={shareUrl} shareText={`Li isso e achei tudo a ver com a gente: ${post.title}`} className="mb-8" />
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
 
           <ConversationCircle postId={post.id} postTitle={post.title} comments={comments} />

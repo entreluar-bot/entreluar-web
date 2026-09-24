@@ -68,7 +68,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
           <p className="eyebrow">{product.category || "Escolha da Luana"}</p>
           <h1 className="section-title my-4">{product.title}</h1>
           {product.price && <p className="font-display text-3xl text-[var(--champagne)]">{product.price}</p>}
-          <ShareButton title={product.title} url={shareUrl} className="mb-8 mt-6" />
+          <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} className="mb-8 mt-6" />
           <div className="prose-luxe mt-8" dangerouslySetInnerHTML={{ __html: product.description }} />
           <div className="mt-10 border-t border-[var(--line)] pt-8">
             <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button w-full">Quero ver onde achei ↗</a>

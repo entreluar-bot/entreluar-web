@@ -5,12 +5,12 @@ import { useState } from "react";
 type ShareButtonProps = {
   title: string;
   url: string;
+  shareText: string;
   className?: string;
 };
 
-export default function ShareButton({ title, url, className = "" }: ShareButtonProps) {
+export default function ShareButton({ title, url, shareText, className = "" }: ShareButtonProps) {
   const [message, setMessage] = useState("");
-  const shareText = `Olha que legal: ${title}`;
 
   const share = async () => {
     setMessage("");
