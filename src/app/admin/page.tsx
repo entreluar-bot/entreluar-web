@@ -67,6 +67,19 @@ type LuanaMemory = {
   valid_until?: string | null;
 };
 
+type SiteComment = {
+  id: string;
+  journal_id: string;
+  email: string;
+  body: string;
+  status: "pending" | "approved" | "rejected";
+  source_path?: string | null;
+  created_at: string;
+  approved_at?: string | null;
+  moderated_at?: string | null;
+  journal?: { title?: string | null; category?: string | null } | { title?: string | null; category?: string | null }[] | null;
+};
+
 type AiUsageSummary = {
   inputTokens: number; outputTokens: number; thoughtTokens: number; totalTokens: number; searches: number;
   costBrl: number; retries: number; cacheHits: number; latency: { p50: number; p95: number };
@@ -139,7 +152,7 @@ const compressImage = (file: File): Promise<File> => {
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"product" | "blog" | "manage" | "inbox" | "quotes" | "drops" | "newsletter" | "memory">("product");
+  const [activeTab, setActiveTab] = useState<"product" | "blog" | "manage" | "comments" | "inbox" | "quotes" | "drops" | "newsletter" | "memory">("product");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
   const [impressions, setImpressions] = useState("");
@@ -202,6 +215,7 @@ export default function AdminDashboard() {
   const [trafficAnalyticsStatus, setTrafficAnalyticsStatus] = useState("Carregando tráfego...");
 
   const [memories, setMemories] = useState<LuanaMemory[]>([]);
+  const [comments, setComments] = useState<SiteComment[]>([]);
   const [memoryContent, setMemoryContent] = useState("");
   const [memoryTags, setMemoryTags] = useState("");
   const [memoryCategory, setMemoryCategory] = useState<LuanaMemory["category"]>("opiniao");
@@ -225,18 +239,32 @@ export default function AdminDashboard() {
       fetchSubscribers();
       fetchTrafficAnalytics();
     }
+    if (activeTab === "comments") fetchComments();
     if (activeTab === "memory") fetchMemories();
   }, [activeTab]);
 
-  const memoryRequest = async (path = "", init?: RequestInit) => {
+  const adminRequest = async (path: string, init?: RequestInit) => {
     const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch(`/api/luana-memory${path}`, {
+    const response = await fetch(path, {
       ...init,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}`, ...(init?.headers || {}) },
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Não foi possível atualizar a memória.");
+    if (!response.ok) throw new Error(data.error || "Não foi possível concluir a ação.");
     return data;
+  };
+
+  const memoryRequest = async (path = "", init?: RequestInit) => {
+    return adminRequest(`/api/luana-memory${path}`, init);
+  };
+
+  const fetchComments = async () => {
+    try {
+      const data = await adminRequest("/api/comments/admin");
+      setComments(data.comments || []);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível carregar comentários.");
+    }
   };
 
   const fetchMemories = async () => {
@@ -272,6 +300,19 @@ export default function AdminDashboard() {
       await memoryRequest("", { method: "PATCH", body: JSON.stringify({ id: memory.id, status }) });
       await fetchMemories();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível atualizar a memória."); }
+  };
+
+  const handleCommentStatus = async (comment: SiteComment, status: SiteComment["status"]) => {
+    try {
+      setLoading(true);
+      await adminRequest("/api/comments/admin", { method: "PATCH", body: JSON.stringify({ id: comment.id, status }) });
+      await fetchComments();
+      setMessage(status === "approved" ? "Comentário aprovado e publicado na roda. ✨" : status === "rejected" ? "Comentário rejeitado e escondido do site." : "Comentário voltou para pendente.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível moderar comentário.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditMemory = async (memory: LuanaMemory) => {
@@ -892,8 +933,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.55</p>
-                <p>Atualizado em 24/09/2026 às 11:22</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.56</p>
+                <p>Atualizado em 24/09/2026 às 15:43</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -913,6 +954,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => setActiveTab("manage")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "manage" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
             Gerenciar
+          </button>
+          <button onClick={() => setActiveTab("comments")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "comments" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
+            Comentários
           </button>
           <button onClick={() => { setActiveTab("quotes"); setQuoteText(""); }} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "quotes" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
             Pílulas (Quotes)
@@ -1376,6 +1420,43 @@ export default function AdminDashboard() {
                       ))}
                     </div>}
                   </>
+                )}
+              </div>
+            )}
+
+            {activeTab === "comments" && (
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-5">
+                  <p className="eyebrow">Roda de conversa</p>
+                  <h2 className="font-display mt-2 text-3xl text-[var(--color-gold)]">Comentários para aprovar</h2>
+                  <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)] opacity-70">As leitoras enviam email e impressão. O email fica só para você; no site aparece como Leitora Entreluar.</p>
+                </div>
+                {message && <p className="text-center text-sm font-bold italic text-[#f3e5ab]">{message}</p>}
+                {comments.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-70">Nenhum comentário chegou por enquanto.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {comments.map((comment) => {
+                      const journal = Array.isArray(comment.journal) ? comment.journal[0] : comment.journal;
+                      return (
+                        <article key={comment.id} className={`rounded-2xl border p-5 ${comment.status === "pending" ? "border-[var(--color-gold)] bg-[#3a1820]" : "border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]"}`}>
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">{comment.status === "pending" ? "Pendente" : comment.status === "approved" ? "Aprovado" : "Rejeitado"}</p>
+                              <h3 className="mt-2 font-serif text-xl text-[var(--color-gold-light)]">{journal?.title || "Papo de Mulher"}</h3>
+                              <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-55">{comment.email} • {new Date(comment.created_at).toLocaleString("pt-BR")}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {comment.status !== "approved" && <button onClick={() => handleCommentStatus(comment, "approved")} disabled={loading} className="rounded border border-[var(--color-gold)] px-3 py-1 text-xs text-[var(--color-gold)]">Aprovar</button>}
+                              {comment.status !== "rejected" && <button onClick={() => handleCommentStatus(comment, "rejected")} disabled={loading} className="rounded border border-red-900 px-3 py-1 text-xs text-red-300">Rejeitar</button>}
+                              {comment.status !== "pending" && <button onClick={() => handleCommentStatus(comment, "pending")} disabled={loading} className="rounded border border-[var(--color-wine-light)] px-3 py-1 text-xs text-[var(--color-gold-light)]">Voltar para pendente</button>}
+                            </div>
+                          </div>
+                          <p className="mt-4 whitespace-pre-wrap leading-7 text-[var(--color-gold-light)]">{comment.body}</p>
+                        </article>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             )}

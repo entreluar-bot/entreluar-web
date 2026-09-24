@@ -9,7 +9,8 @@ const items = [
   { href: "/", label: "Início", icon: "⌂" },
   { href: "/vitrine", label: "Vitrine", icon: "◇" },
   { href: "/blog", label: "Papo de Mulher", mobileLabel: "Papo", icon: "✦" },
-  { href: "/sobre", label: "Mais", icon: "☾" },
+  { href: "/resenhas", label: "Te Explico", mobileLabel: "Explico", icon: "?" },
+  { href: "/pilulas", label: "Pílulas", icon: "☾" },
 ];
 
 export default function SiteChrome() {
@@ -22,8 +23,8 @@ export default function SiteChrome() {
         <Link href="/" className="brand" aria-label="Entreluar, início">Entreluar<span>◔</span></Link>
         <nav className="desktop-nav" aria-label="Navegação principal">
           {items.map(item => <Link key={item.href} href={item.href} data-active={active(item.href)}>{item.label}</Link>)}
-          <Link href="/resenhas" data-active={pathname.startsWith("/resenhas")}>Te Explico</Link>
-          <Link href="/pilulas" data-active={pathname.startsWith("/pilulas")}>Pílulas</Link>
+          <Link href="/drops" data-active={pathname.startsWith("/drops")}>Drops</Link>
+          <Link href="/sobre" data-active={pathname.startsWith("/sobre")}>Mais</Link>
         </nav>
         <div className="header-actions"><InstallAppButton/><NewsletterPopover/><a className="luxe-button header-cta" href="https://instagram.com/entreluarBeauty" target="_blank" rel="noreferrer">Instagram ↗</a></div>
       </div>

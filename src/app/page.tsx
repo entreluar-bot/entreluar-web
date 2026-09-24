@@ -103,6 +103,16 @@ export default async function Home() {
         </section>
 
         <section className="section-space">
+          <div className="section-kicker"><span className="eyebrow">Escolha seu momento de hoje</span></div>
+          <div className="intent-grid">
+            <Link href="/resenhas" className="intent-tile"><span>Entender minha pele</span><strong>Ciência sem jaleco, sem susto e sem promessa milagrosa.</strong></Link>
+            <Link href="/blog" className="intent-tile"><span>Conversar sobre maturidade</span><strong>Menopausa, recomeços e vida real com humor de amiga.</strong></Link>
+            <Link href="/vitrine" className="intent-tile"><span>Ver achados honestos</span><strong>O que vale a bancada, o boleto e o espaço no nécessaire.</strong></Link>
+            <Link href="/pilulas" className="intent-tile"><span>Respirar em um minuto</span><strong>Uma dose curta para voltar para si sem transformar tudo em manual.</strong></Link>
+          </div>
+        </section>
+
+        <section className="section-space">
           <div className="section-kicker"><span className="eyebrow">Testado sem cerimônia</span></div>
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <h2 className="section-title">O que ficou<br /><em>na minha bancada</em></h2>

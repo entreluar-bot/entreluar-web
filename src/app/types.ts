@@ -3,3 +3,4 @@ export interface JournalPost{id:string;title:string;content:string;image_url?:st
 export interface Quote{id:string;quote:string;created_at:string}
 export interface Drop{id:string;title?:string|null;instagram_url:string;created_at?:string}
 export interface InboxEmail{id:string;sender:string;subject:string;body:string;created_at?:string}
+export interface JournalComment{id:string;journal_id:string;email?:string;body:string;status:"pending"|"approved"|"rejected";source_path?:string|null;created_at:string;approved_at?:string|null;moderated_at?:string|null;journal?:{title?:string|null;category?:string|null}|{title?:string|null;category?:string|null}[]|null}
