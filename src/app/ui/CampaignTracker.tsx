@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const SESSION_KEY = "entreluar_session_id";
 const ATTRIBUTION_KEY = "entreluar_attribution";
+const TRAFFIC_SOURCE_KEY = "entreluar_traffic_source";
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
 
 type Attribution = Partial<Record<(typeof UTM_KEYS)[number], string>>;
@@ -41,13 +42,38 @@ function readAttribution() {
   }
 }
 
+function detectTrafficSource(attribution: Attribution) {
+  const referrer = document.referrer.toLowerCase();
+  const source = attribution.utm_source?.toLowerCase() || "";
+  const values = `${source} ${referrer}`;
+  if (values.includes("instagram") || values.includes("l.instagram.com")) return "instagram";
+  if (values.includes("facebook") || values.includes("fb.com") || values.includes("l.facebook.com")) return "facebook";
+  if (!source && !referrer) return "direct";
+  return "internet";
+}
+
+function getTrafficSource(attribution: Attribution) {
+  try {
+    const detected = detectTrafficSource(attribution);
+    const stored = sessionStorage.getItem(TRAFFIC_SOURCE_KEY);
+    if (detected !== "direct" || !stored) {
+      sessionStorage.setItem(TRAFFIC_SOURCE_KEY, detected);
+      return detected;
+    }
+    return stored;
+  } catch {
+    return detectTrafficSource(attribution);
+  }
+}
+
 export function getCampaignContext() {
   if (typeof window === "undefined") return {};
+  const attribution = readAttribution();
   return {
     sessionId: getSessionId(),
     path: `${window.location.pathname}${window.location.search}`,
-    source: "site",
-    ...readAttribution(),
+    source: getTrafficSource(attribution),
+    ...attribution,
   };
 }
 

@@ -26,13 +26,33 @@ type EmailDelivery = {
   type: "marketing" | "resposta";
 };
 
-type CampaignAnalytics = {
-  campaign: string;
+type TrafficSourceStat = {
+  source: "instagram" | "facebook" | "direct" | "internet";
+  label: string;
   visits: number;
   uniqueSessions: number;
   conversions: number;
   conversionRate: number;
+};
+
+type TrafficPeriod = {
+  label: string;
+  visits: number;
+  uniqueSessions: number;
+  conversions: number;
+  conversionRate: number;
+  sources: TrafficSourceStat[];
   topPages: Array<{ path: string; visits: number }>;
+};
+
+type TrafficAnalytics = {
+  generatedAt: string;
+  periods: {
+    today: TrafficPeriod;
+    last7: TrafficPeriod;
+    last30: TrafficPeriod;
+    all: TrafficPeriod;
+  };
   recentConversions: Array<{ email: string; path?: string | null; source?: string | null; created_at: string }>;
 };
 
@@ -178,8 +198,8 @@ export default function AdminDashboard() {
   const [nlContext, setNlContext] = useState("");
   const [nlSubject, setNlSubject] = useState("");
   const [nlHtml, setNlHtml] = useState("");
-  const [campaignAnalytics, setCampaignAnalytics] = useState<CampaignAnalytics | null>(null);
-  const [campaignAnalyticsStatus, setCampaignAnalyticsStatus] = useState("Carregando campanha...");
+  const [trafficAnalytics, setTrafficAnalytics] = useState<TrafficAnalytics | null>(null);
+  const [trafficAnalyticsStatus, setTrafficAnalyticsStatus] = useState("Carregando tráfego...");
 
   const [memories, setMemories] = useState<LuanaMemory[]>([]);
   const [memoryContent, setMemoryContent] = useState("");
@@ -203,7 +223,7 @@ export default function AdminDashboard() {
     if (activeTab === "manage" || activeTab === "quotes" || activeTab === "drops") fetchManageData();
     if (activeTab === "newsletter") {
       fetchSubscribers();
-      fetchCampaignAnalytics();
+      fetchTrafficAnalytics();
     }
     if (activeTab === "memory") fetchMemories();
   }, [activeTab]);
@@ -299,20 +319,20 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchCampaignAnalytics = async () => {
+  const fetchTrafficAnalytics = async () => {
     try {
-      setCampaignAnalyticsStatus("Carregando campanha...");
+      setTrafficAnalyticsStatus("Carregando tráfego...");
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch("/api/campaign-analytics?campaign=lancamentos_50mais", {
+      const response = await fetch("/api/traffic-analytics", {
         headers: { Authorization: `Bearer ${session?.access_token || ""}` },
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Não foi possível consultar a campanha.");
-      setCampaignAnalytics(data);
-      setCampaignAnalyticsStatus("");
+      if (!response.ok) throw new Error(data.error || "Não foi possível consultar o tráfego.");
+      setTrafficAnalytics(data);
+      setTrafficAnalyticsStatus("");
     } catch (error) {
-      setCampaignAnalytics(null);
-      setCampaignAnalyticsStatus(error instanceof Error ? error.message : "Não foi possível consultar a campanha.");
+      setTrafficAnalytics(null);
+      setTrafficAnalyticsStatus(error instanceof Error ? error.message : "Não foi possível consultar o tráfego.");
     }
   };
 
@@ -851,6 +871,14 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
+  const trafficPeriods = trafficAnalytics ? [
+    trafficAnalytics.periods.today,
+    trafficAnalytics.periods.last7,
+    trafficAnalytics.periods.last30,
+    trafficAnalytics.periods.all,
+  ] : [];
+  const trafficSourceRows = trafficAnalytics?.periods.last30.sources || [];
+
   if (!user) return <div className="admin-shell grid min-h-screen place-items-center text-[var(--color-gold)]"><div className="glass-panel rounded-3xl px-8 py-6">Preparando o seu ateliê… ✨</div></div>;
 
   return (
@@ -864,8 +892,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.54</p>
-                <p>Atualizado em 24/09/2026 às 10:45</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.55</p>
+                <p>Atualizado em 24/09/2026 às 11:22</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1365,60 +1393,55 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <section className="rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-6" aria-labelledby="campaign-analytics-title">
+                <section className="rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-6" aria-labelledby="traffic-analytics-title">
                   <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <p className="eyebrow mb-2">Post patrocinado Instagram</p>
-                      <h3 id="campaign-analytics-title" className="font-serif text-2xl text-[var(--color-gold)]">Campanha lançamentos 50+</h3>
-                      <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Use no anúncio: <span className="font-mono">?utm_source=instagram&utm_medium=paid_social&utm_campaign=lancamentos_50mais&utm_content=post_patrocinado_blog</span></p>
+                      <p className="eyebrow mb-2">Tráfego do site</p>
+                      <h3 id="traffic-analytics-title" className="font-serif text-2xl text-[var(--color-gold)]">Visitas por origem</h3>
+                      <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Mede todos os acessos gravados no site e separa por Instagram, Facebook, Direto e Internet.</p>
                     </div>
-                    <button type="button" onClick={fetchCampaignAnalytics} className="border border-[var(--color-gold)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)] hover:bg-[var(--color-wine-light)]">Atualizar</button>
+                    <button type="button" onClick={fetchTrafficAnalytics} className="border border-[var(--color-gold)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)] hover:bg-[var(--color-wine-light)]">Atualizar</button>
                   </div>
 
-                  {campaignAnalytics ? (
+                  {trafficAnalytics ? (
                     <>
-                      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                          <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Visitas</p>
-                          <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{campaignAnalytics.visits.toLocaleString("pt-BR")}</p>
-                        </div>
-                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                          <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Visitantes</p>
-                          <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{campaignAnalytics.uniqueSessions.toLocaleString("pt-BR")}</p>
-                        </div>
-                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                          <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Cadastros</p>
-                          <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{campaignAnalytics.conversions.toLocaleString("pt-BR")}</p>
-                        </div>
-                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                          <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Conversão</p>
-                          <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{campaignAnalytics.conversionRate.toFixed(1).replace(".", ",")}%</p>
-                        </div>
+                      <div className="grid gap-3 md:grid-cols-4">
+                        {trafficPeriods.map((period) => (
+                          <div key={period.label} className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                            <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">{period.label}</p>
+                            <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{period.visits.toLocaleString("pt-BR")}</p>
+                            <p className="mt-2 text-xs text-[var(--color-gold-light)] opacity-60">{period.uniqueSessions.toLocaleString("pt-BR")} visitantes · {period.conversions.toLocaleString("pt-BR")} cadastros</p>
+                          </div>
+                        ))}
                       </div>
 
                       <div className="mt-5 grid gap-4 md:grid-cols-2">
                         <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                          <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Páginas mais visitadas</p>
-                          {campaignAnalytics.topPages.length ? campaignAnalytics.topPages.map((page) => (
+                          <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Origem nos últimos 30 dias</p>
+                          {trafficSourceRows.map((source) => (
+                            <div key={source.source} className="border-t border-[var(--color-wine-light)] py-2 text-sm text-[var(--color-gold-light)]">
+                              <div className="flex justify-between gap-4">
+                                <span>{source.label}</span>
+                                <strong className="text-[var(--color-gold)]">{source.visits.toLocaleString("pt-BR")}</strong>
+                              </div>
+                              <p className="text-xs opacity-55">{source.uniqueSessions.toLocaleString("pt-BR")} visitantes · {source.conversions.toLocaleString("pt-BR")} cadastros · {source.conversionRate.toFixed(1).replace(".", ",")}%</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                          <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Páginas mais visitadas em 30 dias</p>
+                          {trafficAnalytics.periods.last30.topPages.length ? trafficAnalytics.periods.last30.topPages.map((page) => (
                             <div key={page.path} className="flex justify-between gap-4 border-t border-[var(--color-wine-light)] py-2 text-sm text-[var(--color-gold-light)]">
                               <span className="truncate">{page.path}</span>
                               <strong className="text-[var(--color-gold)]">{page.visits}</strong>
                             </div>
-                          )) : <p className="text-sm text-[var(--color-gold-light)] opacity-60">Sem visitas com UTM ainda.</p>}
-                        </div>
-                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                          <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Últimos cadastros da campanha</p>
-                          {campaignAnalytics.recentConversions.length ? campaignAnalytics.recentConversions.map((conversion) => (
-                            <div key={`${conversion.email}-${conversion.created_at}`} className="border-t border-[var(--color-wine-light)] py-2 text-sm text-[var(--color-gold-light)]">
-                              <p className="truncate font-semibold">{conversion.email}</p>
-                              <p className="text-xs opacity-55">{new Date(conversion.created_at).toLocaleString("pt-BR")} · {conversion.source || "site"}</p>
-                            </div>
-                          )) : <p className="text-sm text-[var(--color-gold-light)] opacity-60">Nenhum cadastro atribuído ainda.</p>}
+                          )) : <p className="text-sm text-[var(--color-gold-light)] opacity-60">Sem visitas registradas ainda.</p>}
                         </div>
                       </div>
+                      <p className="mt-4 text-xs leading-5 text-[var(--color-gold-light)] opacity-55">Direto inclui quem digitou o endereço, abriu favorito ou veio sem origem identificável. Internet agrupa Google, outros sites e navegadores externos.</p>
                     </>
                   ) : (
-                    <p className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4 text-sm text-[var(--color-gold-light)] opacity-70">{campaignAnalyticsStatus}</p>
+                    <p className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4 text-sm text-[var(--color-gold-light)] opacity-70">{trafficAnalyticsStatus}</p>
                   )}
                 </section>
 
