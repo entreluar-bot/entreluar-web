@@ -54,7 +54,7 @@ export default function ConversationCircle({
       setEmail("");
       setBody("");
       setWebsite("");
-      setMessage(data.message || "Recebi sua impressão. Ela vai para a Luana aprovar antes de aparecer para todo mundo. ☾");
+      setMessage(data.message || "Recebi seu comentário com carinho. Ele vai aparecer assim que eu aprovar, combinado?");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Tenta de novo em instantes, combinado?");
     } finally {
@@ -64,17 +64,40 @@ export default function ConversationCircle({
 
   return (
     <section className="conversation-circle" aria-labelledby="conversation-circle-title">
-      <div>
+      <div className="conversation-heading">
         <p className="eyebrow">Roda de conversa</p>
         <h2 id="conversation-circle-title" className="font-display mt-3 text-4xl leading-none text-[var(--champagne-pale)]">
-          Me conta o que isso acendeu em você.
+          O papo continuou por aqui.
         </h2>
-        <p className="muted mt-4 leading-7">
-          Aqui é espaço de troca entre mulheres. Seu email não aparece no site; ele só ajuda a manter a conversa humana e cuidadosa.
-        </p>
+      </div>
+
+      <div className="conversation-list" aria-live="polite">
+        {comments.length ? (
+          comments.map((comment) => (
+            <article key={comment.id} className="conversation-comment">
+              <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
+                <p className="eyebrow">Amiga Entreluar</p>
+                <time className="text-[10px] uppercase tracking-widest text-[var(--muted)]" dateTime={comment.created_at}>
+                  {new Date(comment.created_at).toLocaleDateString("pt-BR")}
+                </time>
+              </div>
+              <p>{comment.body}</p>
+            </article>
+          ))
+        ) : (
+          <div className="empty-state">
+            Ainda não tem comentários por aqui. Pode ser a sua vez de abrir a conversa.
+          </div>
+        )}
       </div>
 
       <form onSubmit={submitComment} className="conversation-form">
+        <div>
+          <p className="eyebrow">Agora quero te ouvir</p>
+          <p className="muted mt-3 text-sm leading-6">
+            Escreve do seu jeito. Seu email fica protegido e não aparece para ninguém.
+          </p>
+        </div>
         <label>
           <span>Email</span>
           <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seuemail@exemplo.com" autoComplete="email" required />
@@ -88,30 +111,10 @@ export default function ConversationCircle({
           <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={5} maxLength={1200} placeholder="O que você pensou, viveu, discordou, lembrou ou riu lendo esse papo?" required />
         </label>
         <button type="submit" disabled={loading} className="luxe-button w-full">
-          {loading ? "Enviando..." : "Entrar na roda"}
+          {loading ? "Enviando..." : "Contar o que achei"}
         </button>
         {message && <p className="newsletter-message" role="status">{message}</p>}
       </form>
-
-      <div className="conversation-list" aria-live="polite">
-        {comments.length ? (
-          comments.map((comment) => (
-            <article key={comment.id} className="conversation-comment">
-              <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
-                <p className="eyebrow">Leitora Entreluar</p>
-                <time className="text-[10px] uppercase tracking-widest text-[var(--muted)]" dateTime={comment.created_at}>
-                  {new Date(comment.created_at).toLocaleDateString("pt-BR")}
-                </time>
-              </div>
-              <p>{comment.body}</p>
-            </article>
-          ))
-        ) : (
-          <div className="empty-state">
-            A roda ainda está em silêncio. Pode puxar a primeira cadeira: às vezes uma frase abre um mundo.
-          </div>
-        )}
-      </div>
     </section>
   );
 }

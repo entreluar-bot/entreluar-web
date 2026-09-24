@@ -933,8 +933,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.56</p>
-                <p>Atualizado em 24/09/2026 às 15:43</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.57</p>
+                <p>Atualizado em 24/09/2026 às 17:44</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1427,9 +1427,9 @@ export default function AdminDashboard() {
             {activeTab === "comments" && (
               <div className="space-y-6">
                 <div className="rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-5">
-                  <p className="eyebrow">Roda de conversa</p>
+                  <p className="eyebrow">O papo continuou por aqui</p>
                   <h2 className="font-display mt-2 text-3xl text-[var(--color-gold)]">Comentários para aprovar</h2>
-                  <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)] opacity-70">As leitoras enviam email e impressão. O email fica só para você; no site aparece como Leitora Entreluar.</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)] opacity-70">As leitoras enviam email e impressão. O email fica só para você; no site aparece como Amiga Entreluar.</p>
                 </div>
                 {message && <p className="text-center text-sm font-bold italic text-[#f3e5ab]">{message}</p>}
                 {comments.length === 0 ? (

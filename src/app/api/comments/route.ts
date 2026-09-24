@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const path = clean(payload.path, 400);
     const honeypot = clean(payload.website, 120);
 
-    if (honeypot) return NextResponse.json({ success: true, message: "Recebi sua impressão. Obrigada por entrar na roda. ☾" });
+    if (honeypot) return NextResponse.json({ success: true, message: "Recebi seu comentário com carinho. Ele vai aparecer assim que eu aprovar, combinado?" });
     if (!postId || !email || !EMAIL_PATTERN.test(email) || body.length < 8) {
       return NextResponse.json({ error: "Preencha email e comentário com carinho para entrar na roda." }, { status: 400 });
     }
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, message: "Recebi sua impressão. Ela vai para a Luana aprovar antes de aparecer para todo mundo. ☾" });
+    return NextResponse.json({ success: true, message: "Recebi seu comentário com carinho. Ele vai aparecer assim que eu aprovar, combinado?" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Não consegui guardar seu comentário agora.";
     return NextResponse.json({ error: message }, { status: 500 });

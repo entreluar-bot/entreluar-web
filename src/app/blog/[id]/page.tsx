@@ -54,7 +54,7 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
 
           <section className="next-steps" aria-label="Continue navegando">
             <Link href="/pilulas" className="ghost-button">Quero uma pílula →</Link>
-            <Link href="/resenhas" className="ghost-button">Ver ciência sem jaleco →</Link>
+            <Link href="/resenhas" className="ghost-button">Ver o que estudei para te explicar →</Link>
             <Link href="/vitrine" className="ghost-button">Ver achados honestos →</Link>
           </section>
         </header>
