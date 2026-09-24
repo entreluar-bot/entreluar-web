@@ -1,12 +1,51 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
 import NewsletterSignup from "../../ui/NewsletterSignup";
 import ConversationCircle from "../../ui/ConversationCircle";
+import ShareButton from "../../ui/ShareButton";
 import type { JournalComment, JournalPost } from "../../types";
 
 export const revalidate = 0;
+
+type BlogPostProps = { params: Promise<{ id: string }> };
+
+async function getPost(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("journal").select("*").eq("id", id).single();
+  return data as JournalPost | null;
+}
+
+export async function generateMetadata({ params }: BlogPostProps): Promise<Metadata> {
+  const { id } = await params;
+  const post = await getPost(id);
+  if (!post) return {};
+  const url = `${siteUrl}/blog/${id}`;
+  const description = plainTextFromHtml(post.content, 170) || "Papo de Mulher na Entreluar, com maturidade, autocuidado e conversa de amiga.";
+  const image = absoluteUrl(post.image_url);
+
+  return {
+    title: post.title,
+    description,
+    alternates: { canonical: `/blog/${id}` },
+    openGraph: {
+      title: post.title,
+      description,
+      url,
+      type: "article",
+      images: [{ url: image, alt: post.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description,
+      images: [image],
+    },
+  };
+}
 
 export default async function BlogPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,6 +63,7 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
   if (!data) notFound();
   const post = data as JournalPost;
   const comments = (commentRows || []) as JournalComment[];
+  const shareUrl = `${siteUrl}/blog/${post.id}`;
 
   return (
     <main className="site-shell">
@@ -39,6 +79,7 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
         <header className="p-6 md:p-12">
           <p className="eyebrow">{post.category || "Papo de Mulher"} • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
           <h1 className="section-title my-6">{post.title}</h1>
+          <ShareButton title={post.title} url={shareUrl} className="mb-8" />
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
 
           <ConversationCircle postId={post.id} postTitle={post.title} comments={comments} />

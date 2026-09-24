@@ -1,10 +1,49 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
+import ShareButton from "../../ui/ShareButton";
 import type { JournalPost } from "../../types";
 
 export const revalidate = 0;
+
+type ReviewPostProps = { params: Promise<{ id: string }> };
+
+async function getReviewPost(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("journal").select("*").eq("id", id).single();
+  return data as JournalPost | null;
+}
+
+export async function generateMetadata({ params }: ReviewPostProps): Promise<Metadata> {
+  const { id } = await params;
+  const post = await getReviewPost(id);
+  if (!post) return {};
+  const url = `${siteUrl}/resenhas/${id}`;
+  const description = plainTextFromHtml(post.content, 170) || "Estudei para te explicar sem complicar: ativos, promessas e verdades para a vida real.";
+  const image = absoluteUrl(post.image_url);
+
+  return {
+    title: post.title,
+    description,
+    alternates: { canonical: `/resenhas/${id}` },
+    openGraph: {
+      title: post.title,
+      description,
+      url,
+      type: "article",
+      images: [{ url: image, alt: post.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description,
+      images: [image],
+    },
+  };
+}
 
 export default async function ReviewPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,6 +51,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
   const { data } = await supabase.from("journal").select("*").eq("id", id).single();
   if (!data) notFound();
   const post = data as JournalPost;
+  const shareUrl = `${siteUrl}/resenhas/${post.id}`;
 
   return (
     <main className="site-shell">
@@ -27,6 +67,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
         <header className="p-6 md:p-12">
           <p className="eyebrow">Estudei para te explicar • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
           <h1 className="section-title my-6">{post.title}</h1>
+          <ShareButton title={post.title} url={shareUrl} className="mb-8" />
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
           <section className="next-steps" aria-label="Continue navegando">
             <Link href="/vitrine" className="ghost-button">Ver achados relacionados →</Link>

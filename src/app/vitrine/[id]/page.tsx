@@ -1,10 +1,49 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
+import ShareButton from "../../ui/ShareButton";
 import type { Product } from "../../types";
 
 export const revalidate = 0;
+
+type ProductPostProps = { params: Promise<{ id: string }> };
+
+async function getProduct(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("products").select("*").eq("id", id).single();
+  return data as Product | null;
+}
+
+export async function generateMetadata({ params }: ProductPostProps): Promise<Metadata> {
+  const { id } = await params;
+  const product = await getProduct(id);
+  if (!product) return {};
+  const url = `${siteUrl}/vitrine/${id}`;
+  const description = plainTextFromHtml(product.description, 170) || "Achado honesto da Vitrine Entreluar, com opinião simples e conversa de amiga.";
+  const image = absoluteUrl(product.image_url);
+
+  return {
+    title: product.title,
+    description,
+    alternates: { canonical: `/vitrine/${id}` },
+    openGraph: {
+      title: product.title,
+      description,
+      url,
+      type: "article",
+      images: [{ url: image, alt: product.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.title,
+      description,
+      images: [image],
+    },
+  };
+}
 
 export default async function ProductPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,6 +51,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
   const { data } = await supabase.from("products").select("*").eq("id", id).single();
   if (!data) notFound();
   const product = data as Product;
+  const shareUrl = `${siteUrl}/vitrine/${product.id}`;
 
   return (
     <main className="site-shell">
@@ -28,6 +68,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
           <p className="eyebrow">{product.category || "Escolha da Luana"}</p>
           <h1 className="section-title my-4">{product.title}</h1>
           {product.price && <p className="font-display text-3xl text-[var(--champagne)]">{product.price}</p>}
+          <ShareButton title={product.title} url={shareUrl} className="mb-8 mt-6" />
           <div className="prose-luxe mt-8" dangerouslySetInnerHTML={{ __html: product.description }} />
           <div className="mt-10 border-t border-[var(--line)] pt-8">
             <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button w-full">Quero ver onde achei ↗</a>
