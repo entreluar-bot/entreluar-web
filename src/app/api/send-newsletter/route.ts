@@ -126,7 +126,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: "O serviço de e-mail não está configurado no ambiente publicado." }, { status: 503 });
+    if (!apiKey) return NextResponse.json({ error: "O serviço de email não está configurado no ambiente publicado." }, { status: 503 });
 
     const result = await getRecipients(req);
     if (result.unauthorized) return NextResponse.json({ error: "Sessão inválida ou expirada." }, { status: 401 });

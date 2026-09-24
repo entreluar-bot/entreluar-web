@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const email = clean(payload.email, 180)?.toLowerCase();
 
     if (!email || !EMAIL_PATTERN.test(email)) {
-      return NextResponse.json({ error: "E-mail inválido" }, { status: 400 });
+      return NextResponse.json({ error: "Email inválido" }, { status: 400 });
     }
 
     const supabase = createClient(
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     if (error && error.code === "23505") {
       await supabase.from("subscribers").update(subscriberRow).eq("email", email);
       await supabase.from("newsletter_conversions").insert([conversionRow]);
-      return NextResponse.json({ message: "Esse e-mail já estava na nossa roda. Atualizei a origem por aqui. ✨" });
+      return NextResponse.json({ message: "Esse email já estava na nossa roda. Atualizei a origem por aqui. ✨" });
     }
     
     if (error) throw error;

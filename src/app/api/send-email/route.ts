@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const apiKey = process.env.RESEND_API_KEY;
     if (!url || !anonKey) return NextResponse.json({ error: "Configuração do Supabase ausente." }, { status: 503 });
-    if (!apiKey) return NextResponse.json({ error: "O serviço de e-mail não está configurado." }, { status: 503 });
+    if (!apiKey) return NextResponse.json({ error: "O serviço de email não está configurado." }, { status: 503 });
 
     const authClient = createClient(url, anonKey, { auth: { persistSession: false } });
     const { data: { user } } = await authClient.auth.getUser(token);
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     );
     if (response.error || !response.data?.id) {
       const message = response.error?.message?.replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g, "[destinatário]").slice(0, 240);
-      return NextResponse.json({ error: message || "O provedor não aceitou o e-mail." }, { status: 502 });
+      return NextResponse.json({ error: message || "O provedor não aceitou o email." }, { status: 502 });
     }
 
     const { error: historyError } = await supabase.from("emails").insert([{
@@ -55,10 +55,10 @@ export async function POST(req: Request) {
       success: true,
       id: response.data.id,
       historySaved: !historyError,
-      warning: historyError ? "E-mail enviado, mas o histórico não pôde ser salvo." : null,
+      warning: historyError ? "Email enviado, mas o histórico não pôde ser salvo." : null,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Falha inesperada ao enviar o e-mail.";
+    const message = error instanceof Error ? error.message : "Falha inesperada ao enviar o email.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

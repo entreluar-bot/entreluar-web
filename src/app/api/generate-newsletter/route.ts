@@ -14,7 +14,7 @@ const instructions: Record<NewsletterType, string> = {
   blog: "Avise sobre uma nova crônica do Papo de Mulher. Crie curiosidade emocional sem contar tudo e convide para ler a conversa completa no Diário.",
   produto: "Apresente um novo achado da Vitrine como um segredo de beleza contado à melhor amiga. Seja honesta, desejável e concreta, sem promessas exageradas.",
   resenha: "Apresente uma nova análise da série Estudei para te explicar. Valorize a pesquisa, traduza a ciência sem pedantismo e convide para ler a resenha completa.",
-  pilula: "Escreva uma carta curta de acolhimento, coragem e autocuidado para a mulher madura. Inclua uma reflexão memorável e convide para conhecer outras pílulas.",
+  pilula: "Escreva um email curto de acolhimento, coragem e autocuidado para a mulher madura. Inclua uma reflexão memorável e convide para conhecer outras pílulas.",
 };
 
 type AiEmail = { subject: string; preheader: string; headline: string; bodyHtml: string; ctaText: string; ctaUrl: string; openingStyle: string; notablePhrases: string[] };
@@ -33,7 +33,7 @@ ${SIMPLE_LANGUAGE_RULES}
 ${context.memoryPrompt}
 ${context.antiRepetitionPrompt}
 
-OBJETIVO DESTA CARTA:
+OBJETIVO DESTE EMAIL:
 ${instructions[emailType]}
 
 CONTEXTO DA LUANA:
@@ -51,10 +51,10 @@ REGRAS DE CONTEÚDO:
 
     const { response, usage } = await generateAi(ai, "newsletter", { contents: prompt, config: { responseMimeType: "application/json", responseJsonSchema: newsletterSchema, temperature: 0.8 } });
     const generated = parseJson<AiEmail>(response.text);
-    if (!generated.subject || !generated.preheader || !generated.headline || !generated.bodyHtml || !generated.ctaText) throw new Error("A IA não devolveu todos os campos do e-mail.");
+    if (!generated.subject || !generated.preheader || !generated.headline || !generated.bodyHtml || !generated.ctaText) throw new Error("A IA não devolveu todos os campos do email.");
     await recordGeneration(supabase, user.id, { contentType: `newsletter_${emailType}`, topic: body.contextText, title: generated.subject, openingStyle: generated.openingStyle, notablePhrases: generated.notablePhrases, memoryIds: context.memoryIds, usage });
     return NextResponse.json(renderPremiumEmail(emailType, generated));
   } catch (error: unknown) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Erro ao gerar e-mail" }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Erro ao gerar email" }, { status: 500 });
   }
 }

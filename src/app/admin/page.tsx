@@ -524,7 +524,7 @@ export default function AdminDashboard() {
     if (!confirmAiSpend()) return;
     setLoading(true);
     setNewsletterStatus("preparing");
-    setMessage("Escrevendo e-mail...");
+    setMessage("Escrevendo email...");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token || "";
@@ -539,7 +539,7 @@ export default function AdminDashboard() {
       setNlHtml(data.html);
       setNewsletterDispatchId(null);
       setNewsletterStatus("idle");
-      setMessage("E-mail gerado! Revise o assunto e o corpo abaixo antes de disparar.");
+      setMessage("Email gerado! Revise o assunto e o corpo abaixo antes de disparar.");
     } catch (error: any) {
       setNewsletterStatus("failed");
       setMessage("Erro: " + error.message);
@@ -548,12 +548,12 @@ export default function AdminDashboard() {
   };
 
   const handleSendNewsletter = async () => {
-    if (!nlSubject || !nlHtml) return setMessage("Gere ou preencha o e-mail antes de disparar!");
-    if (!confirm(`Tem certeza que deseja enviar este e-mail para ${subscribersCount} assinantes?`)) return;
+    if (!nlSubject || !nlHtml) return setMessage("Gere ou preencha o email antes de disparar!");
+    if (!confirm(`Tem certeza que deseja enviar este email para ${subscribersCount} assinantes?`)) return;
     
     setLoading(true);
     setNewsletterStatus("sending");
-    setMessage("Disparando e-mails...");
+    setMessage("Disparando emails...");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token || "";
@@ -573,7 +573,7 @@ export default function AdminDashboard() {
         setNewsletterStatus("complete");
         const historyWarning = data.errors?.find((item) => item.batch === 0)?.message;
         const skippedMessage = data.skipped > 0 ? ` ${data.skipped} destinatária${data.skipped === 1 ? " foi preservada" : "s foram preservadas"} porque já havia recebido este conteúdo.` : "";
-        setMessage(`Concluído! ${data.accepted} de ${data.requested} e-mails foram aceitos pelo provedor. 🎉${skippedMessage}${historyWarning ? ` ${historyWarning}` : ""}`);
+        setMessage(`Concluído! ${data.accepted} de ${data.requested} emails foram aceitos pelo provedor. 🎉${skippedMessage}${historyWarning ? ` ${historyWarning}` : ""}`);
         setNlSubject("");
         setNlHtml("");
         setNewsletterDispatchId(null);
@@ -761,7 +761,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({ to: replyTo, subject: replySubject || "Resposta - Entreluar", text: replyBody, dispatchId: crypto.randomUUID() })
       });
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "O e-mail não foi aceito.");
+      if (!res.ok || data.error) throw new Error(data.error || "O email não foi aceito.");
       setMessage(data.warning || "E-mail enviado com sucesso!");
       setReplyTo(""); setReplySubject(""); setReplyBody("");
     } catch (error: any) {
@@ -864,8 +864,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.53</p>
-                <p>Atualizado em 24/09/2026 às 09:13</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.54</p>
+                <p>Atualizado em 24/09/2026 às 10:45</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1467,8 +1467,8 @@ export default function AdminDashboard() {
                     </div>
 
                     <div>
-                      <div className="mb-2 flex items-center justify-between"><label className="text-sm text-[var(--color-gold-light)]">Prévia fiel do e-mail</label><span className="eyebrow">Desktop e mobile</span></div>
-                      <iframe title="Prévia do e-mail premium" srcDoc={nlHtml} className="h-[620px] w-full rounded-[22px] border border-[var(--line)] bg-[#12070a]" sandbox="allow-popups allow-popups-to-escape-sandbox" />
+                      <div className="mb-2 flex items-center justify-between"><label className="text-sm text-[var(--color-gold-light)]">Prévia fiel do email</label><span className="eyebrow">Desktop e mobile</span></div>
+                      <iframe title="Prévia do email premium" srcDoc={nlHtml} className="h-[620px] w-full rounded-[22px] border border-[var(--line)] bg-[#12070a]" sandbox="allow-popups allow-popups-to-escape-sandbox" />
                     </div>
 
                     {newsletterStatus !== "idle" && (
@@ -1491,14 +1491,14 @@ export default function AdminDashboard() {
                   <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
                       <p className="eyebrow mb-2">Histórico individual</p>
-                      <h3 id="email-control-title" className="font-serif text-2xl text-[var(--color-gold)]">Controle de e-mails enviados</h3>
+                      <h3 id="email-control-title" className="font-serif text-2xl text-[var(--color-gold)]">Controle de emails enviados</h3>
                       <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Veja quem recebeu cada conteúdo. Mensagens idênticas não serão reenviadas para a mesma pessoa.</p>
                     </div>
                     <input
                       type="search"
                       value={emailAdminSearch}
                       onChange={(event) => setEmailAdminSearch(event.target.value)}
-                      placeholder="Buscar e-mail ou assunto"
+                      placeholder="Buscar email ou assunto"
                       className="min-h-11 w-full rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-4 text-sm text-[var(--color-gold-light)] outline-none focus:border-[var(--color-gold)] md:max-w-xs"
                     />
                   </div>
@@ -1562,7 +1562,7 @@ export default function AdminDashboard() {
                         );
                       })}
                     {emailSubscribers.length === 0 && (
-                      <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-65">Nenhum e-mail cadastrado para administrar.</div>
+                      <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-65">Nenhum email cadastrado para administrar.</div>
                     )}
                   </div>
                 </section>

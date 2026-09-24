@@ -24,9 +24,9 @@ export default function NewsletterSignup({ source, compact = false }: Newsletter
         body: JSON.stringify({ email, source, ...getCampaignContext() }),
       });
       const data = await response.json();
-      if (!response.ok || data.error) throw new Error(data.error || "Não consegui concluir a assinatura.");
+      if (!response.ok || data.error) throw new Error(data.error || "Não consegui concluir o cadastro.");
       setEmail("");
-      setMessage(data.message || "Pronto! Agora a nossa conversa também chega por e-mail. ✨");
+      setMessage(data.message || "Pronto! Agora você fica por dentro dos emails e convites da Entreluar. ✨");
     } catch (error: unknown) {
       setMessage(error instanceof Error ? error.message : "Tente novamente em instantes.");
     } finally {
@@ -37,19 +37,19 @@ export default function NewsletterSignup({ source, compact = false }: Newsletter
   if (message) return <p className="newsletter-message" role="status">{message}</p>;
 
   return (
-    <form onSubmit={subscribe} className={compact ? "mt-5 flex gap-2" : "newsletter-inline-form"}>
-      <label className="sr-only" htmlFor={`newsletter-email-${source}`}>Seu e-mail</label>
+    <form onSubmit={subscribe} className={compact ? "mt-5 grid gap-2" : "newsletter-inline-form"}>
+      <label className="sr-only" htmlFor={`newsletter-email-${source}`}>Seu email</label>
       <input
         id={`newsletter-email-${source}`}
         type="email"
         value={email}
         onChange={event => setEmail(event.target.value)}
-        placeholder="Seu melhor e-mail"
+        placeholder="Seu melhor email"
         autoComplete="email"
         required
         className="min-w-0 flex-1 px-4"
       />
-      <button type="submit" disabled={loading} className="newsletter-submit">{loading ? "…" : "Manda a carta"}</button>
+      <button type="submit" disabled={loading} className="newsletter-submit">{loading ? "…" : "Quero ficar por dentro"}</button>
     </form>
   );
 }

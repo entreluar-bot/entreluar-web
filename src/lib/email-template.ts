@@ -14,7 +14,7 @@ const variants: Record<NewsletterType, { label: string; defaultUrl: string; acce
   blog: { label: "NOVA CONVERSA NO DIÁRIO", defaultUrl: "https://entreluar.com.br/blog", accent: "#D88A9D", closing: "Tem conversa que a gente termina diferente de como começou." },
   produto: { label: "NOVO ACHADO DA LUANA", defaultUrl: "https://entreluar.com.br/vitrine", accent: "#E6BD78", closing: "Eu testo primeiro e te conto tudo depois — sem filtro." },
   resenha: { label: "ESTUDEI PARA TE EXPLICAR", defaultUrl: "https://entreluar.com.br/resenhas", accent: "#F2D2A2", closing: "Ciência também pode parecer uma conversa entre amigas." },
-  pilula: { label: "UMA DOSE PARA HOJE", defaultUrl: "https://entreluar.com.br/pilulas", accent: "#CF8294", closing: "Guarde esta carta para reler quando precisar voltar para si." },
+  pilula: { label: "UMA DOSE PARA HOJE", defaultUrl: "https://entreluar.com.br/pilulas", accent: "#CF8294", closing: "Guarde este email para reler quando precisar voltar para si." },
 };
 
 const escapeText = (value: string) => value.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char] || char);
@@ -64,7 +64,7 @@ export function renderPremiumEmail(type: NewsletterType, content: EmailContent) 
 </td></tr>
 <tr><td style="padding:28px 38px;background:#1C080E;border-top:1px solid #4C2633;text-align:center;">
 <p style="margin:0 0 10px;color:#F7E8D0;font-family:Georgia,'Times New Roman',serif;font-size:20px;">Com carinho,<br><strong style="color:${variant.accent};">Luana ✨</strong></p>
-<p style="margin:18px 0 0;color:#9F7E84;font-size:11px;line-height:1.65;">Você recebeu esta carta porque escolheu acompanhar a Entreluar.<br><a href="https://entreluar.com.br" style="color:#C9A66C;">Visitar o site</a> &nbsp;•&nbsp; <a href="https://instagram.com/entreluarBeauty" style="color:#C9A66C;">Instagram</a></p>
+<p style="margin:18px 0 0;color:#9F7E84;font-size:11px;line-height:1.65;">Você recebeu este email porque escolheu acompanhar a Entreluar.<br><a href="https://entreluar.com.br" style="color:#C9A66C;">Visitar o site</a> &nbsp;•&nbsp; <a href="https://instagram.com/entreluarBeauty" style="color:#C9A66C;">Instagram</a></p>
 </td></tr></table>
 </td></tr></table></body></html>` };
 }
