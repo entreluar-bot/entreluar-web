@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import ProductCard from "./ProductCard";
+import QuoteShareButton from "./ui/QuoteShareButton";
 import { THEME_GROUPS } from "@/lib/theme-groups";
 import type { JournalPost, Product, Quote } from "./types";
 
@@ -75,6 +76,7 @@ export default async function Home() {
   const newPapo = ((newPapoRows || []) as JournalPost[])[0] || null;
   const newReview = ((newReviewRows || []) as JournalPost[])[0] || null;
   const quote = getDailyQuote(quotes);
+  const dailyQuoteText = quote?.quote || "A maturidade não apaga o nosso brilho — ela finalmente ensina onde acender a luz.";
   const portalImage = newProduct?.image_url || products[0]?.image_url;
 
   return (
@@ -99,8 +101,11 @@ export default async function Home() {
 
         <section className="quote-ribbon glass-panel" aria-label="Pílula de hoje">
           <p className="eyebrow mb-3">Pílula de hoje ☾</p>
-          <blockquote>“{quote?.quote || "A maturidade não apaga o nosso brilho — ela finalmente ensina onde acender a luz."}”</blockquote>
-          <Link href="/pilulas" className="mt-4 inline-flex min-h-11 items-center text-xs font-bold uppercase tracking-[.18em] text-[var(--champagne)]">Quero outra dose →</Link>
+          <blockquote>“{dailyQuoteText}”</blockquote>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Link href="/pilulas" className="inline-flex min-h-11 items-center text-xs font-bold uppercase tracking-[.18em] text-[var(--champagne)]">Quero outra dose →</Link>
+            <QuoteShareButton quote={dailyQuoteText} className="home-quote-share" />
+          </div>
         </section>
 
         <section className="section-space">
