@@ -7,6 +7,7 @@ import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
 import type { ContentSummary } from "@/lib/summary";
 import ShareButton from "../../ui/ShareButton";
 import QuickSummaryCard from "../../ui/QuickSummaryCard";
+import AddToRoutineButton from "../../ui/AddToRoutineButton";
 import type { Product } from "../../types";
 
 export const revalidate = 0;
@@ -74,7 +75,8 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
           <p className="eyebrow">{product.category || "Escolha da Luana"}</p>
           <h1 className="section-title my-4">{product.title}</h1>
           {product.price && <p className="font-display text-3xl text-[var(--champagne)]">{product.price}</p>}
-          <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} className="mb-8 mt-6" />
+          <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} className="mb-2 mt-6" />
+          <AddToRoutineButton id={product.id} title={product.title} image_url={product.image_url} />
           <QuickSummaryCard summary={summary} />
           <div className="prose-luxe mt-8" dangerouslySetInnerHTML={{ __html: product.description }} />
           <div className="mt-10 border-t border-[var(--line)] pt-8">

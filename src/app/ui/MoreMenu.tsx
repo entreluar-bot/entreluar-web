@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 const MORE_LINKS = [
   { href: "/temas", label: "Temas", hint: "Descubra por assunto" },
   { href: "/me-ajuda-a-escolher", label: "Me ajuda a escolher", hint: "Duas perguntas, um caminho" },
+  { href: "/minha-rotina", label: "Minha rotina", hint: "Sua manhã e sua noite, do seu jeito" },
   { href: "/comece-por-aqui", label: "Comece por aqui", hint: "Pra quem chegou agora" },
   { href: "/drops", label: "Drops", hint: "Direto do Instagram" },
   { href: "/sobre", label: "Sobre", hint: "Quem é a Luana" },
