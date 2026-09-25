@@ -1169,8 +1169,793 @@ export default function AdminDashboard() {
             <button
               onClick={async () => {
                 try {
-                  const res = await fetch("/api/temp-tags");
-                  const rows = await res.json();
+                  const rows = [
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "1c82a01a-5623-44e3-86ff-1c36641dd695"
+  },
+  {
+    "tag_id": "1ebee344-5192-449c-a26a-60060c46f96d",
+    "content_type": "journal",
+    "content_id": "1c82a01a-5623-44e3-86ff-1c36641dd695"
+  },
+  {
+    "tag_id": "7c1ba4ae-b282-4f23-9f95-612fd915cf66",
+    "content_type": "journal",
+    "content_id": "1c82a01a-5623-44e3-86ff-1c36641dd695"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "1c82a01a-5623-44e3-86ff-1c36641dd695"
+  },
+  {
+    "tag_id": "7d799dcb-ff47-4a5d-ae0f-0c935842c643",
+    "content_type": "journal",
+    "content_id": "1c82a01a-5623-44e3-86ff-1c36641dd695"
+  },
+  {
+    "tag_id": "8f673d14-d0b5-455a-a29a-a6c0adb3b6f4",
+    "content_type": "journal",
+    "content_id": "1c82a01a-5623-44e3-86ff-1c36641dd695"
+  },
+  {
+    "tag_id": "83eb561d-3e95-4855-92ca-3bc1dcd490e1",
+    "content_type": "journal",
+    "content_id": "8acf446c-c70a-49ea-a945-394eace8daf5"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "212bc909-1b81-41fe-b02b-297cac900ffc"
+  },
+  {
+    "tag_id": "0c57c7e3-a657-47fd-8d3a-979c23c7fd89",
+    "content_type": "journal",
+    "content_id": "212bc909-1b81-41fe-b02b-297cac900ffc"
+  },
+  {
+    "tag_id": "1ebee344-5192-449c-a26a-60060c46f96d",
+    "content_type": "journal",
+    "content_id": "fb968ebd-7c53-4d4f-b15e-11a60c17af09"
+  },
+  {
+    "tag_id": "983c1349-af7e-4b2c-9f0d-0e7114cad336",
+    "content_type": "journal",
+    "content_id": "fb968ebd-7c53-4d4f-b15e-11a60c17af09"
+  },
+  {
+    "tag_id": "97d7055d-3fde-448d-9f59-bc78f4fc4730",
+    "content_type": "journal",
+    "content_id": "fb968ebd-7c53-4d4f-b15e-11a60c17af09"
+  },
+  {
+    "tag_id": "d768e379-7839-466f-85bf-4c9f5e73a0ac",
+    "content_type": "journal",
+    "content_id": "094f0acd-426a-41cf-bd63-525dc4711300"
+  },
+  {
+    "tag_id": "2d7ab7f0-249e-4eeb-b538-fc3a98c6119a",
+    "content_type": "journal",
+    "content_id": "094f0acd-426a-41cf-bd63-525dc4711300"
+  },
+  {
+    "tag_id": "4f74a3cd-9d8a-4435-993b-578b6b1d1ac9",
+    "content_type": "journal",
+    "content_id": "094f0acd-426a-41cf-bd63-525dc4711300"
+  },
+  {
+    "tag_id": "d768e379-7839-466f-85bf-4c9f5e73a0ac",
+    "content_type": "journal",
+    "content_id": "4b0e02fd-86a9-4474-a311-9c6b912c6474"
+  },
+  {
+    "tag_id": "83eb561d-3e95-4855-92ca-3bc1dcd490e1",
+    "content_type": "journal",
+    "content_id": "4b0e02fd-86a9-4474-a311-9c6b912c6474"
+  },
+  {
+    "tag_id": "7cb0fadf-b3e1-428d-9aeb-6ee023b9f6d7",
+    "content_type": "journal",
+    "content_id": "4b0e02fd-86a9-4474-a311-9c6b912c6474"
+  },
+  {
+    "tag_id": "4f74a3cd-9d8a-4435-993b-578b6b1d1ac9",
+    "content_type": "journal",
+    "content_id": "4b0e02fd-86a9-4474-a311-9c6b912c6474"
+  },
+  {
+    "tag_id": "826f1408-04ed-482f-a851-026b2d222ce2",
+    "content_type": "journal",
+    "content_id": "35eda7de-9b9b-4348-9e92-ee98c67d3d66"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "35eda7de-9b9b-4348-9e92-ee98c67d3d66"
+  },
+  {
+    "tag_id": "83eb561d-3e95-4855-92ca-3bc1dcd490e1",
+    "content_type": "journal",
+    "content_id": "35eda7de-9b9b-4348-9e92-ee98c67d3d66"
+  },
+  {
+    "tag_id": "7cb0fadf-b3e1-428d-9aeb-6ee023b9f6d7",
+    "content_type": "journal",
+    "content_id": "35eda7de-9b9b-4348-9e92-ee98c67d3d66"
+  },
+  {
+    "tag_id": "4f74a3cd-9d8a-4435-993b-578b6b1d1ac9",
+    "content_type": "journal",
+    "content_id": "35eda7de-9b9b-4348-9e92-ee98c67d3d66"
+  },
+  {
+    "tag_id": "0d575db5-fc83-4f6b-b015-f3ac9dc63c66",
+    "content_type": "journal",
+    "content_id": "de2a5865-b71d-4d40-9668-01562e956b6f"
+  },
+  {
+    "tag_id": "83eb561d-3e95-4855-92ca-3bc1dcd490e1",
+    "content_type": "journal",
+    "content_id": "de2a5865-b71d-4d40-9668-01562e956b6f"
+  },
+  {
+    "tag_id": "3ff9dcca-6538-486b-8612-31fe0502614e",
+    "content_type": "journal",
+    "content_id": "de2a5865-b71d-4d40-9668-01562e956b6f"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "6e8345ba-8bc2-4597-80ac-56943a49ef38"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "6e8345ba-8bc2-4597-80ac-56943a49ef38"
+  },
+  {
+    "tag_id": "7d799dcb-ff47-4a5d-ae0f-0c935842c643",
+    "content_type": "journal",
+    "content_id": "6e8345ba-8bc2-4597-80ac-56943a49ef38"
+  },
+  {
+    "tag_id": "3ff9dcca-6538-486b-8612-31fe0502614e",
+    "content_type": "journal",
+    "content_id": "6e8345ba-8bc2-4597-80ac-56943a49ef38"
+  },
+  {
+    "tag_id": "c32bebf4-c84f-4646-888b-9dca8d9d439d",
+    "content_type": "journal",
+    "content_id": "6e8345ba-8bc2-4597-80ac-56943a49ef38"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "f1cd6c47-3b00-4e90-b4c3-a073626ecda6"
+  },
+  {
+    "tag_id": "c32bebf4-c84f-4646-888b-9dca8d9d439d",
+    "content_type": "journal",
+    "content_id": "f1cd6c47-3b00-4e90-b4c3-a073626ecda6"
+  },
+  {
+    "tag_id": "983c1349-af7e-4b2c-9f0d-0e7114cad336",
+    "content_type": "journal",
+    "content_id": "f1cd6c47-3b00-4e90-b4c3-a073626ecda6"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "3ed48e07-733d-4d72-9f15-59992c5c0681"
+  },
+  {
+    "tag_id": "c32bebf4-c84f-4646-888b-9dca8d9d439d",
+    "content_type": "journal",
+    "content_id": "3ed48e07-733d-4d72-9f15-59992c5c0681"
+  },
+  {
+    "tag_id": "97d7055d-3fde-448d-9f59-bc78f4fc4730",
+    "content_type": "journal",
+    "content_id": "3ed48e07-733d-4d72-9f15-59992c5c0681"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "a4404071-0f80-4f56-b916-e72bfd504ccf"
+  },
+  {
+    "tag_id": "c88f7cb0-ec0f-4a3d-a24b-67465b82243d",
+    "content_type": "journal",
+    "content_id": "a4404071-0f80-4f56-b916-e72bfd504ccf"
+  },
+  {
+    "tag_id": "2d7ab7f0-249e-4eeb-b538-fc3a98c6119a",
+    "content_type": "journal",
+    "content_id": "a4404071-0f80-4f56-b916-e72bfd504ccf"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "a4404071-0f80-4f56-b916-e72bfd504ccf"
+  },
+  {
+    "tag_id": "983c1349-af7e-4b2c-9f0d-0e7114cad336",
+    "content_type": "journal",
+    "content_id": "a4404071-0f80-4f56-b916-e72bfd504ccf"
+  },
+  {
+    "tag_id": "4f74a3cd-9d8a-4435-993b-578b6b1d1ac9",
+    "content_type": "journal",
+    "content_id": "a4404071-0f80-4f56-b916-e72bfd504ccf"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "e3602b58-41eb-45ef-9e6a-585ed7439aea"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "e3602b58-41eb-45ef-9e6a-585ed7439aea"
+  },
+  {
+    "tag_id": "0d575db5-fc83-4f6b-b015-f3ac9dc63c66",
+    "content_type": "journal",
+    "content_id": "e3602b58-41eb-45ef-9e6a-585ed7439aea"
+  },
+  {
+    "tag_id": "c32bebf4-c84f-4646-888b-9dca8d9d439d",
+    "content_type": "journal",
+    "content_id": "e3602b58-41eb-45ef-9e6a-585ed7439aea"
+  },
+  {
+    "tag_id": "983c1349-af7e-4b2c-9f0d-0e7114cad336",
+    "content_type": "journal",
+    "content_id": "e3602b58-41eb-45ef-9e6a-585ed7439aea"
+  },
+  {
+    "tag_id": "1ebee344-5192-449c-a26a-60060c46f96d",
+    "content_type": "journal",
+    "content_id": "a2bee9c7-f8b5-42dc-a264-509a163aa570"
+  },
+  {
+    "tag_id": "448d55e4-332b-4b36-b2b2-e2b6156e640e",
+    "content_type": "journal",
+    "content_id": "a2bee9c7-f8b5-42dc-a264-509a163aa570"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "a2bee9c7-f8b5-42dc-a264-509a163aa570"
+  },
+  {
+    "tag_id": "983c1349-af7e-4b2c-9f0d-0e7114cad336",
+    "content_type": "journal",
+    "content_id": "a2bee9c7-f8b5-42dc-a264-509a163aa570"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "a2bee9c7-f8b5-42dc-a264-509a163aa570"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "b332fd3a-692a-4566-8e50-c919280f1df6"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "b332fd3a-692a-4566-8e50-c919280f1df6"
+  },
+  {
+    "tag_id": "404df591-94e6-43ed-8b39-eab5a6e2153c",
+    "content_type": "journal",
+    "content_id": "b332fd3a-692a-4566-8e50-c919280f1df6"
+  },
+  {
+    "tag_id": "7d799dcb-ff47-4a5d-ae0f-0c935842c643",
+    "content_type": "journal",
+    "content_id": "b332fd3a-692a-4566-8e50-c919280f1df6"
+  },
+  {
+    "tag_id": "3ff9dcca-6538-486b-8612-31fe0502614e",
+    "content_type": "journal",
+    "content_id": "b332fd3a-692a-4566-8e50-c919280f1df6"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "95134a1e-39c7-40c2-b3ee-2810cd254964"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "95134a1e-39c7-40c2-b3ee-2810cd254964"
+  },
+  {
+    "tag_id": "7c1ba4ae-b282-4f23-9f95-612fd915cf66",
+    "content_type": "journal",
+    "content_id": "9b61293c-52b8-49a8-b21d-af678bfe570e"
+  },
+  {
+    "tag_id": "c88f7cb0-ec0f-4a3d-a24b-67465b82243d",
+    "content_type": "journal",
+    "content_id": "9b61293c-52b8-49a8-b21d-af678bfe570e"
+  },
+  {
+    "tag_id": "bbd05f41-453c-466b-9064-2715e18b126e",
+    "content_type": "journal",
+    "content_id": "9b61293c-52b8-49a8-b21d-af678bfe570e"
+  },
+  {
+    "tag_id": "2d7ab7f0-249e-4eeb-b538-fc3a98c6119a",
+    "content_type": "journal",
+    "content_id": "9b61293c-52b8-49a8-b21d-af678bfe570e"
+  },
+  {
+    "tag_id": "83eb561d-3e95-4855-92ca-3bc1dcd490e1",
+    "content_type": "journal",
+    "content_id": "9b61293c-52b8-49a8-b21d-af678bfe570e"
+  },
+  {
+    "tag_id": "4f74a3cd-9d8a-4435-993b-578b6b1d1ac9",
+    "content_type": "journal",
+    "content_id": "9b61293c-52b8-49a8-b21d-af678bfe570e"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "0b093e10-7e47-4475-a530-54752b7c9c5d"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "0b093e10-7e47-4475-a530-54752b7c9c5d"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "e52abd48-928a-44fe-9158-a8c16d0d6b23"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "e52abd48-928a-44fe-9158-a8c16d0d6b23"
+  },
+  {
+    "tag_id": "404df591-94e6-43ed-8b39-eab5a6e2153c",
+    "content_type": "journal",
+    "content_id": "e52abd48-928a-44fe-9158-a8c16d0d6b23"
+  },
+  {
+    "tag_id": "8f673d14-d0b5-455a-a29a-a6c0adb3b6f4",
+    "content_type": "journal",
+    "content_id": "e52abd48-928a-44fe-9158-a8c16d0d6b23"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "599933bf-75d5-4987-814e-78ab29a6ca13"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "599933bf-75d5-4987-814e-78ab29a6ca13"
+  },
+  {
+    "tag_id": "b350cf82-f7fa-42d0-8b02-dc38d288d4ab",
+    "content_type": "journal",
+    "content_id": "599933bf-75d5-4987-814e-78ab29a6ca13"
+  },
+  {
+    "tag_id": "0d575db5-fc83-4f6b-b015-f3ac9dc63c66",
+    "content_type": "journal",
+    "content_id": "599933bf-75d5-4987-814e-78ab29a6ca13"
+  },
+  {
+    "tag_id": "c32bebf4-c84f-4646-888b-9dca8d9d439d",
+    "content_type": "journal",
+    "content_id": "599933bf-75d5-4987-814e-78ab29a6ca13"
+  },
+  {
+    "tag_id": "26844670-7d2d-41d7-984c-93b7ad9cf014",
+    "content_type": "journal",
+    "content_id": "599933bf-75d5-4987-814e-78ab29a6ca13"
+  },
+  {
+    "tag_id": "4f74a3cd-9d8a-4435-993b-578b6b1d1ac9",
+    "content_type": "journal",
+    "content_id": "599933bf-75d5-4987-814e-78ab29a6ca13"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "df80271c-f8df-49f8-a541-c397740157e1"
+  },
+  {
+    "tag_id": "c88f7cb0-ec0f-4a3d-a24b-67465b82243d",
+    "content_type": "journal",
+    "content_id": "df80271c-f8df-49f8-a541-c397740157e1"
+  },
+  {
+    "tag_id": "bbd05f41-453c-466b-9064-2715e18b126e",
+    "content_type": "journal",
+    "content_id": "df80271c-f8df-49f8-a541-c397740157e1"
+  },
+  {
+    "tag_id": "c32bebf4-c84f-4646-888b-9dca8d9d439d",
+    "content_type": "journal",
+    "content_id": "df80271c-f8df-49f8-a541-c397740157e1"
+  },
+  {
+    "tag_id": "4f74a3cd-9d8a-4435-993b-578b6b1d1ac9",
+    "content_type": "journal",
+    "content_id": "df80271c-f8df-49f8-a541-c397740157e1"
+  },
+  {
+    "tag_id": "97d7055d-3fde-448d-9f59-bc78f4fc4730",
+    "content_type": "journal",
+    "content_id": "df80271c-f8df-49f8-a541-c397740157e1"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "894727c5-9adc-4e91-ba48-02198f21f49e"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "894727c5-9adc-4e91-ba48-02198f21f49e"
+  },
+  {
+    "tag_id": "c32bebf4-c84f-4646-888b-9dca8d9d439d",
+    "content_type": "journal",
+    "content_id": "894727c5-9adc-4e91-ba48-02198f21f49e"
+  },
+  {
+    "tag_id": "1ebee344-5192-449c-a26a-60060c46f96d",
+    "content_type": "journal",
+    "content_id": "76dabe23-a056-4dc5-8c29-9328a446a023"
+  },
+  {
+    "tag_id": "4f74a3cd-9d8a-4435-993b-578b6b1d1ac9",
+    "content_type": "journal",
+    "content_id": "76dabe23-a056-4dc5-8c29-9328a446a023"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "76dabe23-a056-4dc5-8c29-9328a446a023"
+  },
+  {
+    "tag_id": "83eb561d-3e95-4855-92ca-3bc1dcd490e1",
+    "content_type": "journal",
+    "content_id": "76dabe23-a056-4dc5-8c29-9328a446a023"
+  },
+  {
+    "tag_id": "8f673d14-d0b5-455a-a29a-a6c0adb3b6f4",
+    "content_type": "journal",
+    "content_id": "76dabe23-a056-4dc5-8c29-9328a446a023"
+  },
+  {
+    "tag_id": "bbd05f41-453c-466b-9064-2715e18b126e",
+    "content_type": "journal",
+    "content_id": "655280a0-9346-454f-beeb-67701607dbe7"
+  },
+  {
+    "tag_id": "cc8e8a1c-934d-4e2f-a870-ca8caa7325b1",
+    "content_type": "journal",
+    "content_id": "655280a0-9346-454f-beeb-67701607dbe7"
+  },
+  {
+    "tag_id": "826f1408-04ed-482f-a851-026b2d222ce2",
+    "content_type": "journal",
+    "content_id": "655280a0-9346-454f-beeb-67701607dbe7"
+  },
+  {
+    "tag_id": "0d575db5-fc83-4f6b-b015-f3ac9dc63c66",
+    "content_type": "journal",
+    "content_id": "655280a0-9346-454f-beeb-67701607dbe7"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "655280a0-9346-454f-beeb-67701607dbe7"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "655280a0-9346-454f-beeb-67701607dbe7"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "a032464b-661f-4583-8ac9-3b48c532797e"
+  },
+  {
+    "tag_id": "1ebee344-5192-449c-a26a-60060c46f96d",
+    "content_type": "journal",
+    "content_id": "a032464b-661f-4583-8ac9-3b48c532797e"
+  },
+  {
+    "tag_id": "c32bebf4-c84f-4646-888b-9dca8d9d439d",
+    "content_type": "journal",
+    "content_id": "a032464b-661f-4583-8ac9-3b48c532797e"
+  },
+  {
+    "tag_id": "bc77c4c3-6262-4536-949c-039b5341da35",
+    "content_type": "journal",
+    "content_id": "a032464b-661f-4583-8ac9-3b48c532797e"
+  },
+  {
+    "tag_id": "983c1349-af7e-4b2c-9f0d-0e7114cad336",
+    "content_type": "journal",
+    "content_id": "a032464b-661f-4583-8ac9-3b48c532797e"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "0f2e97aa-e4ce-4b87-a02e-bb22ed227bff"
+  },
+  {
+    "tag_id": "97d7055d-3fde-448d-9f59-bc78f4fc4730",
+    "content_type": "journal",
+    "content_id": "0f2e97aa-e4ce-4b87-a02e-bb22ed227bff"
+  },
+  {
+    "tag_id": "0d575db5-fc83-4f6b-b015-f3ac9dc63c66",
+    "content_type": "journal",
+    "content_id": "0f2e97aa-e4ce-4b87-a02e-bb22ed227bff"
+  },
+  {
+    "tag_id": "7d799dcb-ff47-4a5d-ae0f-0c935842c643",
+    "content_type": "journal",
+    "content_id": "0f2e97aa-e4ce-4b87-a02e-bb22ed227bff"
+  },
+  {
+    "tag_id": "3ff9dcca-6538-486b-8612-31fe0502614e",
+    "content_type": "journal",
+    "content_id": "0f2e97aa-e4ce-4b87-a02e-bb22ed227bff"
+  },
+  {
+    "tag_id": "c32bebf4-c84f-4646-888b-9dca8d9d439d",
+    "content_type": "journal",
+    "content_id": "0f2e97aa-e4ce-4b87-a02e-bb22ed227bff"
+  },
+  {
+    "tag_id": "26844670-7d2d-41d7-984c-93b7ad9cf014",
+    "content_type": "journal",
+    "content_id": "0f2e97aa-e4ce-4b87-a02e-bb22ed227bff"
+  },
+  {
+    "tag_id": "1ebee344-5192-449c-a26a-60060c46f96d",
+    "content_type": "journal",
+    "content_id": "26052a74-cf8a-408b-907e-39afc3223868"
+  },
+  {
+    "tag_id": "826f1408-04ed-482f-a851-026b2d222ce2",
+    "content_type": "journal",
+    "content_id": "26052a74-cf8a-408b-907e-39afc3223868"
+  },
+  {
+    "tag_id": "0d575db5-fc83-4f6b-b015-f3ac9dc63c66",
+    "content_type": "journal",
+    "content_id": "26052a74-cf8a-408b-907e-39afc3223868"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "26052a74-cf8a-408b-907e-39afc3223868"
+  },
+  {
+    "tag_id": "83eb561d-3e95-4855-92ca-3bc1dcd490e1",
+    "content_type": "journal",
+    "content_id": "26052a74-cf8a-408b-907e-39afc3223868"
+  },
+  {
+    "tag_id": "e65cb79b-67ec-4b23-b065-7fd7a8437bed",
+    "content_type": "journal",
+    "content_id": "26052a74-cf8a-408b-907e-39afc3223868"
+  },
+  {
+    "tag_id": "1ebee344-5192-449c-a26a-60060c46f96d",
+    "content_type": "journal",
+    "content_id": "b88f6851-ecef-4a0a-b7e4-fca0f79e356e"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "b88f6851-ecef-4a0a-b7e4-fca0f79e356e"
+  },
+  {
+    "tag_id": "cc8e8a1c-934d-4e2f-a870-ca8caa7325b1",
+    "content_type": "journal",
+    "content_id": "b88f6851-ecef-4a0a-b7e4-fca0f79e356e"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "b88f6851-ecef-4a0a-b7e4-fca0f79e356e"
+  },
+  {
+    "tag_id": "83eb561d-3e95-4855-92ca-3bc1dcd490e1",
+    "content_type": "journal",
+    "content_id": "b88f6851-ecef-4a0a-b7e4-fca0f79e356e"
+  },
+  {
+    "tag_id": "4f74a3cd-9d8a-4435-993b-578b6b1d1ac9",
+    "content_type": "journal",
+    "content_id": "b88f6851-ecef-4a0a-b7e4-fca0f79e356e"
+  },
+  {
+    "tag_id": "c88f7cb0-ec0f-4a3d-a24b-67465b82243d",
+    "content_type": "journal",
+    "content_id": "5e206400-bc7a-44f4-9979-6463bae1fa59"
+  },
+  {
+    "tag_id": "4f74a3cd-9d8a-4435-993b-578b6b1d1ac9",
+    "content_type": "journal",
+    "content_id": "5e206400-bc7a-44f4-9979-6463bae1fa59"
+  },
+  {
+    "tag_id": "31ebf783-0974-4017-8af6-926b86b8b949",
+    "content_type": "journal",
+    "content_id": "5e206400-bc7a-44f4-9979-6463bae1fa59"
+  },
+  {
+    "tag_id": "826f1408-04ed-482f-a851-026b2d222ce2",
+    "content_type": "journal",
+    "content_id": "5e206400-bc7a-44f4-9979-6463bae1fa59"
+  },
+  {
+    "tag_id": "0d575db5-fc83-4f6b-b015-f3ac9dc63c66",
+    "content_type": "journal",
+    "content_id": "5e206400-bc7a-44f4-9979-6463bae1fa59"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "5e206400-bc7a-44f4-9979-6463bae1fa59"
+  },
+  {
+    "tag_id": "83eb561d-3e95-4855-92ca-3bc1dcd490e1",
+    "content_type": "journal",
+    "content_id": "5e206400-bc7a-44f4-9979-6463bae1fa59"
+  },
+  {
+    "tag_id": "e65cb79b-67ec-4b23-b065-7fd7a8437bed",
+    "content_type": "journal",
+    "content_id": "5e206400-bc7a-44f4-9979-6463bae1fa59"
+  },
+  {
+    "tag_id": "cc8e8a1c-934d-4e2f-a870-ca8caa7325b1",
+    "content_type": "journal",
+    "content_id": "82edc46e-f199-4973-9430-6e8819335837"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "82edc46e-f199-4973-9430-6e8819335837"
+  },
+  {
+    "tag_id": "83eb561d-3e95-4855-92ca-3bc1dcd490e1",
+    "content_type": "journal",
+    "content_id": "82edc46e-f199-4973-9430-6e8819335837"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "82edc46e-f199-4973-9430-6e8819335837"
+  },
+  {
+    "tag_id": "1ebee344-5192-449c-a26a-60060c46f96d",
+    "content_type": "journal",
+    "content_id": "e309421d-29e1-447b-a09e-980bf36dbe38"
+  },
+  {
+    "tag_id": "7c1ba4ae-b282-4f23-9f95-612fd915cf66",
+    "content_type": "journal",
+    "content_id": "e309421d-29e1-447b-a09e-980bf36dbe38"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "e309421d-29e1-447b-a09e-980bf36dbe38"
+  },
+  {
+    "tag_id": "8f673d14-d0b5-455a-a29a-a6c0adb3b6f4",
+    "content_type": "journal",
+    "content_id": "e309421d-29e1-447b-a09e-980bf36dbe38"
+  },
+  {
+    "tag_id": "983c1349-af7e-4b2c-9f0d-0e7114cad336",
+    "content_type": "journal",
+    "content_id": "e309421d-29e1-447b-a09e-980bf36dbe38"
+  },
+  {
+    "tag_id": "cd313f46-02a0-424d-9a08-8c7c465f4130",
+    "content_type": "journal",
+    "content_id": "2e966c95-2677-43a9-9d7f-6fe91b6151b6"
+  },
+  {
+    "tag_id": "1ebee344-5192-449c-a26a-60060c46f96d",
+    "content_type": "journal",
+    "content_id": "2e966c95-2677-43a9-9d7f-6fe91b6151b6"
+  },
+  {
+    "tag_id": "7c1ba4ae-b282-4f23-9f95-612fd915cf66",
+    "content_type": "journal",
+    "content_id": "2e966c95-2677-43a9-9d7f-6fe91b6151b6"
+  },
+  {
+    "tag_id": "c32bebf4-c84f-4646-888b-9dca8d9d439d",
+    "content_type": "journal",
+    "content_id": "2e966c95-2677-43a9-9d7f-6fe91b6151b6"
+  },
+  {
+    "tag_id": "8f673d14-d0b5-455a-a29a-a6c0adb3b6f4",
+    "content_type": "journal",
+    "content_id": "2e966c95-2677-43a9-9d7f-6fe91b6151b6"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "de44bf7f-5dab-4fca-aa91-0cbfb34eea49"
+  },
+  {
+    "tag_id": "7cb0fadf-b3e1-428d-9aeb-6ee023b9f6d7",
+    "content_type": "journal",
+    "content_id": "de44bf7f-5dab-4fca-aa91-0cbfb34eea49"
+  },
+  {
+    "tag_id": "97d7055d-3fde-448d-9f59-bc78f4fc4730",
+    "content_type": "journal",
+    "content_id": "de44bf7f-5dab-4fca-aa91-0cbfb34eea49"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "1edc108b-15cb-4c72-a27f-52a20a7be640"
+  },
+  {
+    "tag_id": "83eb561d-3e95-4855-92ca-3bc1dcd490e1",
+    "content_type": "journal",
+    "content_id": "1edc108b-15cb-4c72-a27f-52a20a7be640"
+  },
+  {
+    "tag_id": "1ebee344-5192-449c-a26a-60060c46f96d",
+    "content_type": "journal",
+    "content_id": "aa7e4f9f-49af-4005-ab25-0538f24de664"
+  },
+  {
+    "tag_id": "1c7b6eb3-be46-486a-9191-52e629d6aa31",
+    "content_type": "journal",
+    "content_id": "aa7e4f9f-49af-4005-ab25-0538f24de664"
+  },
+  {
+    "tag_id": "2d7ab7f0-249e-4eeb-b538-fc3a98c6119a",
+    "content_type": "journal",
+    "content_id": "aa7e4f9f-49af-4005-ab25-0538f24de664"
+  },
+  {
+    "tag_id": "15883878-90cc-42b5-9810-ef92838a56f5",
+    "content_type": "journal",
+    "content_id": "aa7e4f9f-49af-4005-ab25-0538f24de664"
+  },
+  {
+    "tag_id": "9f2cac44-f6d6-4895-b5c5-9d35fa9be7fb",
+    "content_type": "journal",
+    "content_id": "aa7e4f9f-49af-4005-ab25-0538f24de664"
+  },
+  {
+    "tag_id": "4f74a3cd-9d8a-4435-993b-578b6b1d1ac9",
+    "content_type": "journal",
+    "content_id": "aa7e4f9f-49af-4005-ab25-0538f24de664"
+  }
+];
                   const { error } = await supabase.from("content_tags").insert(rows);
                   if (error) alert("Erro: " + JSON.stringify(error));
                   else alert("Tags inseridas com sucesso!");
