@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { JournalPost } from "../types";
 import JournalCard from "../ui/JournalCard";
@@ -35,6 +37,25 @@ const filterCopy: Record<PapoFilter, string> = {
   "Confissões da maturidade": "Histórias mais íntimas, bastidores e pensamentos que só aparecem quando a conversa esquenta.",
 };
 
+function FeaturedJournal({ post }: { post: JournalPost }) {
+  const copy = post.content.replace(/<[^>]+>/g, "").slice(0, 170);
+  return (
+    <article className="featured-card luxe-card">
+      {post.image_url && (
+        <Link href={`/blog/${post.id}`} className="featured-card__media">
+          <Image src={post.image_url} alt={post.title} fill sizes="(max-width:760px) 100vw,46vw" className="object-cover transition duration-700 hover:scale-105" unoptimized />
+        </Link>
+      )}
+      <div className="featured-card__body">
+        <p className="eyebrow">{post.category || "Papo de Mulher"} • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
+        <h2 className="font-display mt-3 text-4xl leading-none text-[var(--champagne-pale)]">{post.title}</h2>
+        <p className="muted my-4 text-sm leading-7">{copy}{post.content.length > 170 ? "…" : ""}</p>
+        <Link href={`/blog/${post.id}`} className="ghost-button">Continuar a conversa →</Link>
+      </div>
+    </article>
+  );
+}
+
 export default function BlogFilters({ posts }: { posts: JournalPost[] }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const filters = useMemo(
@@ -49,28 +70,32 @@ export default function BlogFilters({ posts }: { posts: JournalPost[] }) {
     return posts;
   }, [activeFilter, posts]);
   const activeLabel = activeFilter === "all" ? "Todas as conversas" : activeFilter.slice("papo:".length);
-  const firstPosts = filteredPosts.slice(0, 3);
-  const remainingPosts = filteredPosts.slice(3);
+  const featuredPost = filteredPosts[0];
+  const remainingPosts = filteredPosts.slice(1);
 
   return (
-    <section className="mt-6" aria-label="Conversas filtradas">
-      <FilterChipBar
-        ariaLabel="Filtros do Papo de Mulher Madura"
-        activeKey={activeFilter}
-        onSelect={(key) => setActiveFilter(key as FilterKey)}
-        options={[{ key: "all" as FilterKey, label: "Todas as conversas", count: posts.length }, ...filters]}
-        compact
-      />
+    <section className="listing-flow" aria-label="Conversas filtradas">
+      <details className="filter-drawer">
+        <summary>Filtrar</summary>
+        <div className="filter-drawer__panel">
+          <p className="filter-drawer__label">Por sentimento</p>
+          <FilterChipBar
+            ariaLabel="Filtros do Papo de Mulher Madura"
+            activeKey={activeFilter}
+            onSelect={(key) => setActiveFilter(key as FilterKey)}
+            options={[{ key: "all" as FilterKey, label: "Todas", count: posts.length }, ...filters]}
+            compact
+          />
+        </div>
+      </details>
       <div className="mt-4" aria-live="polite">
-        <p className="mb-4 max-w-2xl text-sm leading-7 text-[var(--muted)]">
+        <p className="mb-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">
           {filteredPosts.length} {filteredPosts.length === 1 ? "papo nesta seleção" : "papos nesta seleção"}
           {activeFilter !== "all" && ` · ${filterCopy[activeLabel as PapoFilter]}`}
         </p>
-        {filteredPosts.length ? (
+        {featuredPost ? (
           <>
-            <div className="editorial-grid">
-              {firstPosts.map((post) => <JournalCard key={post.id} post={post} href={`/blog/${post.id}`} />)}
-            </div>
+            <FeaturedJournal post={featuredPost} />
             <section className="newsletter-cta newsletter-cta--between-list" aria-labelledby="blog-newsletter-title">
               <div>
                 <p className="eyebrow">Emails para mulheres 50+</p>

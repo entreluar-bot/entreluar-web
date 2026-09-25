@@ -11,6 +11,7 @@ const WIDTH = 1080;
 const HEIGHT = 1350;
 const FILE_NAME = "pilula-entreluar.png";
 const SHARE_URL = "https://www.entreluar.com.br";
+const SHARE_TEXT = `Quer ver mais? Acesse: ${SHARE_URL}`;
 
 function getCanvasContext() {
   const canvas = document.createElement("canvas");
@@ -71,6 +72,65 @@ function drawTexture(context: CanvasRenderingContext2D) {
   context.restore();
 }
 
+function drawElegantAccents(context: CanvasRenderingContext2D) {
+  context.save();
+
+  const topGlow = context.createRadialGradient(810, 120, 20, 810, 120, 520);
+  topGlow.addColorStop(0, "rgba(230,189,120,0.2)");
+  topGlow.addColorStop(1, "rgba(230,189,120,0)");
+  context.fillStyle = topGlow;
+  context.fillRect(0, 0, WIDTH, HEIGHT);
+
+  const roseGlow = context.createRadialGradient(150, 1080, 30, 150, 1080, 620);
+  roseGlow.addColorStop(0, "rgba(184,95,115,0.24)");
+  roseGlow.addColorStop(1, "rgba(184,95,115,0)");
+  context.fillStyle = roseGlow;
+  context.fillRect(0, 0, WIDTH, HEIGHT);
+
+  context.globalAlpha = 0.26;
+  context.strokeStyle = "#e6bd78";
+  context.lineWidth = 2;
+  for (let i = 0; i < 4; i += 1) {
+    context.beginPath();
+    context.ellipse(118 + i * 18, 228 + i * 5, 170 + i * 22, 48 + i * 7, -0.72, 0.15, Math.PI * 1.72);
+    context.stroke();
+  }
+
+  context.globalAlpha = 0.18;
+  context.strokeStyle = "#f7e8d0";
+  context.lineWidth = 1.5;
+  for (let i = 0; i < 3; i += 1) {
+    context.beginPath();
+    context.ellipse(925 - i * 20, 1032 + i * 10, 190 + i * 24, 56 + i * 5, -0.76, Math.PI * 1.04, Math.PI * 1.9);
+    context.stroke();
+  }
+
+  context.globalAlpha = 0.78;
+  context.fillStyle = "#e6bd78";
+  const sparkles = [
+    [210, 300, 13],
+    [858, 250, 10],
+    [192, 1010, 9],
+    [842, 1120, 12],
+    [928, 410, 7],
+  ];
+  sparkles.forEach(([x, y, size]) => {
+    context.beginPath();
+    context.moveTo(x, y - size);
+    context.lineTo(x + size * 0.24, y - size * 0.24);
+    context.lineTo(x + size, y);
+    context.lineTo(x + size * 0.24, y + size * 0.24);
+    context.lineTo(x, y + size);
+    context.lineTo(x - size * 0.24, y + size * 0.24);
+    context.lineTo(x - size, y);
+    context.lineTo(x - size * 0.24, y - size * 0.24);
+    context.closePath();
+    context.fill();
+  });
+
+  context.restore();
+}
+
 async function createQuoteImage(quote: string) {
   await document.fonts?.ready;
 
@@ -89,6 +149,7 @@ async function createQuoteImage(quote: string) {
   context.fillRect(0, 0, WIDTH, HEIGHT);
 
   drawTexture(context);
+  drawElegantAccents(context);
 
   context.strokeStyle = "rgba(230,189,120,0.56)";
   context.lineWidth = 4;
@@ -100,9 +161,10 @@ async function createQuoteImage(quote: string) {
 
   context.textAlign = "center";
   context.fillStyle = "#e6bd78";
-  context.font = '800 30px Manrope, Arial, sans-serif';
-  context.letterSpacing = "7px";
+  context.font = '800 28px Manrope, Arial, sans-serif';
+  context.letterSpacing = "6px";
   context.fillText("P\u00cdLULAS PARA BRILHAR", WIDTH / 2, 172);
+  context.fillText("NA MATURIDADE", WIDTH / 2, 214);
   context.letterSpacing = "0px";
 
   const normalizedQuote = quote.replace(/[“”]/g, "\"").replace(/^"+|"+$/g, "");
@@ -124,12 +186,9 @@ async function createQuoteImage(quote: string) {
   });
 
   context.shadowColor = "transparent";
-  context.fillStyle = "rgba(247,232,208,0.76)";
-  context.font = "700 27px Manrope, Arial, sans-serif";
-  context.fillText("quer ver mais?", WIDTH / 2, HEIGHT - 188);
   context.fillStyle = "#e6bd78";
-  context.font = "800 34px Manrope, Arial, sans-serif";
-  context.fillText("acesse www.entreluar.com.br", WIDTH / 2, HEIGHT - 145);
+  context.font = '600 54px "Cormorant Garamond", Georgia, serif';
+  context.fillText("Entreluar", WIDTH / 2, HEIGHT - 154);
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((result) => {
@@ -162,7 +221,7 @@ export default function QuoteShareButton({ quote, className = "" }: QuoteShareBu
 
     try {
       const file = await createQuoteImage(quote);
-      const shareData = { files: [file], title: "P\u00edlulas para Brilhar", text: SHARE_URL, url: SHARE_URL };
+      const shareData = { files: [file], title: "P\u00edlulas para Brilhar na Maturidade", text: SHARE_TEXT };
 
       if (navigator.canShare?.(shareData)) {
         await navigator.share(shareData);
@@ -171,10 +230,10 @@ export default function QuoteShareButton({ quote, className = "" }: QuoteShareBu
 
       downloadFile(file);
       try {
-        await navigator.clipboard?.writeText(SHARE_URL);
-        setMessage("Prontinho: baixei a imagem e copiei o link do site.");
+        await navigator.clipboard?.writeText(SHARE_TEXT);
+        setMessage("Prontinho: baixei a imagem e copiei o convite com o site.");
       } catch {
-        setMessage(`Prontinho: baixei a imagem. Link do site: ${SHARE_URL}`);
+        setMessage(`Prontinho: baixei a imagem. ${SHARE_TEXT}`);
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;

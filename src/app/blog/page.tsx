@@ -13,9 +13,7 @@ export default async function Blog() {
     <main className="site-shell">
       <div className="content-wrap">
         <header className="page-intro page-intro--compact">
-          <p className="eyebrow">Papo de mulher para mulher</p>
-          <h1 className="section-title mt-4">Papo de Mulher<br /><em>Madura</em></h1>
-          <p>Menopausa, corpo, recomeços, descanso, beleza e liberdade — para ler pelo que você está sentindo hoje.</p>
+          <h1 className="section-title">Papo de Mulher<br /><em>Madura</em></h1>
         </header>
         {posts.length ? <BlogFilters posts={posts} /> : <div className="empty-state">A próxima conversa ainda está tomando forma. Volta daqui a pouco — eu prometo contar tudo. ☕</div>}
       </div>
