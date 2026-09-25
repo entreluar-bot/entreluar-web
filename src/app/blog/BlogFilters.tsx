@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { JournalPost } from "../types";
 import JournalCard from "../ui/JournalCard";
+import FilterChipBar from "../ui/FilterChipBar";
 
 export const PAPO_FILTERS = [
   "Me escolhendo de novo",
@@ -52,24 +53,12 @@ export default function BlogFilters({ posts }: { posts: JournalPost[] }) {
     <section className="section-space" aria-labelledby="papo-filters-title">
       <div className="section-kicker"><span className="eyebrow">Escolha pelo que está sentindo hoje</span></div>
       <h2 id="papo-filters-title" className="section-title mt-4">Que tipo de conversa<br /><em>você precisa agora?</em></h2>
-      <div className="-mx-5 mt-8 overflow-x-auto px-5 pb-3 [scrollbar-width:none] md:mx-0 md:px-0" aria-label="Filtros do Papo de Mulher Madura">
-        <div className="flex min-w-max gap-2" role="group">
-          {[{ key: "all" as FilterKey, label: "Todas as conversas", count: posts.length }, ...filters].map((filter) => {
-            const active = activeFilter === filter.key;
-            return (
-              <button
-                key={filter.key}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setActiveFilter(filter.key)}
-                className={`min-h-11 rounded-full border px-5 text-xs font-bold uppercase tracking-[.14em] transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--champagne)] ${active ? "border-[var(--champagne)] bg-[var(--champagne)] text-[var(--ink)] shadow-[0_8px_30px_rgba(213,178,107,.2)]" : "border-[var(--line)] bg-white/[.03] text-[var(--champagne-pale)] hover:border-[var(--champagne)]/60"}`}
-              >
-                {filter.label} <span className="opacity-70">({filter.count})</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <FilterChipBar
+        ariaLabel="Filtros do Papo de Mulher Madura"
+        activeKey={activeFilter}
+        onSelect={(key) => setActiveFilter(key as FilterKey)}
+        options={[{ key: "all" as FilterKey, label: "Todas as conversas", count: posts.length }, ...filters]}
+      />
       <div className="mt-6" aria-live="polite">
         <p className="mb-6 max-w-2xl text-sm leading-7 text-[var(--muted)]">
           {filteredPosts.length} {filteredPosts.length === 1 ? "papo nesta seleção" : "papos nesta seleção"}

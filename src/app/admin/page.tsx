@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
+import { TAG_TYPE_LABELS, slugify, type Tag, type TagType } from "@/lib/tags";
 import InstallAppButton from "../ui/InstallAppButton";
 
 type NewsletterStatus = "idle" | "preparing" | "sending" | "complete" | "partial" | "failed";
@@ -202,6 +203,12 @@ export default function AdminDashboard() {
   const [journals, setJournals] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [manageType, setManageType] = useState<ManageType>("papo");
+
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [editingItemTagIds, setEditingItemTagIds] = useState<string[]>([]);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagType, setNewTagType] = useState<TagType>("concern");
+  const [creatingTag, setCreatingTag] = useState(false);
   
   const [blogCategory, setBlogCategory] = useState("Papo de Mulher Madura");
   const [blogPapoFilter, setBlogPapoFilter] = useState("Confissões da maturidade");
@@ -401,6 +408,36 @@ export default function AdminDashboard() {
     if (qData) setQuotes(qData);
     const { data: dData } = await supabase.from("drops").select("*").order("created_at", { ascending: false });
     if (dData) setDrops(dData);
+    const { data: tData } = await supabase.from("tags").select("id,name,slug,type").order("name", { ascending: true });
+    if (tData) setTags(tData as Tag[]);
+  };
+
+  const startEditingItem = async (payload: any, contentType: "journal" | "product") => {
+    setEditingItem(payload);
+    setEditingItemTagIds([]);
+    const { data } = await supabase.from("content_tags").select("tag_id").eq("content_type", contentType).eq("content_id", payload.id);
+    setEditingItemTagIds((data || []).map((row: any) => row.tag_id));
+  };
+
+  const toggleEditingItemTag = (tagId: string) => {
+    setEditingItemTagIds((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]));
+  };
+
+  const handleCreateTag = async () => {
+    const name = newTagName.trim();
+    if (!name) return;
+    const slug = slugify(name);
+    if (!slug) return;
+    setCreatingTag(true);
+    try {
+      const { data, error } = await supabase.from("tags").insert([{ name, type: newTagType, slug }]).select().single();
+      if (error) throw error;
+      setTags((prev) => [...prev, data as Tag].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
+      setNewTagName("");
+    } catch (error: any) {
+      alert(error.message);
+    }
+    setCreatingTag(false);
   };
 
   useEffect(() => {
@@ -916,7 +953,15 @@ export default function AdminDashboard() {
           }
         }
       }
+
+      const contentType = editingItem.type === "product" ? "product" : "journal";
+      await supabase.from("content_tags").delete().eq("content_type", contentType).eq("content_id", editingItem.id);
+      if (editingItemTagIds.length) {
+        await supabase.from("content_tags").insert(editingItemTagIds.map((tagId) => ({ tag_id: tagId, content_type: contentType, content_id: editingItem.id })));
+      }
+
       setEditingItem(null);
+      setEditingItemTagIds([]);
       fetchManageData();
       setMessage("Atualizado com sucesso! As classificações já estão refletidas nos filtros.");
     } catch (error: any) {
@@ -946,8 +991,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.61</p>
-                <p>Atualizado em 25/09/2026 às 07:38</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.62</p>
+                <p>Atualizado em 25/09/2026 às 16:50</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1373,9 +1418,53 @@ export default function AdminDashboard() {
                         </div>
                       </fieldset>
                     )}
+                    <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                      <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Temas e tags</legend>
+                      <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">Marque os temas ligados a este conteúdo. Elas alimentam a navegação por tema, a busca e os filtros por ativo/queixa.</p>
+                      {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => {
+                        const optionsForType = tags.filter((tag) => tag.type === type);
+                        if (!optionsForType.length) return null;
+                        return (
+                          <div key={type} className="mb-4 last:mb-0">
+                            <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[var(--color-gold)] opacity-80">{TAG_TYPE_LABELS[type]}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {optionsForType.map((tag) => {
+                                const active = editingItemTagIds.includes(tag.id);
+                                return (
+                                  <button
+                                    key={tag.id}
+                                    type="button"
+                                    onClick={() => toggleEditingItemTag(tag.id)}
+                                    aria-pressed={active}
+                                    className={`rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-wider transition ${active ? "border-[var(--color-gold)] bg-[var(--color-gold)]/15 text-[var(--color-gold)]" : "border-[var(--color-wine-light)] text-[var(--color-gold-light)] opacity-70"}`}
+                                  >
+                                    {tag.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--color-wine-light)] pt-4">
+                        <input
+                          type="text"
+                          value={newTagName}
+                          onChange={(event) => setNewTagName(event.target.value)}
+                          placeholder="Nova tag (ex.: Firmeza)"
+                          className="min-w-[180px] flex-1 rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-2 text-sm text-[var(--color-gold-light)]"
+                        />
+                        <select value={newTagType} onChange={(event) => setNewTagType(event.target.value as TagType)} className="rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-2 py-2 text-xs text-[var(--color-gold-light)]">
+                          {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
+                        </select>
+                        <button type="button" onClick={handleCreateTag} disabled={creatingTag || !newTagName.trim()} className="rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
+                          {creatingTag ? "Criando…" : "Criar tag"}
+                        </button>
+                      </div>
+                    </fieldset>
                     <textarea value={editingItem.content} onChange={(e) => setEditingItem({ ...editingItem, content: e.target.value })} rows={15} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed border border-[var(--color-wine-light)] p-4 rounded" ></textarea>
                     <div className="flex gap-4 mt-4">
-                      <button onClick={() => setEditingItem(null)} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-3 rounded font-bold uppercase">
+                      <button onClick={() => { setEditingItem(null); setEditingItemTagIds([]); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-3 rounded font-bold uppercase">
                         Cancelar
                       </button>
                       <button onClick={handleUpdateItem} disabled={loading || !editingItem.created_at} className="flex-2 w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-3 rounded font-bold uppercase disabled:opacity-50">
@@ -1400,7 +1489,7 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "product", id: p.id, title: p.title, content: p.description, category: p.category || "SkinCare", created_at: toDateInputValue(p.created_at), is_featured: Boolean(p.is_featured), is_most_purchased: Boolean(p.is_most_purchased), is_most_viewed: Boolean(p.is_most_viewed), is_new: Boolean(p.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => startEditingItem({ type: "product", id: p.id, title: p.title, content: p.description, category: p.category || "SkinCare", created_at: toDateInputValue(p.created_at), is_featured: Boolean(p.is_featured), is_most_purchased: Boolean(p.is_most_purchased), is_most_viewed: Boolean(p.is_most_viewed), is_new: Boolean(p.is_new) }, "product")} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteProduct(p.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>
@@ -1423,7 +1512,7 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", papo_filter: j.papo_filter || "Confissões da maturidade", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => startEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", papo_filter: j.papo_filter || "Confissões da maturidade", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) }, "journal")} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteJournal(j.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>
@@ -1445,7 +1534,7 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", papo_filter: j.papo_filter || "", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => startEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", papo_filter: j.papo_filter || "", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) }, "journal")} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteJournal(j.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>

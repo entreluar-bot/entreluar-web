@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import ProductCard from "./ProductCard";
+import { THEME_GROUPS } from "@/lib/theme-groups";
 import type { JournalPost, Product, Quote } from "./types";
 
 export const revalidate = 0;
@@ -109,6 +110,19 @@ export default async function Home() {
             <Link href="/blog" className="intent-tile"><span>Conversar sobre maturidade</span><strong>Menopausa, corpo em mudança, recomeços e vida real com humor de amiga.</strong></Link>
             <Link href="/vitrine" className="intent-tile"><span>Ver achados honestos</span><strong>O que vale a bancada, seu dinheiro, sua atenção e o espaço no nécessaire.</strong></Link>
             <Link href="/pilulas" className="intent-tile"><span>Respirar em um minuto</span><strong>Uma dose curta para voltar para si sem transformar tudo em manual.</strong></Link>
+          </div>
+        </section>
+
+        <section className="section-space">
+          <div className="section-kicker"><span className="eyebrow">Escolha por onde entrar</span></div>
+          <h2 className="section-title mb-8">O que você quer<br /><em>descobrir hoje?</em></h2>
+          <div className="intent-grid">
+            {THEME_GROUPS.map((group) => (
+              <Link key={group.slug} href={`/temas/${group.slug}`} className="intent-tile">
+                <span><span aria-hidden="true">{group.icon}</span> {group.label}</span>
+                <strong>{group.subtitle}</strong>
+              </Link>
+            ))}
           </div>
         </section>
 

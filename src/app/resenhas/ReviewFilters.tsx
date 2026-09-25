@@ -3,8 +3,11 @@
 import { useMemo, useState } from "react";
 import type { JournalPost } from "../types";
 import JournalCard from "../ui/JournalCard";
+import FilterChipBar from "../ui/FilterChipBar";
 
-type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | `category:${string}`;
+type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | `category:${string}` | `tag:${string}`;
+type ReviewPost = JournalPost & { tagSlugs?: string[] };
+type TagGroup = { label: string; options: Array<{ slug: string; name: string }> };
 
 const specialFilters: Array<{ key: FilterKey; label: string }> = [
   { key: "all", label: "Todas as conversas" },
@@ -13,7 +16,7 @@ const specialFilters: Array<{ key: FilterKey; label: string }> = [
   { key: "most-viewed", label: "Mais espiados" },
 ];
 
-export default function ReviewFilters({ posts }: { posts: JournalPost[] }) {
+export default function ReviewFilters({ posts, tagGroups = [] }: { posts: ReviewPost[]; tagGroups?: TagGroup[] }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const categories = useMemo(
     () => [...new Set(posts.map((post) => post.filter_category?.trim()).filter((category): category is string => Boolean(category)))].sort((a, b) => a.localeCompare(b, "pt-BR")),
@@ -27,6 +30,10 @@ export default function ReviewFilters({ posts }: { posts: JournalPost[] }) {
       const category = activeFilter.slice("category:".length);
       return posts.filter((post) => post.filter_category?.trim() === category);
     }
+    if (activeFilter.startsWith("tag:")) {
+      const tagSlug = activeFilter.slice("tag:".length);
+      return posts.filter((post) => post.tagSlugs?.includes(tagSlug));
+    }
     return posts;
   }, [activeFilter, posts]);
   const filters = [
@@ -36,24 +43,23 @@ export default function ReviewFilters({ posts }: { posts: JournalPost[] }) {
 
   return (
     <>
-      <div className="-mx-5 mt-8 overflow-x-auto px-5 pb-3 [scrollbar-width:none] md:mx-0 md:px-0" aria-label="Filtros das resenhas">
-        <div className="flex min-w-max gap-2" role="group">
-          {filters.map((filter) => {
-            const active = activeFilter === filter.key;
-            return (
-              <button
-                key={filter.key}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setActiveFilter(filter.key)}
-                className={`min-h-11 rounded-full border px-5 text-xs font-bold uppercase tracking-[.14em] transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--champagne)] ${active ? "border-[var(--champagne)] bg-[var(--champagne)] text-[var(--ink)] shadow-[0_8px_30px_rgba(213,178,107,.2)]" : "border-[var(--line)] bg-white/[.03] text-[var(--champagne-pale)] hover:border-[var(--champagne)]/60"}`}
-              >
-                {filter.label}
-              </button>
-            );
-          })}
+      <FilterChipBar ariaLabel="Filtros das resenhas" activeKey={activeFilter} onSelect={(key) => setActiveFilter(key as FilterKey)} options={filters} />
+
+      {tagGroups.filter((group) => group.options.length > 0).map((group) => (
+        <div key={group.label} className="mt-4">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[.14em] text-[var(--muted)]">{group.label}</p>
+          <FilterChipBar
+            ariaLabel={group.label}
+            activeKey={activeFilter}
+            onSelect={(key) => setActiveFilter(key as FilterKey)}
+            options={group.options.map((option) => ({
+              key: `tag:${option.slug}` as FilterKey,
+              label: option.name,
+              count: posts.filter((post) => post.tagSlugs?.includes(option.slug)).length,
+            }))}
+          />
         </div>
-      </div>
+      ))}
 
       <div className="mt-6" aria-live="polite">
         <p className="mb-6 text-sm text-[var(--muted)]">{filteredPosts.length} {filteredPosts.length === 1 ? "explicação nesta seleção" : "explicações nesta seleção"}</p>

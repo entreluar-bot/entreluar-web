@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import InstallAppButton from "./InstallAppButton";
 import NewsletterPopover from "./NewsletterPopover";
+import SearchBar from "./SearchBar";
 
 const items = [
   { href: "/", label: "Início", icon: "⌂" },
@@ -26,7 +27,7 @@ export default function SiteChrome() {
           <Link href="/drops" data-active={pathname.startsWith("/drops")}>Drops</Link>
           <Link href="/sobre" data-active={pathname.startsWith("/sobre")}>Mais</Link>
         </nav>
-        <div className="header-actions"><InstallAppButton/><NewsletterPopover/><a className="luxe-button header-cta" href="https://instagram.com/entreluarBeauty" target="_blank" rel="noreferrer">Instagram ↗</a></div>
+        <div className="header-actions"><SearchBar/><InstallAppButton/><NewsletterPopover/><a className="luxe-button header-cta" href="https://instagram.com/entreluarBeauty" target="_blank" rel="noreferrer">Instagram ↗</a></div>
       </div>
     </header>
     <nav className="bottom-nav" aria-label="Navegação rápida">{items.map(item => <Link key={item.href} href={item.href} data-active={active(item.href)}><span className="nav-icon" aria-hidden="true">{item.icon}</span>{"mobileLabel" in item ? item.mobileLabel : item.label}</Link>)}</nav>
