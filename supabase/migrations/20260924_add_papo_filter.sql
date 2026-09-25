@@ -1,7 +1,7 @@
 alter table public.journal
   add column if not exists papo_filter text;
 
-comment on column public.journal.papo_filter is 'Gancho editorial do Papo de Mulher Madura baseado na sensacao do dia';
+comment on column public.journal.papo_filter is 'Gancho editorial do Papo de Mulher Madura baseado na sensação do dia';
 
 update public.journal
 set papo_filter = 'Me escolhendo de novo'
@@ -35,3 +35,6 @@ where title in (
 update public.journal
 set papo_filter = 'Confissões da maturidade'
 where title = 'Como tudo começou....';
+
+-- Recarrega o cache do Supabase para ele reconhecer a nova coluna na hora!
+NOTIFY pgrst, 'reload schema';

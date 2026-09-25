@@ -43,8 +43,10 @@ export const postSchema = {
     closingStyle: { type: "string" },
     notablePhrases: { type: "array", items: { type: "string" }, maxItems: 3 },
     resumoRapido: resumoRapidoSchema,
+    suggestedTagSlugs: { type: "array", items: { type: "string" }, maxItems: 8 },
+    suggestedPoll: pollSuggestionSchema,
   },
-  required: ["title", "text", "imagePrompt", "openingStyle", "structureStyle", "closingStyle", "notablePhrases", "resumoRapido"],
+  required: ["title", "text", "imagePrompt", "openingStyle", "structureStyle", "closingStyle", "notablePhrases", "resumoRapido", "suggestedTagSlugs", "suggestedPoll"],
   additionalProperties: false,
 };
 

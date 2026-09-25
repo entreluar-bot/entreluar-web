@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
@@ -859,6 +859,15 @@ export default function AdminDashboard() {
       setGeneratedBlogPost(data.text);
       setGeneratedResumoRapido(data.resumoRapido || EMPTY_RESUMO_RAPIDO);
 
+      if (data.suggestedTagSlugs) {
+        const matchingTagIds = tags.filter((t) => data.suggestedTagSlugs.includes(t.slug)).map((t) => t.id);
+        setGeneratedTagIds(matchingTagIds);
+      }
+      if (data.suggestedPoll) {
+        setGeneratedPollQuestion(data.suggestedPoll.question || "");
+        setGeneratedPollOptions(data.suggestedPoll.options || []);
+      }
+
       if (data.imagePrompt) {
         setMessage("Buscando inspiração de imagem fotográfica...");
         try {
@@ -1638,8 +1647,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.78</p>
-                <p>Atualizado em 25/09/2026 às 19:32</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.79</p>
+                <p>Atualizado em 25/09/2026 às 20:44</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
