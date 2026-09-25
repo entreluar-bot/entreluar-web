@@ -158,7 +158,7 @@ Notas pessoais: "${impressions || "Nenhuma experiência pessoal informada; trate
 PESQUISA VERIFICADA, SEM EXTRAPOLAR: ${research.summary}
 
 Crie productReview em primeira pessoa, 4 a 7 frases, com as notas como coração, explicação leve de 1 ou 2 ativos e 1 a 3 emojis. Não invente uso. Termine exatamente com: <br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>
-blogTitle deve seguir "Estudei para te explicar: [produto ou ativo]". blogPost deve usar HTML, parágrafos curtos e exatamente estes títulos, nesta ordem:
+blogTitle deve ser um título criativo e único destacando o poder ou benefício principal do produto/ativo para a pele madura. NUNCA use "Estudei para te explicar:" nem comece com "A verdade sobre...". Varie o formato a cada geração. blogPost deve usar HTML, parágrafos curtos e exatamente estes títulos, nesta ordem:
 <i>[conclusão curta sem promessa milagrosa]</i>
 <h3>📣 A Promessa da Indústria</h3>
 <h3>🧴 Afinal, o que tem na fórmula?</h3>
