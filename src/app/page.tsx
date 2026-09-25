@@ -110,6 +110,11 @@ export default async function Home() {
             <Link href="/blog" className="intent-tile"><span>Conversar sobre maturidade</span><strong>Menopausa, corpo em mudança, recomeços e vida real com humor de amiga.</strong></Link>
             <Link href="/vitrine" className="intent-tile"><span>Ver achados honestos</span><strong>O que vale a bancada, seu dinheiro, sua atenção e o espaço no nécessaire.</strong></Link>
             <Link href="/pilulas" className="intent-tile"><span>Respirar em um minuto</span><strong>Uma dose curta para voltar para si sem transformar tudo em manual.</strong></Link>
+            <Link href="/temas" className="intent-tile"><span>Descobrir por tema</span><strong>Pele, cabelo, menopausa ou ativos — você escolhe o assunto, eu já separei tudo.</strong></Link>
+            <Link href="/me-ajuda-a-escolher" className="intent-tile"><span>Deixar eu escolher por você</span><strong>Duas perguntinhas e eu monto seu caminho, sem enrolação e sem diagnóstico.</strong></Link>
+            <Link href="/comece-por-aqui" className="intent-tile"><span>Começar do zero</span><strong>Chegou agora? Eu te levo direto pra conversa certa, sem precisar entender o site inteiro.</strong></Link>
+            <Link href="/drops" className="intent-tile"><span>Espiar os Drops</span><strong>Um pouquinho do Instagram direto aqui, pra quem quer só um gostinho rápido.</strong></Link>
+            <Link href="/sobre" className="intent-tile"><span>Conhecer a Luana</span><strong>Quem sou eu, por que crio isso tudo e por que a luz também é sua.</strong></Link>
           </div>
         </section>
 
