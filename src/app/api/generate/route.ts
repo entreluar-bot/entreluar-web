@@ -6,13 +6,17 @@ import { authenticateAiRequest } from "@/lib/ai/auth";
 import { loadAiContext, parseJson, recordGeneration, suggestMemoryFromNotes, topicTags } from "@/lib/ai/context";
 import { validateAccessoryTrace } from "@/lib/ai/copy-quality";
 import { extractGroundingSources } from "@/lib/ai/grounding";
-import { LUANA_VOICE, QUICK_SUMMARY_RULES, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
+import { LUANA_VOICE, POLL_SUGGESTION_RULES, QUICK_SUMMARY_RULES, QUICK_SUMMARY_RULES_ARTIGO, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES, TAG_SUGGESTION_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 import { buildAccessoryPrompt } from "@/lib/ai/prompts";
 import { accessorySchema, productSchema } from "@/lib/ai/schemas";
 import { combineUsage, generateAi, normalizeCacheSubject, type AiUsage } from "@/lib/ai/runtime";
 import { EMPTY_RESUMO_RAPIDO, type ResumoRapido } from "@/lib/summary";
+import { filterValidTagSlugs, formatTagsForPrompt, type Tag } from "@/lib/tags";
 
 export const maxDuration = 60;
+
+type PollSuggestion = { question: string; options: string[] };
+const EMPTY_POLL_SUGGESTION: PollSuggestion = { question: "", options: [] };
 
 type ProductGeneration = {
   productName: string; productReview: string; blogTitle: string; blogPost: string;
@@ -21,6 +25,7 @@ type ProductGeneration = {
   experienceStatus: "testado" | "impressao_inicial" | "pesquisado" | "nao_informado";
   researchSummary: string; openingStyle: string; structureStyle: string; notablePhrases: string[];
   inputDetailsUsed?: string[]; humorApplied?: boolean; resumoRapido: ResumoRapido;
+  resumoRapidoArtigo: ResumoRapido; suggestedTagSlugs: string[]; suggestedPoll: PollSuggestion;
 };
 type ResearchResult = { summary: string; evidenceLevel: ProductGeneration["evidenceLevel"] };
 
@@ -75,9 +80,11 @@ export async function POST(req: Request) {
 
     const contentType = isAccessory ? "accessory" : "review";
     const contextPromise = loadAiContext(supabase, user.id, contentType, topicTags(title, impressions, isAccessory ? "moda acessorio" : "skincare cosmetico"));
+    const tagsPromise = supabase.from("tags").select("id,name,slug,type");
     const resolvedStatus = resolveExperienceStatus(experienceStatus, impressions);
     if (isAccessory) {
-      const context = await contextPromise;
+      const [context, { data: tagRows }] = await Promise.all([contextPromise, tagsPromise]);
+      const tags = (tagRows || []) as Tag[];
       const started = Date.now();
       let generated: ProductGeneration | null = null;
       let retryFeedback: string[] | undefined;
@@ -90,6 +97,7 @@ export async function POST(req: Request) {
           testDuration,
           memoryPrompt: context.memoryPrompt,
           antiRepetitionPrompt: context.antiRepetitionPrompt,
+          tagsPrompt: formatTagsForPrompt(tags),
           retryFeedback,
         });
         const { response, usage } = await generateAi(ai, "accessory", {
@@ -110,6 +118,9 @@ export async function POST(req: Request) {
       generated.inputDetailsUsed ||= [];
       generated.humorApplied = Boolean(generated.humorApplied);
       generated.resumoRapido ||= EMPTY_RESUMO_RAPIDO;
+      generated.resumoRapidoArtigo = EMPTY_RESUMO_RAPIDO;
+      generated.suggestedTagSlugs = filterValidTagSlugs(generated.suggestedTagSlugs, tags);
+      generated.suggestedPoll = EMPTY_POLL_SUGGESTION;
       await finalizeGeneration({ supabase, userId: user.id, requestHash, requestId, generated, context, contentType, title, usages, timings, cacheHit: false, retryCount: retryFeedback ? 1 : 0, searchQueries: 0 });
       return NextResponse.json({ ...generated, sources: [], performance: { cached: false, durationMs: Date.now() - requestStartedAt } });
     }
@@ -151,13 +162,16 @@ Retorne resumo factual de até 3.500 caracteres com ativos confirmados, funçõe
       await supabase.from("ai_research_cache").upsert({ user_id: user.id, cache_key: cacheKey, subject: productName, summary: JSON.stringify(research), sources, expires_at: expiresAt.toISOString(), updated_at: new Date().toISOString() }, { onConflict: "user_id,cache_key" });
     }
 
-    const context = await contextPromise;
-    const writingPrompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${SCIENCE_RULES}\n${QUICK_SUMMARY_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}
+    const [context, { data: tagRows }] = await Promise.all([contextPromise, tagsPromise]);
+    const tags = (tagRows || []) as Tag[];
+    const writingPrompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${SCIENCE_RULES}\n${QUICK_SUMMARY_RULES}\n${QUICK_SUMMARY_RULES_ARTIGO}\n${TAG_SUGGESTION_RULES}\n${POLL_SUGGESTION_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}
 
 DIREÇÃO CRIATIVA: ${getCreativeDirection()}.\n${originalityRules}
 Produto: "${productName}". Confiança: ${identificationConfidence}. Link: ${link || "não informado"}.
 Notas pessoais: "${impressions || "Nenhuma experiência pessoal informada; trate como pesquisa, nunca como teste."}". Status: ${resolvedStatus}. Tempo de uso: ${testDuration || "não informado"}.
 PESQUISA VERIFICADA, SEM EXTRAPOLAR: ${research.summary}
+TAGS DISPONÍVEIS:
+${formatTagsForPrompt(tags)}
 
 Crie productReview em primeira pessoa, 4 a 7 frases, com as notas como coração, explicação leve de 1 ou 2 ativos e 1 a 3 emojis. Não invente uso. Termine exatamente com: <br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>
 blogTitle deve ser um título criativo e único destacando o poder ou benefício principal do produto/ativo para a pele madura. NUNCA use "Estudei para te explicar:" nem comece com "A verdade sobre...". Varie o formato a cada geração. blogPost deve usar HTML, parágrafos curtos e exatamente estes títulos, nesta ordem:
@@ -170,7 +184,7 @@ blogTitle deve ser um título criativo e único destacando o poder ou benefício
 <h3>⚖️ É hype ou é milagre?</h3>
 Diferencie promessa, evidência e experiência; não liste fontes ou URLs. Finalize com: <br><br><a href="${link || "#"}" target="_blank" class="text-[var(--color-gold)] font-bold underline">✨ Ver o produto indicado pela Luana</a>
 researchSummary deve reutilizar o resumo fornecido. evidenceLevel deve ser ${research.evidenceLevel}.
-resumoRapido deve resumir o productReview que você acabou de escrever — esse mesmo resumo será usado na ficha do produto na Vitrine e no artigo companheiro sobre o mesmo ativo.`;
+resumoRapido deve resumir o productReview que você acabou de escrever, pra ficha do produto na Vitrine. resumoRapidoArtigo deve resumir o blogPost, pra ficha do artigo (são resumos diferentes, um do produto e outro do ativo/tema). suggestedTagSlugs e suggestedPoll seguem as regras acima.`;
 
     let retryCount = 0;
     const writingStartedAt = Date.now();
@@ -189,6 +203,11 @@ resumoRapido deve resumir o productReview que você acabou de escrever — esse 
     generated.evidenceLevel = research.evidenceLevel;
     generated.experienceStatus = resolvedStatus;
     generated.resumoRapido ||= EMPTY_RESUMO_RAPIDO;
+    generated.resumoRapidoArtigo ||= EMPTY_RESUMO_RAPIDO;
+    generated.suggestedTagSlugs = filterValidTagSlugs(generated.suggestedTagSlugs, tags);
+    generated.suggestedPoll = generated.suggestedPoll?.question?.trim() && generated.suggestedPoll.options?.filter((o) => o.trim()).length >= 2
+      ? { question: generated.suggestedPoll.question.trim(), options: generated.suggestedPoll.options.map((o) => o.trim()).filter(Boolean) }
+      : EMPTY_POLL_SUGGESTION;
     generated.researchSummary = research.summary.slice(0, 3500);
     if (!generated.productReview.includes('href="/resenhas"')) generated.productReview += `<br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>`;
 

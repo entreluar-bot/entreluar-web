@@ -13,6 +13,25 @@ export const resumoRapidoSchema = {
   additionalProperties: false,
 };
 
+export const tagSuggestionSchema = {
+  type: "object",
+  properties: {
+    suggestedTagSlugs: { type: "array", items: { type: "string" }, maxItems: 8 },
+  },
+  required: ["suggestedTagSlugs"],
+  additionalProperties: false,
+};
+
+export const pollSuggestionSchema = {
+  type: "object",
+  properties: {
+    question: { type: "string" },
+    options: { type: "array", items: { type: "string" }, maxItems: 4 },
+  },
+  required: ["question", "options"],
+  additionalProperties: false,
+};
+
 export const postSchema = {
   type: "object",
   properties: {
@@ -44,8 +63,11 @@ export const productSchema = {
     structureStyle: { type: "string" },
     notablePhrases: { type: "array", items: { type: "string" }, maxItems: 3 },
     resumoRapido: resumoRapidoSchema,
+    resumoRapidoArtigo: resumoRapidoSchema,
+    suggestedTagSlugs: { type: "array", items: { type: "string" }, maxItems: 8 },
+    suggestedPoll: pollSuggestionSchema,
   },
-  required: ["productName", "productReview", "blogTitle", "blogPost", "identificationConfidence", "evidenceLevel", "experienceStatus", "researchSummary", "openingStyle", "structureStyle", "notablePhrases", "resumoRapido"],
+  required: ["productName", "productReview", "blogTitle", "blogPost", "identificationConfidence", "evidenceLevel", "experienceStatus", "researchSummary", "openingStyle", "structureStyle", "notablePhrases", "resumoRapido", "resumoRapidoArtigo", "suggestedTagSlugs", "suggestedPoll"],
   additionalProperties: false,
 };
 

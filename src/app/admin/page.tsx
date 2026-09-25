@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 import { TAG_TYPE_LABELS, slugify, type Tag, type TagType } from "@/lib/tags";
-import { EMPTY_RESUMO_RAPIDO, RESUMO_RAPIDO_FIELDS, resumoRapidoHasContent, resumoRapidoToRow, rowToResumoRapido, type ResumoRapido } from "@/lib/summary";
+import { EMPTY_RESUMO_RAPIDO, resumoRapidoFields, resumoRapidoHasContent, resumoRapidoToRow, rowToResumoRapido, type ResumoRapido } from "@/lib/summary";
 import InstallAppButton from "../ui/InstallAppButton";
 
 type NewsletterStatus = "idle" | "preparing" | "sending" | "complete" | "partial" | "failed";
@@ -221,11 +221,18 @@ export default function AdminDashboard() {
   const [newTagName, setNewTagName] = useState("");
   const [newTagType, setNewTagType] = useState<TagType>("concern");
   const [creatingTag, setCreatingTag] = useState(false);
+  const [suggestingTags, setSuggestingTags] = useState(false);
+  const [bulkTagStatus, setBulkTagStatus] = useState("");
 
   const [generatedResumoRapido, setGeneratedResumoRapido] = useState<ResumoRapido>(EMPTY_RESUMO_RAPIDO);
+  const [generatedResumoRapidoArtigo, setGeneratedResumoRapidoArtigo] = useState<ResumoRapido>(EMPTY_RESUMO_RAPIDO);
   const [editingItemSummary, setEditingItemSummary] = useState<ResumoRapido>(EMPTY_RESUMO_RAPIDO);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [bulkSummaryStatus, setBulkSummaryStatus] = useState("");
+
+  const [generatedTagIds, setGeneratedTagIds] = useState<string[]>([]);
+  const [generatedPollQuestion, setGeneratedPollQuestion] = useState("");
+  const [generatedPollOptions, setGeneratedPollOptions] = useState<string[]>([]);
 
   const [editingItemPoll, setEditingItemPoll] = useState<EditingPoll>(EMPTY_POLL);
   const [savingPoll, setSavingPoll] = useState(false);
@@ -266,6 +273,12 @@ export default function AdminDashboard() {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) window.location.href = "/admin/login";
       else setUser(data.user);
+    });
+  }, []);
+
+  useEffect(() => {
+    supabase.from("tags").select("id,name,slug,type").order("name", { ascending: true }).then(({ data }) => {
+      if (data) setTags(data as Tag[]);
     });
   }, []);
 
@@ -533,6 +546,22 @@ export default function AdminDashboard() {
     setEditingItemTagIds((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]));
   };
 
+  const toggleGeneratedTag = (tagId: string) => {
+    setGeneratedTagIds((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]));
+  };
+
+  const updateGeneratedPollOption = (index: number, value: string) => {
+    setGeneratedPollOptions((prev) => prev.map((option, i) => (i === index ? value : option)));
+  };
+
+  const addGeneratedPollOption = () => {
+    setGeneratedPollOptions((prev) => (prev.length >= 5 ? prev : [...prev, ""]));
+  };
+
+  const removeGeneratedPollOption = (index: number) => {
+    setGeneratedPollOptions((prev) => (prev.length <= 2 ? prev : prev.filter((_, i) => i !== index)));
+  };
+
   const handleCreateTag = async () => {
     const name = newTagName.trim();
     if (!name) return;
@@ -548,6 +577,60 @@ export default function AdminDashboard() {
       alert(error.message);
     }
     setCreatingTag(false);
+  };
+
+  const handleSuggestTagsForEditingItem = async () => {
+    if (!editingItem) return;
+    if (!confirmAiSpend()) return;
+    setSuggestingTags(true);
+    try {
+      const data = await adminRequest("/api/generate-tags", {
+        method: "POST",
+        body: JSON.stringify({ contentType: editingItem.type === "product" ? "product" : "journal", title: editingItem.title, sourceHtml: editingItem.content }),
+      });
+      const slugs = new Set((data.suggestedTagSlugs || []) as string[]);
+      const suggestedIds = tags.filter((tag) => slugs.has(tag.slug)).map((tag) => tag.id);
+      setEditingItemTagIds((prev) => Array.from(new Set([...prev, ...suggestedIds])));
+      setMessage(suggestedIds.length ? "Tags sugeridas! Revise e clique em Salvar Alterações." : "A IA não achou tags da lista que se encaixassem aqui.");
+    } catch (error: any) {
+      setMessage("Erro: " + error.message);
+    }
+    setSuggestingTags(false);
+  };
+
+  const handleBulkSuggestTags = async () => {
+    if (!confirmAiSpend()) return;
+    const candidates = [
+      ...products.map((p) => ({ contentType: "product" as const, id: p.id, title: p.title, sourceHtml: p.description })),
+      ...journals.map((j) => ({ contentType: "journal" as const, id: j.id, title: j.title, sourceHtml: j.content })),
+    ];
+    if (!candidates.length) return setMessage("Nada para etiquetar ainda.");
+
+    const { data: existing } = await supabase.from("content_tags").select("content_type,content_id");
+    const existingKeys = new Set((existing || []).map((row: any) => `${row.content_type}:${row.content_id}`));
+    const pending = candidates.filter((item) => !existingKeys.has(`${item.contentType}:${item.id}`));
+    if (!pending.length) return setMessage("Todo mundo já tem tags. ✨");
+    if (!confirm(`Vou sugerir tags para ${pending.length} itens que ainda não têm nenhuma. Isso dispara ${pending.length} chamadas de IA (uma de cada vez) e já grava direto — você revisa depois em Gerenciar. Continuar?`)) return;
+
+    let done = 0;
+    let failed = 0;
+    setBulkTagStatus(`Etiquetando 0 de ${pending.length}...`);
+    for (const item of pending) {
+      try {
+        const data = await adminRequest("/api/generate-tags", { method: "POST", body: JSON.stringify({ contentType: item.contentType, title: item.title, sourceHtml: item.sourceHtml }) });
+        const slugs = new Set((data.suggestedTagSlugs || []) as string[]);
+        const tagIds = tags.filter((tag) => slugs.has(tag.slug)).map((tag) => tag.id);
+        if (tagIds.length) {
+          await supabase.from("content_tags").insert(tagIds.map((tagId) => ({ tag_id: tagId, content_type: item.contentType, content_id: item.id })));
+        }
+      } catch {
+        failed += 1;
+      }
+      done += 1;
+      setBulkTagStatus(`Etiquetando ${done} de ${pending.length}...`);
+    }
+    setBulkTagStatus("");
+    setMessage(`Tags sugeridas: ${done - failed} de ${pending.length}.${failed ? ` ${failed} falharam — pode rodar de novo pra tentar só o que faltou.` : ""}`);
   };
 
   const handleGenerateSummaryForEditingItem = async () => {
@@ -698,6 +781,11 @@ export default function AdminDashboard() {
       setAccessoryDetailsUsed(Array.isArray(data.inputDetailsUsed) ? data.inputDetailsUsed : []);
       setAccessoryHumorApplied(Boolean(data.humorApplied));
       setGeneratedResumoRapido(data.resumoRapido || EMPTY_RESUMO_RAPIDO);
+      setGeneratedResumoRapidoArtigo(data.resumoRapidoArtigo || EMPTY_RESUMO_RAPIDO);
+      const suggestedSlugs = new Set((data.suggestedTagSlugs || []) as string[]);
+      setGeneratedTagIds(tags.filter((tag) => suggestedSlugs.has(tag.slug)).map((tag) => tag.id));
+      setGeneratedPollQuestion(data.suggestedPoll?.question || "");
+      setGeneratedPollOptions(Array.isArray(data.suggestedPoll?.options) && data.suggestedPoll.options.length ? data.suggestedPoll.options : ["", ""]);
       setBlogCategory("Estudei para te explicar");
       const seconds = data.performance?.durationMs ? ` em ${(data.performance.durationMs / 1000).toFixed(1)}s` : "";
       const cacheNote = data.performance?.cached ? " usando o cache econômico" : "";
@@ -951,7 +1039,7 @@ export default function AdminDashboard() {
         insertPayload.created_at = new Date(postDate + "T12:00:00").toISOString();
       }
 
-      let journalId = null;
+      let journalId: string | null = null;
       if (generatedBlogPost && !isAccessory) {
         const { data: journalData, error: blogError } = await supabase.from("journal").insert([{
           title: generatedBlogTitle,
@@ -977,8 +1065,21 @@ export default function AdminDashboard() {
           }
         }
 
-        if (journalId && blogCategory === "Estudei para te explicar" && resumoRapidoHasContent(generatedResumoRapido)) {
-          await supabase.from("content_summaries").insert([{ content_type: "journal", content_id: journalId, generated_by: "ai", ...resumoRapidoToRow(generatedResumoRapido) }]);
+        if (journalId && blogCategory === "Estudei para te explicar" && resumoRapidoHasContent(generatedResumoRapidoArtigo)) {
+          await supabase.from("content_summaries").insert([{ content_type: "journal", content_id: journalId, generated_by: "ai", ...resumoRapidoToRow(generatedResumoRapidoArtigo) }]);
+        }
+
+        if (journalId && generatedTagIds.length) {
+          await supabase.from("content_tags").insert(generatedTagIds.map((tagId) => ({ tag_id: tagId, content_type: "journal", content_id: journalId })));
+        }
+
+        const pollQuestion = generatedPollQuestion.trim();
+        const pollOptions = generatedPollOptions.map((option) => option.trim()).filter(Boolean);
+        if (journalId && pollQuestion && pollOptions.length >= 2) {
+          const { data: pollRow, error: pollError } = await supabase.from("polls").insert([{ journal_id: journalId, question: pollQuestion, active: true }]).select("id").single();
+          if (!pollError && pollRow?.id) {
+            await supabase.from("poll_options").insert(pollOptions.map((label, index) => ({ poll_id: pollRow.id, label, position: index })));
+          }
         }
       }
 
@@ -988,7 +1089,7 @@ export default function AdminDashboard() {
         // Se gerou um post de diário, atualizar o link genérico para o link exato da resenha
         let finalReview = generatedReview;
         if (journalId) {
-          finalReview = finalReview.replace(/href="\/blog"/g, `href="/resenhas/${journalId}"`);
+          finalReview = finalReview.replace(/href="\/resenhas"/g, `href="/resenhas/${journalId}"`);
         }
 
         const { data: prodData, error: prodError } = await supabase.from("products").insert([{
@@ -1002,6 +1103,7 @@ export default function AdminDashboard() {
           is_most_purchased: isMostViewed,
           is_most_viewed: isMostViewed,
           is_new: isNew,
+          companion_journal_id: journalId,
           ...insertPayload
         }]).select("id").single();
         if (prodError) throw prodError;
@@ -1013,6 +1115,10 @@ export default function AdminDashboard() {
         if (prodData?.id && resumoRapidoHasContent(generatedResumoRapido)) {
           await supabase.from("content_summaries").insert([{ content_type: "product", content_id: prodData.id, generated_by: "ai", ...resumoRapidoToRow(generatedResumoRapido) }]);
         }
+
+        if (prodData?.id && generatedTagIds.length) {
+          await supabase.from("content_tags").insert(generatedTagIds.map((tagId) => ({ tag_id: tagId, content_type: "product", content_id: prodData.id })));
+        }
       }
 
       setMessage("Sucesso! Tudo publicado no ar!");
@@ -1022,6 +1128,8 @@ export default function AdminDashboard() {
       setGeneratedBlogTitle(""); setGeneratedBlogPost("");
       setBlogPapoFilter("Confissões da maturidade");
       setPostDate(""); setGeneratedResumoRapido(EMPTY_RESUMO_RAPIDO);
+      setGeneratedResumoRapidoArtigo(EMPTY_RESUMO_RAPIDO);
+      setGeneratedTagIds([]); setGeneratedPollQuestion(""); setGeneratedPollOptions([]);
 
     } catch (error: any) {
       setMessage("Erro: " + error.message);
@@ -1530,8 +1638,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.69</p>
-                <p>Atualizado em 25/09/2026 às 17:00</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.70</p>
+                <p>Atualizado em 25/09/2026 às 23:55</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1705,6 +1813,123 @@ export default function AdminDashboard() {
                           </div>
                         )}
                       </div>
+
+                      <fieldset className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                        <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Temas e tags sugeridas</legend>
+                        <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">A IA já marcou o que encaixou. Ajuste antes de publicar — vale pro produto e pro artigo.</p>
+                        {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => {
+                          const optionsForType = tags.filter((tag) => tag.type === type);
+                          if (!optionsForType.length) return null;
+                          return (
+                            <div key={type} className="mb-4 last:mb-0">
+                              <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[var(--color-gold)] opacity-80">{TAG_TYPE_LABELS[type]}</p>
+                              <div className="flex flex-wrap gap-2">
+                                {optionsForType.map((tag) => {
+                                  const active = generatedTagIds.includes(tag.id);
+                                  return (
+                                    <button
+                                      key={tag.id}
+                                      type="button"
+                                      onClick={() => toggleGeneratedTag(tag.id)}
+                                      aria-pressed={active}
+                                      className={`rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-wider transition ${active ? "border-[var(--color-gold)] bg-[var(--color-gold)]/15 text-[var(--color-gold)]" : "border-[var(--color-wine-light)] text-[var(--color-gold-light)] opacity-70"}`}
+                                    >
+                                      {tag.name}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--color-wine-light)] pt-4">
+                          <input
+                            type="text"
+                            value={newTagName}
+                            onChange={(event) => setNewTagName(event.target.value)}
+                            placeholder="Nova tag (ex.: Firmeza)"
+                            className="min-w-[180px] flex-1 rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-2 text-sm text-[var(--color-gold-light)]"
+                          />
+                          <select value={newTagType} onChange={(event) => setNewTagType(event.target.value as TagType)} className="rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-2 py-2 text-xs text-[var(--color-gold-light)]">
+                            {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
+                          </select>
+                          <button type="button" onClick={handleCreateTag} disabled={creatingTag || !newTagName.trim()} className="rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
+                            {creatingTag ? "Criando…" : "Criar tag"}
+                          </button>
+                        </div>
+                      </fieldset>
+
+                      <fieldset className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                        <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Resumo do produto (Em 30 segundos)</legend>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {resumoRapidoFields("product").map(({ key, label }) => (
+                            <label key={key} className="block text-xs font-bold uppercase tracking-wider text-[var(--color-gold-light)]">
+                              {label}
+                              <input
+                                type="text"
+                                value={generatedResumoRapido[key]}
+                                onChange={(event) => setGeneratedResumoRapido({ ...generatedResumoRapido, [key]: event.target.value })}
+                                className="mt-1 w-full px-3 py-2 text-sm normal-case tracking-normal"
+                              />
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+
+                      {!isAccessory && (
+                        <fieldset className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                          <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Resumo do artigo (Em 30 segundos)</legend>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {resumoRapidoFields("journal").map(({ key, label }) => (
+                              <label key={key} className="block text-xs font-bold uppercase tracking-wider text-[var(--color-gold-light)]">
+                                {label}
+                                <input
+                                  type="text"
+                                  value={generatedResumoRapidoArtigo[key]}
+                                  onChange={(event) => setGeneratedResumoRapidoArtigo({ ...generatedResumoRapidoArtigo, [key]: event.target.value })}
+                                  className="mt-1 w-full px-3 py-2 text-sm normal-case tracking-normal"
+                                />
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+                      )}
+
+                      {!isAccessory && (
+                        <fieldset className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                          <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Enquete sugerida</legend>
+                          <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">Deixe a pergunta em branco para publicar sem enquete.</p>
+                          <label className="mb-3 block text-xs font-bold uppercase tracking-wider text-[var(--color-gold-light)]">
+                            Pergunta
+                            <input
+                              type="text"
+                              value={generatedPollQuestion}
+                              onChange={(event) => setGeneratedPollQuestion(event.target.value)}
+                              placeholder="Ex.: O que mais mudou na sua pele depois dos 50?"
+                              className="mt-1 w-full px-3 py-2 text-sm normal-case tracking-normal"
+                            />
+                          </label>
+                          <div className="grid gap-2">
+                            {generatedPollOptions.map((option, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={option}
+                                  onChange={(event) => updateGeneratedPollOption(index, event.target.value)}
+                                  placeholder={`Opção ${index + 1}`}
+                                  className="w-full px-3 py-2 text-sm normal-case tracking-normal"
+                                />
+                                {generatedPollOptions.length > 2 && (
+                                  <button type="button" onClick={() => removeGeneratedPollOption(index)} className="rounded border border-red-900 px-2 py-2 text-xs text-red-400">✕</button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          {generatedPollOptions.length < 5 && (
+                            <button type="button" onClick={addGeneratedPollOption} className="mt-3 rounded border border-[var(--color-wine-light)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-gold-light)]">+ Adicionar opção</button>
+                          )}
+                        </fieldset>
+                      )}
                     </div>
 
                     <div className="border-2 border-dashed border-[var(--color-wine-light)] rounded-xl p-6 text-center bg-[var(--color-wine-dark)] relative mt-6 flex flex-col items-center">
@@ -1730,7 +1955,7 @@ export default function AdminDashboard() {
                     {message && <p className="text-sm text-[#f3e5ab] mt-2 italic text-center font-bold">{message}</p>}
 
                     <div className="flex gap-4 mt-6">
-                       <button onClick={() => { setGeneratedReview(""); setGeneratedProductName(""); setGeneratedBlogTitle(""); setGeneratedBlogPost(""); setAccessoryDetailsUsed([]); setAccessoryHumorApplied(false); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-4 rounded font-bold uppercase hover:bg-[var(--color-wine-dark)] transition-colors">
+                       <button onClick={() => { setGeneratedReview(""); setGeneratedProductName(""); setGeneratedBlogTitle(""); setGeneratedBlogPost(""); setAccessoryDetailsUsed([]); setAccessoryHumorApplied(false); setGeneratedResumoRapido(EMPTY_RESUMO_RAPIDO); setGeneratedResumoRapidoArtigo(EMPTY_RESUMO_RAPIDO); setGeneratedTagIds([]); setGeneratedPollQuestion(""); setGeneratedPollOptions([]); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-4 rounded font-bold uppercase hover:bg-[var(--color-wine-dark)] transition-colors">
                         Refazer Tudo
                       </button>
                       <button onClick={handlePublish} disabled={loading} className="flex-2 w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform">
@@ -1898,6 +2123,14 @@ export default function AdminDashboard() {
                     </button>
                   </div>
                 )}
+                {!editingItem && (manageType === "vitrine" || manageType === "estudei" || manageType === "papo") && (
+                  <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] px-4 py-3">
+                    <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Falta etiquetar algo? Sugiro tags a partir do texto já publicado pra tudo que ainda não tem nenhuma — grava direto, você revisa depois.</p>
+                    <button type="button" onClick={handleBulkSuggestTags} disabled={Boolean(bulkTagStatus)} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
+                      {bulkTagStatus || "🏷️ Sugerir tags para tudo que falta"}
+                    </button>
+                  </div>
+                )}
                 {editingItem ? (
                   <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
                     <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif">
@@ -1967,7 +2200,12 @@ export default function AdminDashboard() {
                     )}
                     <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                       <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Temas e tags</legend>
-                      <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">Marque os temas ligados a este conteúdo. Elas alimentam a navegação por tema, a busca e os filtros por ativo/queixa.</p>
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs text-[var(--color-gold-light)] opacity-65">Marque os temas ligados a este conteúdo. Elas alimentam a navegação por tema, a busca e os filtros por ativo/queixa.</p>
+                        <button type="button" onClick={handleSuggestTagsForEditingItem} disabled={suggestingTags} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
+                          {suggestingTags ? "Sugerindo…" : "✨ Sugerir com IA"}
+                        </button>
+                      </div>
                       {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => {
                         const optionsForType = tags.filter((tag) => tag.type === type);
                         if (!optionsForType.length) return null;
@@ -2019,7 +2257,7 @@ export default function AdminDashboard() {
                           </button>
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2">
-                          {RESUMO_RAPIDO_FIELDS.map(({ key, label }) => (
+                          {resumoRapidoFields(editingItem.type === "product" ? "product" : "journal").map(({ key, label }) => (
                             <label key={key} className="block text-xs font-bold uppercase tracking-wider text-[var(--color-gold-light)]">
                               {label}
                               <input

@@ -83,7 +83,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
             <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button w-full">Quero ver onde achei ↗</a>
           </div>
           <section className="next-steps" aria-label="Continue navegando">
-            <Link href="/resenhas" className="ghost-button">Entender ativos →</Link>
+            <Link href={product.companion_journal_id ? `/resenhas/${product.companion_journal_id}` : "/resenhas"} className="ghost-button">Entender ativos →</Link>
             <Link href="/blog" className="ghost-button">Entrar num papo →</Link>
             <Link href="/pilulas" className="ghost-button">Ler uma pílula →</Link>
           </section>

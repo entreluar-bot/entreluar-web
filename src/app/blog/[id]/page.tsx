@@ -68,6 +68,14 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
   const comments = (commentRows || []) as JournalComment[];
   const shareUrl = `${siteUrl}/blog/${post.id}`;
 
+  const PAPO_ONLY = 'category.is.null,category.neq."Estudei para te explicar"';
+  const [{ data: nextRows }, { data: prevRows }] = await Promise.all([
+    supabase.from("journal").select("id,title").or(PAPO_ONLY).lt("created_at", post.created_at).order("created_at", { ascending: false }).limit(1),
+    supabase.from("journal").select("id,title").or(PAPO_ONLY).gt("created_at", post.created_at).order("created_at", { ascending: true }).limit(1),
+  ]);
+  const nextPost = (nextRows || [])[0] as Pick<JournalPost, "id" | "title"> | undefined;
+  const prevPost = (prevRows || [])[0] as Pick<JournalPost, "id" | "title"> | undefined;
+
   return (
     <main className="site-shell">
       <article className="article-shell luxe-card">
@@ -97,6 +105,23 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
             </div>
             <NewsletterSignup source="blog-post" />
           </section>
+
+          {(prevPost || nextPost) && (
+            <section className="section-space grid gap-4 sm:grid-cols-2" aria-label="Continue passeando pelos papos">
+              {prevPost && (
+                <Link href={`/blog/${prevPost.id}`} className="luxe-card p-6">
+                  <p className="eyebrow">← Papo anterior</p>
+                  <p className="font-display mt-2 text-xl leading-tight text-[var(--champagne-pale)]">{prevPost.title}</p>
+                </Link>
+              )}
+              {nextPost && (
+                <Link href={`/blog/${nextPost.id}`} className={`luxe-card p-6 sm:text-right${!prevPost ? " sm:col-start-2" : ""}`}>
+                  <p className="eyebrow">Próximo papo →</p>
+                  <p className="font-display mt-2 text-xl leading-tight text-[var(--champagne-pale)]">{nextPost.title}</p>
+                </Link>
+              )}
+            </section>
+          )}
 
           <section className="next-steps" aria-label="Continue navegando">
             <Link href="/pilulas" className="ghost-button">Quero uma pílula →</Link>

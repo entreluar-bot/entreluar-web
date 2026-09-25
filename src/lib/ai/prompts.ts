@@ -1,5 +1,5 @@
 import { originalityRules } from "@/lib/creative-direction";
-import { LUANA_VOICE, QUICK_SUMMARY_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
+import { LUANA_VOICE, QUICK_SUMMARY_RULES, SIMPLE_LANGUAGE_RULES, TAG_SUGGESTION_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 
 export function buildQuotePrompt(input: {
   existingQuotes: string[];
@@ -20,6 +20,7 @@ export function buildAccessoryPrompt(input: {
   testDuration?: string;
   memoryPrompt: string;
   antiRepetitionPrompt: string;
+  tagsPrompt?: string;
   retryFeedback?: string[];
 }) {
   const hasNotes = Boolean(input.impressions?.trim());
@@ -27,10 +28,12 @@ export function buildAccessoryPrompt(input: {
 ${TRUTH_RULES}
 ${SIMPLE_LANGUAGE_RULES}
 ${QUICK_SUMMARY_RULES}
+${TAG_SUGGESTION_RULES}
 ${input.memoryPrompt}
 ${input.antiRepetitionPrompt}
 ${originalityRules}
 
+${input.tagsPrompt ? `TAGS DISPONÍVEIS:\n${input.tagsPrompt}\n` : ""}
 Produto de estilo: "${input.title || "Identifique somente se a imagem permitir"}". Link: ${input.link || "não informado"}.
 Notas pessoais da Luana: "${input.impressions || "Nenhuma experiência pessoal informada."}". Status: ${input.experienceStatus}. Tempo de uso: ${input.testDuration || "não informado"}.
 

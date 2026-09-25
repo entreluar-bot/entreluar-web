@@ -16,7 +16,11 @@ export type ContentSummary = {
   generated_by?: "manual" | "ai";
 };
 
-export const SUMMARY_FIELD_LABELS: Record<keyof Pick<ContentSummary, "what_is" | "used_for" | "noticed" | "pro" | "caution" | "repurchase" | "duration">, string> = {
+type SummaryFieldKey = "what_is" | "used_for" | "noticed" | "pro" | "caution" | "repurchase" | "duration";
+export type SummaryVariant = "product" | "journal";
+
+// Rótulos pra ficha de produto (Vitrine) — resumo de uma experiência com o item.
+export const SUMMARY_FIELD_LABELS_PRODUCT: Record<SummaryFieldKey, string> = {
   what_is: "Sem rodeio, é isso",
   used_for: "Entrou pra resolver",
   noticed: "O espelho não mente",
@@ -26,19 +30,40 @@ export const SUMMARY_FIELD_LABELS: Record<keyof Pick<ContentSummary, "what_is" |
   duration: "Tempo de casa",
 };
 
-export const SUMMARY_FIELD_KEYS = Object.keys(SUMMARY_FIELD_LABELS) as Array<keyof typeof SUMMARY_FIELD_LABELS>;
+// Mesmas 7 colunas, reinterpretadas pro contexto de um artigo de "Estudei
+// para te explicar" (explica um ativo/tema, não é resenha de uso pessoal).
+export const SUMMARY_FIELD_LABELS_ARTICLE: Record<SummaryFieldKey, string> = {
+  what_is: "Sem rodeio, é isso",
+  used_for: "Serve pra isso",
+  noticed: "O que a ciência mostra",
+  pro: "O que me convenceu",
+  caution: "Só um alerta de amiga",
+  repurchase: "Vale a pena buscar?",
+  duration: "Tempo pra ver resultado",
+};
+
+export function summaryFieldLabels(variant: SummaryVariant): Record<SummaryFieldKey, string> {
+  return variant === "journal" ? SUMMARY_FIELD_LABELS_ARTICLE : SUMMARY_FIELD_LABELS_PRODUCT;
+}
+
+export const SUMMARY_FIELD_KEYS = Object.keys(SUMMARY_FIELD_LABELS_PRODUCT) as SummaryFieldKey[];
+
+const RESUMO_RAPIDO_KEY_BY_FIELD: Record<SummaryFieldKey, keyof ResumoRapido> = {
+  what_is: "whatIs",
+  used_for: "usedFor",
+  noticed: "noticed",
+  pro: "pro",
+  caution: "caution",
+  repurchase: "repurchase",
+  duration: "duration",
+};
 
 // Mesmos rótulos, mas com as chaves em camelCase de ResumoRapido — usado no
 // formulário do admin, que edita o objeto vindo/indo da IA.
-export const RESUMO_RAPIDO_FIELDS: Array<{ key: keyof ResumoRapido; label: string }> = [
-  { key: "whatIs", label: SUMMARY_FIELD_LABELS.what_is },
-  { key: "usedFor", label: SUMMARY_FIELD_LABELS.used_for },
-  { key: "noticed", label: SUMMARY_FIELD_LABELS.noticed },
-  { key: "pro", label: SUMMARY_FIELD_LABELS.pro },
-  { key: "caution", label: SUMMARY_FIELD_LABELS.caution },
-  { key: "repurchase", label: SUMMARY_FIELD_LABELS.repurchase },
-  { key: "duration", label: SUMMARY_FIELD_LABELS.duration },
-];
+export function resumoRapidoFields(variant: SummaryVariant): Array<{ key: keyof ResumoRapido; label: string }> {
+  const labels = summaryFieldLabels(variant);
+  return SUMMARY_FIELD_KEYS.map((field) => ({ key: RESUMO_RAPIDO_KEY_BY_FIELD[field], label: labels[field] }));
+}
 
 export function hasAnySummaryContent(summary?: ContentSummary | null) {
   if (!summary) return false;
