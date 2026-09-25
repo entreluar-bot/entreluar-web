@@ -1166,14 +1166,372 @@ export default function AdminDashboard() {
       <div className="mx-auto max-w-5xl">
         <header className="glass-panel mb-8 flex flex-col gap-5 rounded-[28px] p-5 md:flex-row md:items-center md:justify-between md:p-7">
           <div>
+            <button
+              onClick={async () => {
+                try {
+                  const data = {
+  "polls": [
+    {
+      "id": "e06198cc-7187-4cd6-84c3-f71db5a5011a",
+      "journal_id": "8acf446c-c70a-49ea-a945-394eace8daf5",
+      "question": "Você já sentiu a necessidade de encerrar ciclos longos que pareciam \"perfeitos\" por fora?",
+      "active": true
+    },
+    {
+      "id": "aa5c4a5b-f904-4df4-b854-c12e60af2b06",
+      "journal_id": "212bc909-1b81-41fe-b02b-297cac900ffc",
+      "question": "Como você se sente quando decide não fazer absolutamente nada?",
+      "active": true
+    },
+    {
+      "id": "596bc1c2-4c1d-4fff-bb27-ed814d5abc37",
+      "journal_id": "4b0e02fd-86a9-4474-a311-9c6b912c6474",
+      "question": "Em qual fase capilar você está hoje?",
+      "active": true
+    },
+    {
+      "id": "6ca5c8b1-c9c1-433b-b6f2-9f8d35756e42",
+      "journal_id": "35eda7de-9b9b-4348-9e92-ee98c67d3d66",
+      "question": "Qual sintoma novo da maturidade te pegou mais de surpresa?",
+      "active": true
+    },
+    {
+      "id": "018430c9-2464-476d-bb76-0962dbedf80b",
+      "journal_id": "de2a5865-b71d-4d40-9668-01562e956b6f",
+      "question": "A sua paciência também sofreu alterações com a idade?",
+      "active": true
+    },
+    {
+      "id": "5cfc4f51-c3a7-4fa5-8752-06f9aeb4b523",
+      "journal_id": "26052a74-cf8a-408b-907e-39afc3223868",
+      "question": "Como você lida com os famosos fogachos (calorões)?",
+      "active": true
+    },
+    {
+      "id": "e042db0e-2d10-4ba2-bb7b-193dfe45daee",
+      "journal_id": "b88f6851-ecef-4a0a-b7e4-fca0f79e356e",
+      "question": "Qual a sua relação com as novas marcas e linhas de expressão?",
+      "active": true
+    },
+    {
+      "id": "e5813be9-de08-4335-8a25-54e338ad3efa",
+      "journal_id": "5e206400-bc7a-44f4-9979-6463bae1fa59",
+      "question": "Qual a sua opinião sobre a Terapia de Reposição Hormonal (TRH)?",
+      "active": true
+    },
+    {
+      "id": "e1960569-d463-46fa-9432-e66edacd2dc7",
+      "journal_id": "82edc46e-f199-4973-9430-6e8819335837",
+      "question": "A famosa \"névoa mental\" já te pegou desprevenida?",
+      "active": true
+    },
+    {
+      "id": "eeab8c64-0957-4af0-a4ad-8ee4171cefe7",
+      "journal_id": "de44bf7f-5dab-4fca-aa91-0cbfb34eea49",
+      "question": "O braço também começou a ficar curto por aí? (Vista cansada)",
+      "active": true
+    },
+    {
+      "id": "b0af1bbd-e4da-4fe8-8c75-bf1947956f91",
+      "journal_id": "1edc108b-15cb-4c72-a27f-52a20a7be640",
+      "question": "Quando o sono foge de madrugada, o que você costuma fazer?",
+      "active": true
+    }
+  ],
+  "options": [
+    {
+      "id": "2e268417-ff81-47a7-9f5b-501a29ff38b8",
+      "poll_id": "e06198cc-7187-4cd6-84c3-f71db5a5011a",
+      "label": "Sim, já joguei tudo pro alto e recomecei!",
+      "position": 0
+    },
+    {
+      "id": "219f33d2-5529-4e7e-900d-e498f66a85b8",
+      "poll_id": "e06198cc-7187-4cd6-84c3-f71db5a5011a",
+      "label": "Ainda estou criando coragem...",
+      "position": 1
+    },
+    {
+      "id": "4841e1da-3e25-4ebd-9ed5-c91791ab01f4",
+      "poll_id": "e06198cc-7187-4cd6-84c3-f71db5a5011a",
+      "label": "Na minha vida o ciclo se encerrou naturalmente.",
+      "position": 2
+    },
+    {
+      "id": "38c70033-c8f1-46f0-873a-5b3706143106",
+      "poll_id": "e06198cc-7187-4cd6-84c3-f71db5a5011a",
+      "label": "Sou do time que prefere tentar consertar sempre.",
+      "position": 3
+    },
+    {
+      "id": "76b7f1b3-22f1-4b64-b929-3a8b57dd2e70",
+      "poll_id": "aa5c4a5b-f904-4df4-b854-c12e60af2b06",
+      "label": "Descanso sem culpa, eu mereço!",
+      "position": 0
+    },
+    {
+      "id": "ee8667ab-ebff-4b90-870f-f661c03e5a48",
+      "poll_id": "aa5c4a5b-f904-4df4-b854-c12e60af2b06",
+      "label": "Fico me corroendo de culpa por dentro.",
+      "position": 1
+    },
+    {
+      "id": "90d8e620-98f6-4dc3-87d6-6096a91351ee",
+      "poll_id": "aa5c4a5b-f904-4df4-b854-c12e60af2b06",
+      "label": "Só consigo parar quando o corpo pede arrego.",
+      "position": 2
+    },
+    {
+      "id": "04b45863-979a-4ff6-b6f5-ccd6ec733d75",
+      "poll_id": "aa5c4a5b-f904-4df4-b854-c12e60af2b06",
+      "label": "O que é descanso mesmo? (socorro!)",
+      "position": 3
+    },
+    {
+      "id": "c036ff4d-b4a6-424d-93c8-9d5b1d625c6c",
+      "poll_id": "596bc1c2-4c1d-4fff-bb27-ed814d5abc37",
+      "label": "Assumi os brancos e estou amando!",
+      "position": 0
+    },
+    {
+      "id": "5b681cfd-8744-4e68-9e83-4f44f2fdf08c",
+      "poll_id": "596bc1c2-4c1d-4fff-bb27-ed814d5abc37",
+      "label": "Tinta neles! Adoro minha cor de sempre.",
+      "position": 1
+    },
+    {
+      "id": "0c67a3ce-3590-484c-979c-56b0f64d3982",
+      "poll_id": "596bc1c2-4c1d-4fff-bb27-ed814d5abc37",
+      "label": "Em transição, um dia de cada vez.",
+      "position": 2
+    },
+    {
+      "id": "d2f75b1e-e5f8-4ad6-b4f6-5f7514c469fc",
+      "poll_id": "596bc1c2-4c1d-4fff-bb27-ed814d5abc37",
+      "label": "Queria assumir os brancos, mas falta coragem.",
+      "position": 3
+    },
+    {
+      "id": "7513bad7-f1ff-44cb-ad80-a6246b9654c7",
+      "poll_id": "6ca5c8b1-c9c1-433b-b6f2-9f8d35756e42",
+      "label": "O cansaço que não passa nunca.",
+      "position": 0
+    },
+    {
+      "id": "0439dd7d-8bfb-4f52-9df5-e8a205851794",
+      "poll_id": "6ca5c8b1-c9c1-433b-b6f2-9f8d35756e42",
+      "label": "Dores em lugares que eu nem sabia que existiam.",
+      "position": 1
+    },
+    {
+      "id": "4df53942-ef08-44ff-86dd-350fc3b4e701",
+      "poll_id": "6ca5c8b1-c9c1-433b-b6f2-9f8d35756e42",
+      "label": "A mente a mil, mas o corpo pedindo pausa.",
+      "position": 2
+    },
+    {
+      "id": "48573b9d-cc16-4fc3-b698-aa9b1f9654d1",
+      "poll_id": "6ca5c8b1-c9c1-433b-b6f2-9f8d35756e42",
+      "label": "A paciência que reduziu drasticamente.",
+      "position": 3
+    },
+    {
+      "id": "cd505253-e5b0-4a68-a524-3fef51a450ea",
+      "poll_id": "018430c9-2464-476d-bb76-0962dbedf80b",
+      "label": "Sim, hoje eu falo \"não\" sem pena!",
+      "position": 0
+    },
+    {
+      "id": "70209a82-7ef5-48c3-b4af-681848f9b036",
+      "poll_id": "018430c9-2464-476d-bb76-0962dbedf80b",
+      "label": "Continuo engolindo sapos para evitar brigas...",
+      "position": 1
+    },
+    {
+      "id": "46eb567d-bcff-4aa0-8adf-6369d7cb13f2",
+      "poll_id": "018430c9-2464-476d-bb76-0962dbedf80b",
+      "label": "Depende do dia e da TPM (que ainda existe).",
+      "position": 2
+    },
+    {
+      "id": "4d50f1d9-bb68-46f8-97d6-d702ad5475e4",
+      "poll_id": "018430c9-2464-476d-bb76-0962dbedf80b",
+      "label": "Fiquei até mais zen e tolerante.",
+      "position": 3
+    },
+    {
+      "id": "f372d733-5fc7-4121-9996-11a21ccea05f",
+      "poll_id": "5cfc4f51-c3a7-4fa5-8752-06f9aeb4b523",
+      "label": "Passo mal, acordo várias vezes à noite.",
+      "position": 0
+    },
+    {
+      "id": "f50d1da3-f382-464a-9173-b903e487f45d",
+      "poll_id": "5cfc4f51-c3a7-4fa5-8752-06f9aeb4b523",
+      "label": "Já aprendi a conviver e andar com leque.",
+      "position": 1
+    },
+    {
+      "id": "d9c5ba94-864a-4039-9d1e-34a4173b1159",
+      "poll_id": "5cfc4f51-c3a7-4fa5-8752-06f9aeb4b523",
+      "label": "Faço reposição e eles sumiram!",
+      "position": 2
+    },
+    {
+      "id": "8841345d-f985-4082-b1d7-1daa67f4c35b",
+      "poll_id": "5cfc4f51-c3a7-4fa5-8752-06f9aeb4b523",
+      "label": "Graças a Deus, ainda não cheguei nessa fase.",
+      "position": 3
+    },
+    {
+      "id": "99498229-58d6-40d1-9697-ea36e31a1cfa",
+      "poll_id": "e042db0e-2d10-4ba2-bb7b-193dfe45daee",
+      "label": "Cuido com carinho, mas aceito minha história.",
+      "position": 0
+    },
+    {
+      "id": "1a524655-d918-45a1-84a4-e377a7a11e24",
+      "poll_id": "e042db0e-2d10-4ba2-bb7b-193dfe45daee",
+      "label": "Passo todos os cremes possíveis e imagináveis!",
+      "position": 1
+    },
+    {
+      "id": "af80bea1-a9ec-4cc6-9a96-15890ccaf231",
+      "poll_id": "e042db0e-2d10-4ba2-bb7b-193dfe45daee",
+      "label": "Sou adepta de procedimentos estéticos sem culpa.",
+      "position": 2
+    },
+    {
+      "id": "913ddcb8-4303-4984-b67b-a6a77cc61330",
+      "poll_id": "e042db0e-2d10-4ba2-bb7b-193dfe45daee",
+      "label": "Confesso que ainda sofro quando me olho no espelho.",
+      "position": 3
+    },
+    {
+      "id": "54d418f3-015a-430d-8664-99ee74608fbb",
+      "poll_id": "e5813be9-de08-4335-8a25-54e338ad3efa",
+      "label": "Já faço e devolveu minha qualidade de vida!",
+      "position": 0
+    },
+    {
+      "id": "1a3ed58a-fdc3-4ea6-95cb-7c63f20258b3",
+      "poll_id": "e5813be9-de08-4335-8a25-54e338ad3efa",
+      "label": "Morro de vontade, mas tenho medo/dúvidas.",
+      "position": 1
+    },
+    {
+      "id": "7463e62d-990b-40c1-85e6-bcaf9cd4ef11",
+      "poll_id": "e5813be9-de08-4335-8a25-54e338ad3efa",
+      "label": "Meu médico disse que eu não posso fazer.",
+      "position": 2
+    },
+    {
+      "id": "9a4b7094-b84f-4cf3-b6ae-1a695b6030fc",
+      "poll_id": "e5813be9-de08-4335-8a25-54e338ad3efa",
+      "label": "Prefiro métodos 100% naturais.",
+      "position": 3
+    },
+    {
+      "id": "6def655b-0183-48f7-bcd1-ee0887dab8a2",
+      "poll_id": "e1960569-d463-46fa-9432-e66edacd2dc7",
+      "label": "O tempo todo, esqueço até o que ia falar!",
+      "position": 0
+    },
+    {
+      "id": "2a8a50aa-c894-4411-af4c-2a0824fd47e1",
+      "poll_id": "e1960569-d463-46fa-9432-e66edacd2dc7",
+      "label": "De vez em quando o \"tico e teco\" falham.",
+      "position": 1
+    },
+    {
+      "id": "ad803efc-f974-4d6c-9e06-eed44175a4aa",
+      "poll_id": "e1960569-d463-46fa-9432-e66edacd2dc7",
+      "label": "Comecei a anotar tudo para não esquecer.",
+      "position": 2
+    },
+    {
+      "id": "4359807d-18d7-4da7-b1b9-194d752746ef",
+      "poll_id": "e1960569-d463-46fa-9432-e66edacd2dc7",
+      "label": "Por enquanto minha memória está intacta.",
+      "position": 3
+    },
+    {
+      "id": "fca91c65-6ec6-4b26-a28c-e2ff5caaa238",
+      "poll_id": "eeab8c64-0957-4af0-a4ad-8ee4171cefe7",
+      "label": "Sim, já tenho óculos espalhados pela casa toda!",
+      "position": 0
+    },
+    {
+      "id": "bd9ac965-0f28-4547-8167-b712752450df",
+      "poll_id": "eeab8c64-0957-4af0-a4ad-8ee4171cefe7",
+      "label": "Ainda reluto, mas afasto o celular pra ler.",
+      "position": 1
+    },
+    {
+      "id": "c1b143f5-018d-4763-bbed-58e9c7c1a073",
+      "poll_id": "eeab8c64-0957-4af0-a4ad-8ee4171cefe7",
+      "label": "Fiz cirurgia ou uso lentes, resolvi o problema.",
+      "position": 2
+    },
+    {
+      "id": "db356336-5e0c-4d05-802e-b9c1844f621b",
+      "poll_id": "eeab8c64-0957-4af0-a4ad-8ee4171cefe7",
+      "label": "Minha visão de perto continua de águia.",
+      "position": 3
+    },
+    {
+      "id": "30181c8c-eebb-4178-85ac-20cf05f80172",
+      "poll_id": "b0af1bbd-e4da-4fe8-8c75-bf1947956f91",
+      "label": "Fico rolando na cama fritando a cabeça.",
+      "position": 0
+    },
+    {
+      "id": "d61611e0-9642-4182-9be4-eced7c0bb380",
+      "poll_id": "b0af1bbd-e4da-4fe8-8c75-bf1947956f91",
+      "label": "Levanto, faço um chá e vou ler um livro.",
+      "position": 1
+    },
+    {
+      "id": "c1c1d6dd-74c3-45bb-ae14-82143d6841b9",
+      "poll_id": "b0af1bbd-e4da-4fe8-8c75-bf1947956f91",
+      "label": "Pego o celular e vou rodar o feed das redes.",
+      "position": 2
+    },
+    {
+      "id": "3816cbea-ecd3-4418-b37f-6c8f3ed0b795",
+      "poll_id": "b0af1bbd-e4da-4fe8-8c75-bf1947956f91",
+      "label": "Graças a Deus, meu sono continua uma pedra!",
+      "position": 3
+    }
+  ]
+};
+                  const { error: err1 } = await supabase.from("polls").insert(data.polls);
+                  if (err1) {
+                    alert("Erro polls: " + JSON.stringify(err1));
+                    return;
+                  }
+                  const { error: err2 } = await supabase.from("poll_options").insert(data.options);
+                  if (err2) {
+                    alert("Erro options: " + JSON.stringify(err2));
+                    return;
+                  }
+                  alert("Enquetes criadas com sucesso!");
+                } catch (e) {
+                  alert("Error: " + e.message);
+                }
+              }}
+              className="mb-4 rounded bg-[var(--color-gold)] px-4 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)]"
+            >
+              GERAR ENQUETES (TEMP)
+            </button>
             <p className="eyebrow mb-2">Ateliê de conteúdo</p>
             <h1 className="font-display text-4xl text-[var(--color-gold-light)]">Painel da Luana</h1>
             <p className="mt-1 text-sm text-[var(--muted)]">Crie, revise e publique. Para colar fotos, use Ctrl+V.</p>
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.67</p>
-                <p>Atualizado em 25/09/2026 às 16:56</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.68</p>
+                <p>Atualizado em 25/09/2026 às 16:59</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
