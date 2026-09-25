@@ -105,6 +105,15 @@ const emptyAiUsage: AiUsageSummary = {
   latency: { p50: 0, p95: 0 }, last24h: { costBrl: 0, totalTokens: 0 }, last7d: { costBrl: 0, totalTokens: 0 }, byType: [],
 };
 
+const PAPO_FILTERS = [
+  "Me escolhendo de novo",
+  "Corpo em modo surpresa",
+  "Pausa sem culpa",
+  "Beleza sem tribunal",
+  "Rindo para não surtar",
+  "Confissões da maturidade",
+];
+
 const compressImage = (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -195,6 +204,7 @@ export default function AdminDashboard() {
   const [manageType, setManageType] = useState<ManageType>("papo");
   
   const [blogCategory, setBlogCategory] = useState("Papo de Mulher Madura");
+  const [blogPapoFilter, setBlogPapoFilter] = useState("Confissões da maturidade");
   const [isFeatured, setIsFeatured] = useState(false);
   const [isMostViewed, setIsMostViewed] = useState(false);
   const [isNew, setIsNew] = useState(true);
@@ -748,6 +758,7 @@ export default function AdminDashboard() {
           content: generatedBlogPost,
           image_url: finalPublicUrl,
           category: blogCategory,
+          papo_filter: blogCategory === "Estudei para te explicar" ? null : blogPapoFilter,
           is_featured: isFeatured,
           is_most_viewed: isMostViewed,
           is_new: isNew,
@@ -801,6 +812,7 @@ export default function AdminDashboard() {
       setImageFile(null); setDisplayImageFile(null); setPrice("");
       setGeneratedReview(""); setGeneratedProductName("");
       setGeneratedBlogTitle(""); setGeneratedBlogPost("");
+      setBlogPapoFilter("Confissões da maturidade");
       setPostDate("");
 
     } catch (error: any) {
@@ -888,6 +900,7 @@ export default function AdminDashboard() {
           title: editingItem.title, 
           content: editingItem.content, 
           category: editingItem.category,
+          papo_filter: editingItem.category === "Estudei para te explicar" ? null : (editingItem.papo_filter || "Confissões da maturidade"),
           is_featured: Boolean(editingItem.is_featured),
           is_most_viewed: Boolean(editingItem.is_most_viewed),
           is_new: Boolean(editingItem.is_new),
@@ -933,8 +946,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.59</p>
-                <p>Atualizado em 24/09/2026 às 20:32</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.60</p>
+                <p>Atualizado em 24/09/2026 às 21:10</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1169,6 +1182,16 @@ export default function AdminDashboard() {
                       </select>
                     </div>
 
+                    {blogCategory !== "Estudei para te explicar" && (
+                      <div>
+                        <label className="block text-[var(--color-gold-light)] text-sm mb-1">Gancho do Papo</label>
+                        <select value={blogPapoFilter} onChange={(e) => setBlogPapoFilter(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
+                          {PAPO_FILTERS.map((filter) => <option value={filter} key={filter}>{filter}</option>)}
+                        </select>
+                        <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">Esse é o filtro emocional que aparece no Papo de Mulher Madura.</p>
+                      </div>
+                    )}
+
                     <div>
                       <label className="block text-[var(--color-gold-light)] text-sm mb-1 font-bold">Data da Postagem (Opcional)</label>
                       <input type="date" value={postDate} onChange={(e) => setPostDate(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)] mb-4" />
@@ -1307,6 +1330,14 @@ export default function AdminDashboard() {
                         <input type="date" required value={editingItem.created_at || ""} onChange={(event) => setEditingItem({ ...editingItem, created_at: event.target.value })} className="mt-1 w-full px-3 text-sm normal-case tracking-normal" />
                       </label>
                     </div>
+                    {editingItem.type === "journal" && editingItem.category !== "Estudei para te explicar" && (
+                      <div className="mb-5">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-gold-light)]">Gancho do Papo</label>
+                        <select value={editingItem.papo_filter || "Confissões da maturidade"} onChange={(event) => setEditingItem({ ...editingItem, papo_filter: event.target.value })} className="mt-1 w-full rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-3 text-sm text-[var(--color-gold-light)]">
+                          {PAPO_FILTERS.map((filter) => <option value={filter} key={filter}>{filter}</option>)}
+                        </select>
+                      </div>
+                    )}
                     {editingItem.type === "product" ? (
                       <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                         <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Filtros especiais</legend>
@@ -1385,13 +1416,14 @@ export default function AdminDashboard() {
                             <span className="text-[var(--color-gold-light)] opacity-50 text-xs uppercase">{j.category || "Sem categoria"}</span>
                             <span className="ml-2 text-[var(--color-gold-light)] opacity-50 text-xs">• {formatPostDate(j.created_at)}</span>
                             <div className="mt-2 flex flex-wrap gap-1.5">
+                              {j.papo_filter && <span className="rounded-full bg-[var(--color-gold)]/10 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">{j.papo_filter}</span>}
                               {j.is_featured && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Destaque</span>}
                               {j.is_most_viewed && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Mais lido</span>}
                               {j.is_new && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Novo</span>}
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", papo_filter: j.papo_filter || "Confissões da maturidade", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteJournal(j.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>
@@ -1413,7 +1445,7 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => setEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", papo_filter: j.papo_filter || "", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) })} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteJournal(j.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>

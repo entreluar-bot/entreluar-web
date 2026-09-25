@@ -83,10 +83,10 @@ export default async function Home() {
           <div className="hero-copy">
             <p className="eyebrow">Pele madura • vida sem manual</p>
             <h1 className="display-title">Madura.<br /><em>Luminosa.</em><br />Sem pedir licença.</h1>
-            <p className="hero-intro">Eu testo os potinhos, estudo a pele e conto tudo como é — inclusive o que não vale seu dinheiro nem sua atenção. 🍷</p>
+            <p className="hero-intro">Eu testo os potinhos, estudo a pele e também puxo aquela cadeira para falar de menopausa, corpo, recomeços, descanso, beleza e liberdade — como conversa boa entre mulheres maduras.</p>
             <nav className="home-portals" aria-label="Escolha por onde começar">
               <HomePortal href={newProduct ? `/vitrine/${newProduct.id}` : "/vitrine"} title="Vitrine" subtitle="Meus achados" isNew={Boolean(newProduct)} primary imageUrl={portalImage} />
-              <HomePortal href={newPapo ? `/blog/${newPapo.id}` : "/blog"} title="Papo de Mulher" subtitle="Conversas sem filtro" isNew={Boolean(newPapo)} />
+              <HomePortal href={newPapo ? `/blog/${newPapo.id}` : "/blog"} title="Papo de Mulher" subtitle="Maturidade sem manual" isNew={Boolean(newPapo)} />
               <HomePortal href={newReview ? `/resenhas/${newReview.id}` : "/resenhas"} title="Te Explico" subtitle="Sem complicar" isNew={Boolean(newReview)} />
             </nav>
           </div>
@@ -106,7 +106,7 @@ export default async function Home() {
           <div className="section-kicker"><span className="eyebrow">Escolha seu momento de hoje</span></div>
           <div className="intent-grid">
             <Link href="/resenhas" className="intent-tile"><span>Entender minha pele</span><strong>Estudei para te explicar sem complicar, sem susto e sem promessa milagrosa.</strong></Link>
-            <Link href="/blog" className="intent-tile"><span>Conversar sobre maturidade</span><strong>Menopausa, recomeços e vida real com humor de amiga.</strong></Link>
+            <Link href="/blog" className="intent-tile"><span>Conversar sobre maturidade</span><strong>Menopausa, corpo em mudança, recomeços e vida real com humor de amiga.</strong></Link>
             <Link href="/vitrine" className="intent-tile"><span>Ver achados honestos</span><strong>O que vale a bancada, seu dinheiro, sua atenção e o espaço no nécessaire.</strong></Link>
             <Link href="/pilulas" className="intent-tile"><span>Respirar em um minuto</span><strong>Uma dose curta para voltar para si sem transformar tudo em manual.</strong></Link>
           </div>
