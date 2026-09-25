@@ -5,8 +5,10 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
 import type { ContentSummary } from "@/lib/summary";
+import { getActivePollForJournal } from "@/lib/poll";
 import ShareButton from "../../ui/ShareButton";
 import QuickSummaryCard from "../../ui/QuickSummaryCard";
+import PollWidget from "../../ui/PollWidget";
 import type { JournalPost } from "../../types";
 
 export const revalidate = 0;
@@ -50,9 +52,10 @@ export async function generateMetadata({ params }: ReviewPostProps): Promise<Met
 export default async function ReviewPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: summaryData }] = await Promise.all([
+  const [{ data }, { data: summaryData }, poll] = await Promise.all([
     supabase.from("journal").select("*").eq("id", id).single(),
     supabase.from("content_summaries").select("*").eq("content_type", "journal").eq("content_id", id).maybeSingle(),
+    getActivePollForJournal(supabase, id),
   ]);
   if (!data) notFound();
   const post = data as JournalPost;
@@ -76,6 +79,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
           <ShareButton title={post.title} url={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} className="mb-8" />
           <QuickSummaryCard summary={summary} />
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
+          {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
           <section className="next-steps" aria-label="Continue navegando">
             <Link href="/vitrine" className="ghost-button">Ver achados relacionados →</Link>
             <Link href="/blog" className="ghost-button">Conversar sobre vida real →</Link>

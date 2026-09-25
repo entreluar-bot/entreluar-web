@@ -1,2 +1,46 @@
-import{createClient}from"@/utils/supabase/server";import type{Quote}from"../types";
-export const revalidate=0;export default async function Pilulas(){const supabase=await createClient();const{data}=await supabase.from("quotes").select("*").order("created_at",{ascending:false});const quotes=(data||[])as Quote[];return <main className="site-shell"><div className="content-wrap"><header className="page-intro"><p className="eyebrow">Uma dose para hoje</p><h1 className="section-title mt-4">Pílulas para<br/><em>os dias reais</em></h1><p>Frases curtas para respirar, rir e lembrar que nem todo dia precisa virar uma grande lição.</p></header>{quotes.length?<div className="columns-1 gap-5 space-y-5 md:columns-2 lg:columns-3">{quotes.map(q=><article key={q.id} className="luxe-card mb-5 break-inside-avoid p-7"><span className="font-display text-6xl leading-none text-[var(--champagne)]">“</span><p className="font-display -mt-3 text-2xl italic leading-9">{q.quote}</p><div className="mt-6 flex items-center justify-between border-t border-[var(--line)] pt-4"><span className="text-[10px] uppercase tracking-widest text-[var(--muted)]">{new Date(q.created_at).toLocaleDateString("pt-BR")}</span><span className="eyebrow">Luana ☾</span></div></article>)}</div>:<div className="empty-state">O potinho está vazio por enquanto. Respira: nem todo dia precisa ensinar alguma coisa. ✨</div>}</div></main>}
+import { createClient } from "@/utils/supabase/server";
+import { siteUrl } from "@/lib/share-metadata";
+import ShareButton from "../ui/ShareButton";
+import type { Quote } from "../types";
+
+export const revalidate = 0;
+
+export default async function Pilulas() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("quotes").select("*").order("created_at", { ascending: false });
+  const quotes = (data || []) as Quote[];
+
+  return (
+    <main className="site-shell">
+      <div className="content-wrap">
+        <header className="page-intro">
+          <p className="eyebrow">Uma dose para hoje</p>
+          <h1 className="section-title mt-4">Pílulas para<br /><em>os dias reais</em></h1>
+          <p>Frases curtas para respirar, rir e lembrar que nem todo dia precisa virar uma grande lição.</p>
+        </header>
+        {quotes.length ? (
+          <div className="columns-1 gap-5 space-y-5 md:columns-2 lg:columns-3">
+            {quotes.map((q) => (
+              <article key={q.id} id={`quote-${q.id}`} className="luxe-card mb-5 break-inside-avoid p-7">
+                <span className="font-display text-6xl leading-none text-[var(--champagne)]">“</span>
+                <p className="font-display -mt-3 text-2xl italic leading-9">{q.quote}</p>
+                <ShareButton
+                  title="Uma pílula da Entreluar"
+                  url={`${siteUrl}/pilulas#quote-${q.id}`}
+                  shareText={`"${q.quote}" — Entreluar Beauty 🤎`}
+                  className="mt-6"
+                />
+                <div className="mt-6 flex items-center justify-between border-t border-[var(--line)] pt-4">
+                  <span className="text-[10px] uppercase tracking-widest text-[var(--muted)]">{new Date(q.created_at).toLocaleDateString("pt-BR")}</span>
+                  <span className="eyebrow">Luana ☾</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">O potinho está vazio por enquanto. Respira: nem todo dia precisa ensinar alguma coisa. ✨</div>
+        )}
+      </div>
+    </main>
+  );
+}

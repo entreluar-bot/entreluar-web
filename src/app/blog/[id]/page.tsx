@@ -4,9 +4,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
+import { getActivePollForJournal } from "@/lib/poll";
 import NewsletterSignup from "../../ui/NewsletterSignup";
 import ConversationCircle from "../../ui/ConversationCircle";
 import ShareButton from "../../ui/ShareButton";
+import PollWidget from "../../ui/PollWidget";
 import type { JournalComment, JournalPost } from "../../types";
 
 export const revalidate = 0;
@@ -50,7 +52,7 @@ export async function generateMetadata({ params }: BlogPostProps): Promise<Metad
 export default async function BlogPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: commentRows }] = await Promise.all([
+  const [{ data }, { data: commentRows }, poll] = await Promise.all([
     supabase.from("journal").select("*").eq("id", id).single(),
     supabase
       .from("journal_comments")
@@ -58,6 +60,7 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
       .eq("journal_id", id)
       .eq("status", "approved")
       .order("created_at", { ascending: false }),
+    getActivePollForJournal(supabase, id),
   ]);
 
   if (!data) notFound();
@@ -81,6 +84,8 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
           <h1 className="section-title my-6">{post.title}</h1>
           <ShareButton title={post.title} url={shareUrl} shareText={`Li isso e achei tudo a ver com a gente: ${post.title}`} className="mb-8" />
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
+
+          {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
 
           <ConversationCircle postId={post.id} postTitle={post.title} comments={comments} />
 

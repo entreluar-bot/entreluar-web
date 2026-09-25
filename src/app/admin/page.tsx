@@ -91,6 +91,17 @@ type AiUsageSummary = {
 
 type ManageType = "papo" | "estudei" | "vitrine";
 
+type EditingPoll = {
+  id: string | null;
+  question: string;
+  options: string[];
+  active: boolean;
+  voteCount: number;
+  optionResults: Array<{ id: string; label: string; count: number }>;
+};
+
+const EMPTY_POLL: EditingPoll = { id: null, question: "", options: ["", ""], active: true, voteCount: 0, optionResults: [] };
+
 const formatPostDate = (value?: string) => value
   ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(new Date(value))
   : "Sem data";
@@ -215,6 +226,9 @@ export default function AdminDashboard() {
   const [editingItemSummary, setEditingItemSummary] = useState<ResumoRapido>(EMPTY_RESUMO_RAPIDO);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [bulkSummaryStatus, setBulkSummaryStatus] = useState("");
+
+  const [editingItemPoll, setEditingItemPoll] = useState<EditingPoll>(EMPTY_POLL);
+  const [savingPoll, setSavingPoll] = useState(false);
 
   const [blogCategory, setBlogCategory] = useState("Papo de Mulher Madura");
   const [blogPapoFilter, setBlogPapoFilter] = useState("Confissões da maturidade");
@@ -418,16 +432,101 @@ export default function AdminDashboard() {
     if (tData) setTags(tData as Tag[]);
   };
 
+  const refreshEditingPoll = async (journalId: string) => {
+    const { data: pollRow } = await supabase.from("polls").select("id,question,active").eq("journal_id", journalId).maybeSingle();
+    if (!pollRow) {
+      setEditingItemPoll(EMPTY_POLL);
+      return;
+    }
+    const [{ data: optionRows }, { data: voteRows }] = await Promise.all([
+      supabase.from("poll_options").select("id,label,position").eq("poll_id", pollRow.id).order("position", { ascending: true }),
+      supabase.from("poll_votes").select("option_id").eq("poll_id", pollRow.id),
+    ]);
+    const counts: Record<string, number> = {};
+    (voteRows || []).forEach((row: any) => { counts[row.option_id] = (counts[row.option_id] || 0) + 1; });
+    const optionResults = (optionRows || []).map((option: any) => ({ id: option.id, label: option.label, count: counts[option.id] || 0 }));
+    setEditingItemPoll({
+      id: pollRow.id,
+      question: pollRow.question,
+      options: optionResults.map((option) => option.label),
+      active: Boolean(pollRow.active),
+      voteCount: (voteRows || []).length,
+      optionResults,
+    });
+  };
+
   const startEditingItem = async (payload: any, contentType: "journal" | "product") => {
     setEditingItem(payload);
     setEditingItemTagIds([]);
     setEditingItemSummary(EMPTY_RESUMO_RAPIDO);
+    setEditingItemPoll(EMPTY_POLL);
     const [{ data }, { data: summaryData }] = await Promise.all([
       supabase.from("content_tags").select("tag_id").eq("content_type", contentType).eq("content_id", payload.id),
       supabase.from("content_summaries").select("*").eq("content_type", contentType).eq("content_id", payload.id).maybeSingle(),
     ]);
     setEditingItemTagIds((data || []).map((row: any) => row.tag_id));
     setEditingItemSummary(rowToResumoRapido(summaryData));
+    if (contentType === "journal") await refreshEditingPoll(payload.id);
+  };
+
+  const updatePollOption = (index: number, value: string) => {
+    setEditingItemPoll((prev) => ({ ...prev, options: prev.options.map((option, i) => (i === index ? value : option)) }));
+  };
+
+  const addPollOption = () => {
+    setEditingItemPoll((prev) => (prev.options.length >= 5 ? prev : { ...prev, options: [...prev.options, ""] }));
+  };
+
+  const removePollOption = (index: number) => {
+    setEditingItemPoll((prev) => (prev.options.length <= 2 ? prev : { ...prev, options: prev.options.filter((_, i) => i !== index) }));
+  };
+
+  const handleSavePoll = async () => {
+    if (!editingItem) return;
+    const question = editingItemPoll.question.trim();
+    const options = editingItemPoll.options.map((option) => option.trim()).filter(Boolean);
+    if (!question || options.length < 2) return setMessage("A enquete precisa de uma pergunta e pelo menos 2 opções.");
+    setSavingPoll(true);
+    try {
+      const { data: pollRow, error: pollError } = await supabase
+        .from("polls")
+        .upsert({ journal_id: editingItem.id, question, active: true }, { onConflict: "journal_id" })
+        .select("id")
+        .single();
+      if (pollError) throw pollError;
+      await supabase.from("poll_options").delete().eq("poll_id", pollRow.id);
+      await supabase.from("poll_options").insert(options.map((label, index) => ({ poll_id: pollRow.id, label, position: index })));
+      await refreshEditingPoll(editingItem.id);
+      setMessage("Enquete salva! Já aparece no artigo.");
+    } catch (error: any) {
+      alert(error.message);
+    }
+    setSavingPoll(false);
+  };
+
+  const handleTogglePollActive = async () => {
+    if (!editingItem || !editingItemPoll.id) return;
+    setSavingPoll(true);
+    try {
+      await supabase.from("polls").update({ active: !editingItemPoll.active }).eq("id", editingItemPoll.id);
+      await refreshEditingPoll(editingItem.id);
+    } catch (error: any) {
+      alert(error.message);
+    }
+    setSavingPoll(false);
+  };
+
+  const handleDeletePoll = async () => {
+    if (!editingItemPoll.id) return;
+    if (!confirm("Excluir esta enquete apaga também todos os votos já registrados. Confirma?")) return;
+    setSavingPoll(true);
+    try {
+      await supabase.from("polls").delete().eq("id", editingItemPoll.id);
+      setEditingItemPoll(EMPTY_POLL);
+    } catch (error: any) {
+      alert(error.message);
+    }
+    setSavingPoll(false);
   };
 
   const toggleEditingItemTag = (tagId: string) => {
@@ -1067,14 +1166,30 @@ export default function AdminDashboard() {
       <div className="mx-auto max-w-5xl">
         <header className="glass-panel mb-8 flex flex-col gap-5 rounded-[28px] p-5 md:flex-row md:items-center md:justify-between md:p-7">
           <div>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/temp-tags");
+                  const rows = await res.json();
+                  const { error } = await supabase.from("content_tags").insert(rows);
+                  if (error) alert("Erro: " + JSON.stringify(error));
+                  else alert("Tags inseridas com sucesso!");
+                } catch (e: any) {
+                  alert("Error: " + e.message);
+                }
+              }}
+              className="mb-4 rounded bg-[var(--color-gold)] px-4 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)]"
+            >
+              Aplicar 157 Tags (Temp)
+            </button>
             <p className="eyebrow mb-2">Ateliê de conteúdo</p>
             <h1 className="font-display text-4xl text-[var(--color-gold-light)]">Painel da Luana</h1>
             <p className="mt-1 text-sm text-[var(--muted)]">Crie, revise e publique. Para colar fotos, use Ctrl+V.</p>
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.63</p>
-                <p>Atualizado em 25/09/2026 às 19:20</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.64</p>
+                <p>Atualizado em 25/09/2026 às 21:40</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1576,9 +1691,79 @@ export default function AdminDashboard() {
                         </div>
                       </fieldset>
                     )}
+                    {editingItem.type === "journal" && (
+                      <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                        <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Enquete</legend>
+                        {editingItemPoll.voteCount > 0 ? (
+                          <div>
+                            <p className="mb-3 text-xs text-[var(--color-gold-light)] opacity-65">Já tem voto registrado, então a pergunta e as opções ficam travadas (mudar agora invalidaria os votos). Você pode encerrar ou excluir.</p>
+                            <p className="mb-3 font-bold text-[var(--color-gold-light)]">{editingItemPoll.question}</p>
+                            <div className="mb-4 grid gap-2">
+                              {editingItemPoll.optionResults.map((option) => {
+                                const percent = editingItemPoll.voteCount ? Math.round((option.count / editingItemPoll.voteCount) * 100) : 0;
+                                return (
+                                  <div key={option.id} className="flex items-center justify-between rounded-lg border border-[var(--color-wine-light)] px-3 py-2 text-sm text-[var(--color-gold-light)]">
+                                    <span>{option.label}</span>
+                                    <span className="opacity-70">{option.count} voto{option.count === 1 ? "" : "s"} · {percent}%</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button type="button" onClick={handleTogglePollActive} disabled={savingPoll} className="rounded border border-[var(--color-wine-light)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-gold-light)] disabled:opacity-50">
+                                {editingItemPoll.active ? "Encerrar enquete" : "Reativar enquete"}
+                              </button>
+                              <button type="button" onClick={handleDeletePoll} disabled={savingPoll} className="rounded border border-red-900 px-3 py-2 text-xs font-bold uppercase text-red-400 disabled:opacity-50">
+                                Excluir enquete
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">Pergunta curta + de 2 a 5 opções. Aparece no artigo entre o texto e {editingItem.category === "Estudei para te explicar" ? "os próximos passos" : "a roda de conversa"}. Deixe a pergunta em branco para não ter enquete.</p>
+                            <label className="mb-3 block text-xs font-bold uppercase tracking-wider text-[var(--color-gold-light)]">
+                              Pergunta
+                              <input
+                                type="text"
+                                value={editingItemPoll.question}
+                                onChange={(event) => setEditingItemPoll({ ...editingItemPoll, question: event.target.value })}
+                                placeholder="Ex.: O que mais mudou na sua pele depois dos 50?"
+                                className="mt-1 w-full px-3 py-2 text-sm normal-case tracking-normal"
+                              />
+                            </label>
+                            <div className="grid gap-2">
+                              {editingItemPoll.options.map((option, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={option}
+                                    onChange={(event) => updatePollOption(index, event.target.value)}
+                                    placeholder={`Opção ${index + 1}`}
+                                    className="w-full px-3 py-2 text-sm normal-case tracking-normal"
+                                  />
+                                  {editingItemPoll.options.length > 2 && (
+                                    <button type="button" onClick={() => removePollOption(index)} className="text-xs text-red-400" aria-label="Remover opção">✕</button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {editingItemPoll.options.length < 5 && (
+                                <button type="button" onClick={addPollOption} className="rounded border border-[var(--color-wine-light)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-gold-light)]">
+                                  + Adicionar opção
+                                </button>
+                              )}
+                              <button type="button" onClick={handleSavePoll} disabled={savingPoll} className="rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
+                                {savingPoll ? "Salvando…" : "Salvar enquete"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </fieldset>
+                    )}
                     <textarea value={editingItem.content} onChange={(e) => setEditingItem({ ...editingItem, content: e.target.value })} rows={15} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed border border-[var(--color-wine-light)] p-4 rounded" ></textarea>
                     <div className="flex gap-4 mt-4">
-                      <button onClick={() => { setEditingItem(null); setEditingItemTagIds([]); setEditingItemSummary(EMPTY_RESUMO_RAPIDO); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-3 rounded font-bold uppercase">
+                      <button onClick={() => { setEditingItem(null); setEditingItemTagIds([]); setEditingItemSummary(EMPTY_RESUMO_RAPIDO); setEditingItemPoll(EMPTY_POLL); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-3 rounded font-bold uppercase">
                         Cancelar
                       </button>
                       <button onClick={handleUpdateItem} disabled={loading || !editingItem.created_at} className="flex-2 w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-3 rounded font-bold uppercase disabled:opacity-50">

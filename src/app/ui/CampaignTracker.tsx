@@ -10,7 +10,7 @@ const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "ut
 
 type Attribution = Partial<Record<(typeof UTM_KEYS)[number], string>>;
 
-function getSessionId() {
+export function getSessionId() {
   try {
     const existing = localStorage.getItem(SESSION_KEY);
     if (existing) return existing;
