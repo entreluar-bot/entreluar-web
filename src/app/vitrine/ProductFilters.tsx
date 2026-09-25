@@ -44,10 +44,10 @@ export default function ProductFilters({ products, tagGroups = [] }: { products:
 
   return (
     <>
-      <FilterChipBar ariaLabel="Filtros dos achados" activeKey={activeFilter} onSelect={(key) => setActiveFilter(key as FilterKey)} options={filters} />
+      <FilterChipBar ariaLabel="Filtros dos achados" activeKey={activeFilter} onSelect={(key) => setActiveFilter(key as FilterKey)} options={filters} compact />
 
       {tagGroups.filter((group) => group.options.length > 0).map((group) => (
-        <div key={group.label} className="mt-4">
+        <div key={group.label} className="mt-3">
           <p className="mb-2 text-xs font-bold uppercase tracking-[.14em] text-[var(--muted)]">{group.label}</p>
           <FilterChipBar
             ariaLabel={group.label}
@@ -58,12 +58,13 @@ export default function ProductFilters({ products, tagGroups = [] }: { products:
               label: option.name,
               count: products.filter((product) => product.tagSlugs?.includes(option.slug)).length,
             }))}
+            compact
           />
         </div>
       ))}
 
-      <div className="mt-6" aria-live="polite">
-        <p className="mb-6 text-sm text-[var(--muted)]">{filteredProducts.length} {filteredProducts.length === 1 ? "achado nesta seleção" : "achados nesta seleção"}</p>
+      <div className="mt-4" aria-live="polite">
+        <p className="mb-4 text-sm text-[var(--muted)]">{filteredProducts.length} {filteredProducts.length === 1 ? "achado nesta seleção" : "achados nesta seleção"}</p>
         {filteredProducts.length > 0 ? (
           <div className="editorial-grid">
             {filteredProducts.map((product) => <ProductCard key={product.id} produto={product} />)}

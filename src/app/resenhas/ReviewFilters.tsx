@@ -43,10 +43,10 @@ export default function ReviewFilters({ posts, tagGroups = [] }: { posts: Review
 
   return (
     <>
-      <FilterChipBar ariaLabel="Filtros das resenhas" activeKey={activeFilter} onSelect={(key) => setActiveFilter(key as FilterKey)} options={filters} />
+      <FilterChipBar ariaLabel="Filtros das resenhas" activeKey={activeFilter} onSelect={(key) => setActiveFilter(key as FilterKey)} options={filters} compact />
 
       {tagGroups.filter((group) => group.options.length > 0).map((group) => (
-        <div key={group.label} className="mt-4">
+        <div key={group.label} className="mt-3">
           <p className="mb-2 text-xs font-bold uppercase tracking-[.14em] text-[var(--muted)]">{group.label}</p>
           <FilterChipBar
             ariaLabel={group.label}
@@ -57,12 +57,13 @@ export default function ReviewFilters({ posts, tagGroups = [] }: { posts: Review
               label: option.name,
               count: posts.filter((post) => post.tagSlugs?.includes(option.slug)).length,
             }))}
+            compact
           />
         </div>
       ))}
 
-      <div className="mt-6" aria-live="polite">
-        <p className="mb-6 text-sm text-[var(--muted)]">{filteredPosts.length} {filteredPosts.length === 1 ? "explicação nesta seleção" : "explicações nesta seleção"}</p>
+      <div className="mt-4" aria-live="polite">
+        <p className="mb-4 text-sm text-[var(--muted)]">{filteredPosts.length} {filteredPosts.length === 1 ? "explicação nesta seleção" : "explicações nesta seleção"}</p>
         {filteredPosts.length ? (
           <div className="editorial-grid">
             {filteredPosts.map((post) => <JournalCard key={post.id} post={post} href={`/resenhas/${post.id}`} />)}

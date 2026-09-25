@@ -71,8 +71,8 @@ export default async function Resenhas() {
   return (
     <main className="site-shell">
       <div className="content-wrap">
-        <header className="page-intro">
-          <p className="eyebrow">Estudei para te explicar</p>
+        <header className="page-intro page-intro--compact">
+          <p className="eyebrow">Ciência sem complicar</p>
           <h1 className="section-title mt-4">Estudei para<br /><em>te explicar</em></h1>
           <p>Eu estudo os ativos, separo evidência de promessa e te conto o que importa — sem complicar e sem enrolação.</p>
         </header>

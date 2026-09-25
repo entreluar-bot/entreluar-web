@@ -1,2 +1,24 @@
-import{createClient}from"@/utils/supabase/server";import BlogFilters from"./BlogFilters";import NewsletterSignup from"../ui/NewsletterSignup";import type{JournalPost}from"../types";
-export const revalidate=0;export default async function Blog(){const supabase=await createClient();const{data}=await supabase.from("journal").select("*").order("created_at",{ascending:false});const posts=((data||[])as JournalPost[]).filter(p=>p.category!=="Estudei para te explicar");return <main className="site-shell"><div className="content-wrap"><header className="page-intro"><p className="eyebrow">Papo de mulher para mulher</p><h1 className="section-title mt-4">Papo de Mulher<br/><em>Madura</em></h1><p>Menopausa, corpo, recomeços, descanso, beleza e liberdade — para ler pelo que você está sentindo hoje, sem manual e sem tribunal.</p></header><section className="newsletter-cta" aria-labelledby="blog-newsletter-title"><div><p className="eyebrow">Emails para mulheres 50+</p><h2 id="blog-newsletter-title" className="font-display text-4xl leading-none text-[var(--champagne-pale)]">Fica por dentro, amiga.</h2><p className="muted mt-3 leading-7">Receba novidades 50+, achados sinceros, convites especiais e nossos papos de mulher antes que eles se percam no feed.</p></div><NewsletterSignup source="blog-topo"/></section>{posts.length?<BlogFilters posts={posts}/>:<div className="empty-state">A próxima conversa ainda está tomando forma. Volta daqui a pouco — eu prometo contar tudo. ☕</div>}</div></main>}
+import { createClient } from "@/utils/supabase/server";
+import BlogFilters from "./BlogFilters";
+import type { JournalPost } from "../types";
+
+export const revalidate = 0;
+
+export default async function Blog() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("journal").select("*").order("created_at", { ascending: false });
+  const posts = ((data || []) as JournalPost[]).filter((post) => post.category !== "Estudei para te explicar");
+
+  return (
+    <main className="site-shell">
+      <div className="content-wrap">
+        <header className="page-intro page-intro--compact">
+          <p className="eyebrow">Papo de mulher para mulher</p>
+          <h1 className="section-title mt-4">Papo de Mulher<br /><em>Madura</em></h1>
+          <p>Menopausa, corpo, recomeços, descanso, beleza e liberdade — para ler pelo que você está sentindo hoje.</p>
+        </header>
+        {posts.length ? <BlogFilters posts={posts} /> : <div className="empty-state">A próxima conversa ainda está tomando forma. Volta daqui a pouco — eu prometo contar tudo. ☕</div>}
+      </div>
+    </main>
+  );
+}

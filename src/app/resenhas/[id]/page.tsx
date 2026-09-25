@@ -76,9 +76,9 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
         <header className="p-6 md:p-12">
           <p className="eyebrow">Estudei para te explicar • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
           <h1 className="section-title my-6">{post.title}</h1>
-          <ShareButton title={post.title} url={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} className="mb-8" />
           <QuickSummaryCard summary={summary} />
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
+          <ShareButton title={post.title} url={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} className="mt-10 border-t border-[var(--line)] pt-8" />
           {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
           <section className="next-steps" aria-label="Continue navegando">
             <Link href="/vitrine" className="ghost-button">Ver achados relacionados →</Link>

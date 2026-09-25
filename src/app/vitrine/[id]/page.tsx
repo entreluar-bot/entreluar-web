@@ -75,12 +75,14 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
           <p className="eyebrow">{product.category || "Escolha da Luana"}</p>
           <h1 className="section-title my-4">{product.title}</h1>
           {product.price && <p className="font-display text-3xl text-[var(--champagne)]">{product.price}</p>}
-          <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} className="mb-2 mt-6" />
-          <AddToRoutineButton id={product.id} title={product.title} image_url={product.image_url} />
           <QuickSummaryCard summary={summary} />
           <div className="prose-luxe mt-8" dangerouslySetInnerHTML={{ __html: product.description }} />
           <div className="mt-10 border-t border-[var(--line)] pt-8">
             <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button w-full">Quero ver onde achei ↗</a>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} />
+            <AddToRoutineButton id={product.id} title={product.title} image_url={product.image_url} className="sm:mt-0" />
           </div>
           <section className="next-steps" aria-label="Continue navegando">
             <Link href={product.companion_journal_id ? `/resenhas/${product.companion_journal_id}` : "/resenhas"} className="ghost-button">Entender ativos →</Link>

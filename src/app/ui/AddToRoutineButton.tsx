@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ROUTINE_PERIODS, ROUTINE_STEPS, addProductToStep, type RoutinePeriodKey, type RoutineStepKey } from "@/lib/routine";
 
-export default function AddToRoutineButton({ id, title, image_url }: { id: string; title: string; image_url?: string | null }) {
+export default function AddToRoutineButton({ id, title, image_url, className = "" }: { id: string; title: string; image_url?: string | null; className?: string }) {
   const [open, setOpen] = useState(false);
   const [period, setPeriod] = useState<RoutinePeriodKey>("manha");
   const [step, setStep] = useState<RoutineStepKey>("serum");
@@ -19,14 +19,14 @@ export default function AddToRoutineButton({ id, title, image_url }: { id: strin
 
   if (savedLabel) {
     return (
-      <p className="share-message mt-4" role="status">
+      <p className={`share-message mt-4 ${className}`} role="status">
         Adicionado à sua {savedLabel.toLowerCase()} ✨ <Link href="/minha-rotina" className="underline">Ver minha rotina →</Link>
       </p>
     );
   }
 
   return (
-    <div className="mt-4">
+    <div className={`mt-4 ${className}`}>
       {!open ? (
         <button type="button" onClick={() => setOpen(true)} className="ghost-button">
           + Adicionar à minha rotina

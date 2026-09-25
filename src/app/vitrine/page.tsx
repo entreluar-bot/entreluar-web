@@ -41,10 +41,10 @@ export default async function Vitrine() {
   return (
     <main className="site-shell">
       <div className="content-wrap">
-        <header className="page-intro">
+        <header className="page-intro page-intro--compact">
           <p className="eyebrow">Testado sem cerimônia</p>
           <h1 className="section-title mt-4">Meus achados.<br /><em>Sem promessa vazia.</em></h1>
-          <p>Eu separo o que merece espaço na bancada do que só merece um belo tchau. E te conto por quê.</p>
+          <p>O que merece espaço na bancada — e o que só merece um belo tchau.</p>
         </header>
         {products.length > 0 ? (
           <ProductFilters products={products} tagGroups={tagGroups} />

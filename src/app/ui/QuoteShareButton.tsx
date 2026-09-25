@@ -10,6 +10,7 @@ type QuoteShareButtonProps = {
 const WIDTH = 1080;
 const HEIGHT = 1350;
 const FILE_NAME = "pilula-entreluar.png";
+const SHARE_URL = "https://www.entreluar.com.br";
 
 function getCanvasContext() {
   const canvas = document.createElement("canvas");
@@ -101,7 +102,7 @@ async function createQuoteImage(quote: string) {
   context.fillStyle = "#e6bd78";
   context.font = '800 30px Manrope, Arial, sans-serif';
   context.letterSpacing = "7px";
-  context.fillText("P\u00cdLULAS DA MATURIDADE", WIDTH / 2, 172);
+  context.fillText("P\u00cdLULAS PARA BRILHAR", WIDTH / 2, 172);
   context.letterSpacing = "0px";
 
   const normalizedQuote = quote.replace(/[“”]/g, "\"").replace(/^"+|"+$/g, "");
@@ -123,12 +124,12 @@ async function createQuoteImage(quote: string) {
   });
 
   context.shadowColor = "transparent";
+  context.fillStyle = "rgba(247,232,208,0.76)";
+  context.font = "700 27px Manrope, Arial, sans-serif";
+  context.fillText("quer ver mais?", WIDTH / 2, HEIGHT - 188);
   context.fillStyle = "#e6bd78";
-  context.font = '600 50px "Cormorant Garamond", Georgia, serif';
-  context.fillText("Entreluar", WIDTH / 2, HEIGHT - 186);
-  context.fillStyle = "rgba(247,232,208,0.78)";
-  context.font = "700 25px Manrope, Arial, sans-serif";
-  context.fillText("entreluar.com.br", WIDTH / 2, HEIGHT - 142);
+  context.font = "800 34px Manrope, Arial, sans-serif";
+  context.fillText("acesse www.entreluar.com.br", WIDTH / 2, HEIGHT - 145);
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((result) => {
@@ -161,7 +162,7 @@ export default function QuoteShareButton({ quote, className = "" }: QuoteShareBu
 
     try {
       const file = await createQuoteImage(quote);
-      const shareData = { files: [file], title: "P\u00edlulas da Maturidade" };
+      const shareData = { files: [file], title: "P\u00edlulas para Brilhar", text: SHARE_URL, url: SHARE_URL };
 
       if (navigator.canShare?.(shareData)) {
         await navigator.share(shareData);
@@ -169,7 +170,12 @@ export default function QuoteShareButton({ quote, className = "" }: QuoteShareBu
       }
 
       downloadFile(file);
-      setMessage("Prontinho: baixei a imagem da pilula para voce enviar no WhatsApp.");
+      try {
+        await navigator.clipboard?.writeText(SHARE_URL);
+        setMessage("Prontinho: baixei a imagem e copiei o link do site.");
+      } catch {
+        setMessage(`Prontinho: baixei a imagem. Link do site: ${SHARE_URL}`);
+      }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setMessage("Nao consegui abrir o compartilhamento agora. Tente novamente em instantes.");

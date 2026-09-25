@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { JournalPost } from "../types";
 import JournalCard from "../ui/JournalCard";
 import FilterChipBar from "../ui/FilterChipBar";
+import NewsletterSignup from "../ui/NewsletterSignup";
 
 export const PAPO_FILTERS = [
   "Me escolhendo de novo",
@@ -48,26 +49,42 @@ export default function BlogFilters({ posts }: { posts: JournalPost[] }) {
     return posts;
   }, [activeFilter, posts]);
   const activeLabel = activeFilter === "all" ? "Todas as conversas" : activeFilter.slice("papo:".length);
+  const firstPosts = filteredPosts.slice(0, 3);
+  const remainingPosts = filteredPosts.slice(3);
 
   return (
-    <section className="section-space" aria-labelledby="papo-filters-title">
-      <div className="section-kicker"><span className="eyebrow">Escolha pelo que está sentindo hoje</span></div>
-      <h2 id="papo-filters-title" className="section-title mt-4">Que tipo de conversa<br /><em>você precisa agora?</em></h2>
+    <section className="mt-6" aria-label="Conversas filtradas">
       <FilterChipBar
         ariaLabel="Filtros do Papo de Mulher Madura"
         activeKey={activeFilter}
         onSelect={(key) => setActiveFilter(key as FilterKey)}
         options={[{ key: "all" as FilterKey, label: "Todas as conversas", count: posts.length }, ...filters]}
+        compact
       />
-      <div className="mt-6" aria-live="polite">
-        <p className="mb-6 max-w-2xl text-sm leading-7 text-[var(--muted)]">
+      <div className="mt-4" aria-live="polite">
+        <p className="mb-4 max-w-2xl text-sm leading-7 text-[var(--muted)]">
           {filteredPosts.length} {filteredPosts.length === 1 ? "papo nesta seleção" : "papos nesta seleção"}
           {activeFilter !== "all" && ` · ${filterCopy[activeLabel as PapoFilter]}`}
         </p>
         {filteredPosts.length ? (
-          <div className="editorial-grid">
-            {filteredPosts.map((post) => <JournalCard key={post.id} post={post} href={`/blog/${post.id}`} />)}
-          </div>
+          <>
+            <div className="editorial-grid">
+              {firstPosts.map((post) => <JournalCard key={post.id} post={post} href={`/blog/${post.id}`} />)}
+            </div>
+            <section className="newsletter-cta newsletter-cta--between-list" aria-labelledby="blog-newsletter-title">
+              <div>
+                <p className="eyebrow">Emails para mulheres 50+</p>
+                <h2 id="blog-newsletter-title" className="font-display text-3xl leading-none text-[var(--champagne-pale)]">Fica por dentro, amiga.</h2>
+                <p className="muted mt-3 leading-7">Receba novidades 50+, achados sinceros e nossos papos antes que eles se percam no feed.</p>
+              </div>
+              <NewsletterSignup source="blog-lista" />
+            </section>
+            {remainingPosts.length > 0 && (
+              <div className="editorial-grid">
+                {remainingPosts.map((post) => <JournalCard key={post.id} post={post} href={`/blog/${post.id}`} />)}
+              </div>
+            )}
+          </>
         ) : (
           <div className="empty-state">
             Nada por aqui ainda. Esse sentimento está reservado para uma próxima conversa boa.
