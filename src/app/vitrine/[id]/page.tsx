@@ -4,7 +4,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
+import type { ContentSummary } from "@/lib/summary";
 import ShareButton from "../../ui/ShareButton";
+import QuickSummaryCard from "../../ui/QuickSummaryCard";
 import type { Product } from "../../types";
 
 export const revalidate = 0;
@@ -48,9 +50,13 @@ export async function generateMetadata({ params }: ProductPostProps): Promise<Me
 export default async function ProductPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data } = await supabase.from("products").select("*").eq("id", id).single();
+  const [{ data }, { data: summaryData }] = await Promise.all([
+    supabase.from("products").select("*").eq("id", id).single(),
+    supabase.from("content_summaries").select("*").eq("content_type", "product").eq("content_id", id).maybeSingle(),
+  ]);
   if (!data) notFound();
   const product = data as Product;
+  const summary = summaryData as ContentSummary | null;
   const shareUrl = `${siteUrl}/vitrine/${product.id}`;
 
   return (
@@ -69,6 +75,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
           <h1 className="section-title my-4">{product.title}</h1>
           {product.price && <p className="font-display text-3xl text-[var(--champagne)]">{product.price}</p>}
           <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} className="mb-8 mt-6" />
+          <QuickSummaryCard summary={summary} />
           <div className="prose-luxe mt-8" dangerouslySetInnerHTML={{ __html: product.description }} />
           <div className="mt-10 border-t border-[var(--line)] pt-8">
             <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button w-full">Quero ver onde achei ↗</a>

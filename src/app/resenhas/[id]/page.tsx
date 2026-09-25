@@ -4,7 +4,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
+import type { ContentSummary } from "@/lib/summary";
 import ShareButton from "../../ui/ShareButton";
+import QuickSummaryCard from "../../ui/QuickSummaryCard";
 import type { JournalPost } from "../../types";
 
 export const revalidate = 0;
@@ -48,9 +50,13 @@ export async function generateMetadata({ params }: ReviewPostProps): Promise<Met
 export default async function ReviewPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data } = await supabase.from("journal").select("*").eq("id", id).single();
+  const [{ data }, { data: summaryData }] = await Promise.all([
+    supabase.from("journal").select("*").eq("id", id).single(),
+    supabase.from("content_summaries").select("*").eq("content_type", "journal").eq("content_id", id).maybeSingle(),
+  ]);
   if (!data) notFound();
   const post = data as JournalPost;
+  const summary = summaryData as ContentSummary | null;
   const shareUrl = `${siteUrl}/resenhas/${post.id}`;
 
   return (
@@ -68,6 +74,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
           <p className="eyebrow">Estudei para te explicar • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
           <h1 className="section-title my-6">{post.title}</h1>
           <ShareButton title={post.title} url={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} className="mb-8" />
+          <QuickSummaryCard summary={summary} />
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
           <section className="next-steps" aria-label="Continue navegando">
             <Link href="/vitrine" className="ghost-button">Ver achados relacionados →</Link>

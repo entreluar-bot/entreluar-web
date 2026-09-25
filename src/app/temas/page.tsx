@@ -41,6 +41,10 @@ export default async function Temas() {
             );
           })}
         </div>
+
+        <div className="section-space text-center">
+          <Link href="/me-ajuda-a-escolher" className="ghost-button">Não sabe por onde começar? Me ajuda a escolher →</Link>
+        </div>
       </div>
     </main>
   );

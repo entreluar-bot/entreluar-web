@@ -1,6 +1,6 @@
 import { ThinkingLevel, type GoogleGenAI, type ThinkingConfig } from "@google/genai";
 
-export type AiTask = "brainstorm" | "quote" | "newsletter" | "blog" | "accessory" | "identify" | "research" | "product";
+export type AiTask = "brainstorm" | "quote" | "newsletter" | "blog" | "accessory" | "identify" | "research" | "product" | "summary";
 
 type TaskPolicy = {
   model: string;
@@ -30,6 +30,7 @@ const policies: Record<AiTask, TaskPolicy> = {
   identify: { model: "gemini-3.1-flash-lite", maxOutputTokens: 300, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
   research: { model: "gemini-3.6-flash", maxOutputTokens: 1_400, timeoutMs: 12_000, thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } },
   product: { model: "gemini-3.1-flash-lite", maxOutputTokens: 3_200, timeoutMs: 12_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
+  summary: { model: "gemini-3.1-flash-lite", maxOutputTokens: 500, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
 };
 
 const prices: Record<string, { input: number; output: number }> = {

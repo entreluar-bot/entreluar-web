@@ -5,7 +5,9 @@ import ProductCard from "../ProductCard";
 import type { Product } from "../types";
 import FilterChipBar from "../ui/FilterChipBar";
 
-type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | `category:${string}`;
+type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | `category:${string}` | `tag:${string}`;
+type FilterableProduct = Product & { tagSlugs?: string[] };
+type TagGroup = { label: string; options: Array<{ slug: string; name: string }> };
 
 const specialFilters: Array<{ key: FilterKey; label: string }> = [
   { key: "all", label: "Tudo na bancada" },
@@ -14,7 +16,7 @@ const specialFilters: Array<{ key: FilterKey; label: string }> = [
   { key: "most-viewed", label: "Mais espiados" },
 ];
 
-export default function ProductFilters({ products }: { products: Product[] }) {
+export default function ProductFilters({ products, tagGroups = [] }: { products: FilterableProduct[]; tagGroups?: TagGroup[] }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const categories = useMemo(
     () => [...new Set(products.map((product) => product.category?.trim() || "Geral"))].sort((a, b) => a.localeCompare(b, "pt-BR")),
@@ -28,6 +30,10 @@ export default function ProductFilters({ products }: { products: Product[] }) {
       const category = activeFilter.slice("category:".length);
       return products.filter((product) => (product.category?.trim() || "Geral") === category);
     }
+    if (activeFilter.startsWith("tag:")) {
+      const tagSlug = activeFilter.slice("tag:".length);
+      return products.filter((product) => product.tagSlugs?.includes(tagSlug));
+    }
     return products;
   }, [activeFilter, products]);
 
@@ -39,6 +45,22 @@ export default function ProductFilters({ products }: { products: Product[] }) {
   return (
     <>
       <FilterChipBar ariaLabel="Filtros dos achados" activeKey={activeFilter} onSelect={(key) => setActiveFilter(key as FilterKey)} options={filters} />
+
+      {tagGroups.filter((group) => group.options.length > 0).map((group) => (
+        <div key={group.label} className="mt-4">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[.14em] text-[var(--muted)]">{group.label}</p>
+          <FilterChipBar
+            ariaLabel={group.label}
+            activeKey={activeFilter}
+            onSelect={(key) => setActiveFilter(key as FilterKey)}
+            options={group.options.map((option) => ({
+              key: `tag:${option.slug}` as FilterKey,
+              label: option.name,
+              count: products.filter((product) => product.tagSlugs?.includes(option.slug)).length,
+            }))}
+          />
+        </div>
+      ))}
 
       <div className="mt-6" aria-live="polite">
         <p className="mb-6 text-sm text-[var(--muted)]">{filteredProducts.length} {filteredProducts.length === 1 ? "achado nesta seleção" : "achados nesta seleção"}</p>

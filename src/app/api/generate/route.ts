@@ -6,10 +6,11 @@ import { authenticateAiRequest } from "@/lib/ai/auth";
 import { loadAiContext, parseJson, recordGeneration, suggestMemoryFromNotes, topicTags } from "@/lib/ai/context";
 import { validateAccessoryTrace } from "@/lib/ai/copy-quality";
 import { extractGroundingSources } from "@/lib/ai/grounding";
-import { LUANA_VOICE, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
+import { LUANA_VOICE, QUICK_SUMMARY_RULES, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 import { buildAccessoryPrompt } from "@/lib/ai/prompts";
 import { accessorySchema, productSchema } from "@/lib/ai/schemas";
 import { combineUsage, generateAi, normalizeCacheSubject, type AiUsage } from "@/lib/ai/runtime";
+import { EMPTY_RESUMO_RAPIDO, type ResumoRapido } from "@/lib/summary";
 
 export const maxDuration = 60;
 
@@ -19,7 +20,7 @@ type ProductGeneration = {
   evidenceLevel: "forte" | "moderada" | "inicial" | "nao_verificada" | "nao_aplicavel";
   experienceStatus: "testado" | "impressao_inicial" | "pesquisado" | "nao_informado";
   researchSummary: string; openingStyle: string; structureStyle: string; notablePhrases: string[];
-  inputDetailsUsed?: string[]; humorApplied?: boolean;
+  inputDetailsUsed?: string[]; humorApplied?: boolean; resumoRapido: ResumoRapido;
 };
 type ResearchResult = { summary: string; evidenceLevel: ProductGeneration["evidenceLevel"] };
 
@@ -108,6 +109,7 @@ export async function POST(req: Request) {
       generated.experienceStatus = resolvedStatus;
       generated.inputDetailsUsed ||= [];
       generated.humorApplied = Boolean(generated.humorApplied);
+      generated.resumoRapido ||= EMPTY_RESUMO_RAPIDO;
       await finalizeGeneration({ supabase, userId: user.id, requestHash, requestId, generated, context, contentType, title, usages, timings, cacheHit: false, retryCount: retryFeedback ? 1 : 0, searchQueries: 0 });
       return NextResponse.json({ ...generated, sources: [], performance: { cached: false, durationMs: Date.now() - requestStartedAt } });
     }
@@ -150,7 +152,7 @@ Retorne resumo factual de até 3.500 caracteres com ativos confirmados, funçõe
     }
 
     const context = await contextPromise;
-    const writingPrompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${SCIENCE_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}
+    const writingPrompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${SCIENCE_RULES}\n${QUICK_SUMMARY_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}
 
 DIREÇÃO CRIATIVA: ${getCreativeDirection()}.\n${originalityRules}
 Produto: "${productName}". Confiança: ${identificationConfidence}. Link: ${link || "não informado"}.
@@ -167,7 +169,8 @@ blogTitle deve ser um título criativo e único destacando o poder ou benefício
 <h3>🪞 Manual de Sobrevivência</h3>
 <h3>⚖️ É hype ou é milagre?</h3>
 Diferencie promessa, evidência e experiência; não liste fontes ou URLs. Finalize com: <br><br><a href="${link || "#"}" target="_blank" class="text-[var(--color-gold)] font-bold underline">✨ Ver o produto indicado pela Luana</a>
-researchSummary deve reutilizar o resumo fornecido. evidenceLevel deve ser ${research.evidenceLevel}.`;
+researchSummary deve reutilizar o resumo fornecido. evidenceLevel deve ser ${research.evidenceLevel}.
+resumoRapido deve resumir o productReview que você acabou de escrever — esse mesmo resumo será usado na ficha do produto na Vitrine e no artigo companheiro sobre o mesmo ativo.`;
 
     let retryCount = 0;
     const writingStartedAt = Date.now();
@@ -185,6 +188,7 @@ researchSummary deve reutilizar o resumo fornecido. evidenceLevel deve ser ${res
     generated.identificationConfidence = identificationConfidence;
     generated.evidenceLevel = research.evidenceLevel;
     generated.experienceStatus = resolvedStatus;
+    generated.resumoRapido ||= EMPTY_RESUMO_RAPIDO;
     generated.researchSummary = research.summary.slice(0, 3500);
     if (!generated.productReview.includes('href="/resenhas"')) generated.productReview += `<br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>`;
 

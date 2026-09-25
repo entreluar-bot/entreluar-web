@@ -1,5 +1,5 @@
 import { originalityRules } from "@/lib/creative-direction";
-import { LUANA_VOICE, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
+import { LUANA_VOICE, QUICK_SUMMARY_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 
 export function buildQuotePrompt(input: {
   existingQuotes: string[];
@@ -26,6 +26,7 @@ export function buildAccessoryPrompt(input: {
   return `${LUANA_VOICE}
 ${TRUTH_RULES}
 ${SIMPLE_LANGUAGE_RULES}
+${QUICK_SUMMARY_RULES}
 ${input.memoryPrompt}
 ${input.antiRepetitionPrompt}
 ${originalityRules}

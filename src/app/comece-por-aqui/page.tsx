@@ -7,7 +7,7 @@ const paths = [
   { href: "/temas/menopausa-bem-estar", label: "Estou vivendo as mudanças dos 50+" },
   { href: "/blog", label: "Quero conversar, rir e me identificar" },
   { href: "/vitrine", label: "Quero descobrir produtos que realmente foram testados" },
-  { href: "/temas", label: "Não sei por onde começar" },
+  { href: "/me-ajuda-a-escolher", label: "Não sei por onde começar" },
 ];
 
 export default function ComecePorAqui() {

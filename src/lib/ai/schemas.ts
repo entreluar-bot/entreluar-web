@@ -1,3 +1,18 @@
+export const resumoRapidoSchema = {
+  type: "object",
+  properties: {
+    whatIs: { type: "string" },
+    usedFor: { type: "string" },
+    noticed: { type: "string" },
+    pro: { type: "string" },
+    caution: { type: "string" },
+    repurchase: { type: "string" },
+    duration: { type: "string" },
+  },
+  required: ["whatIs", "usedFor", "noticed", "pro", "caution", "repurchase", "duration"],
+  additionalProperties: false,
+};
+
 export const postSchema = {
   type: "object",
   properties: {
@@ -8,8 +23,9 @@ export const postSchema = {
     structureStyle: { type: "string" },
     closingStyle: { type: "string" },
     notablePhrases: { type: "array", items: { type: "string" }, maxItems: 3 },
+    resumoRapido: resumoRapidoSchema,
   },
-  required: ["title", "text", "imagePrompt", "openingStyle", "structureStyle", "closingStyle", "notablePhrases"],
+  required: ["title", "text", "imagePrompt", "openingStyle", "structureStyle", "closingStyle", "notablePhrases", "resumoRapido"],
   additionalProperties: false,
 };
 
@@ -27,8 +43,9 @@ export const productSchema = {
     openingStyle: { type: "string" },
     structureStyle: { type: "string" },
     notablePhrases: { type: "array", items: { type: "string" }, maxItems: 3 },
+    resumoRapido: resumoRapidoSchema,
   },
-  required: ["productName", "productReview", "blogTitle", "blogPost", "identificationConfidence", "evidenceLevel", "experienceStatus", "researchSummary", "openingStyle", "structureStyle", "notablePhrases"],
+  required: ["productName", "productReview", "blogTitle", "blogPost", "identificationConfidence", "evidenceLevel", "experienceStatus", "researchSummary", "openingStyle", "structureStyle", "notablePhrases", "resumoRapido"],
   additionalProperties: false,
 };
 

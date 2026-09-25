@@ -23,3 +23,10 @@ CIÊNCIA E SEGURANÇA:
 - Evidência de um ingrediente isolado não prova o mesmo efeito na fórmula final.
 - Não faça diagnóstico, prescrição, promessa terapêutica ou garantia de resultado.
 - Apresente benefício provável, limitações e cuidados relevantes em linguagem simples.`;
+
+export const QUICK_SUMMARY_RULES = `
+RESUMO "EM 30 SEGUNDOS" (campo resumoRapido):
+- Preencha resumoRapido resumindo SOMENTE o que você mesma escreveu no texto principal acima (productReview/blogPost/text) — nunca acrescente fato, benefício, opinião ou experiência que não esteja ali.
+- Cada campo é uma frase curtíssima (até ~12 palavras), no seu tom: direta, com humor de amiga, nada de linguagem clínica ou de bula.
+- whatIs: o que é, sem rodeio. usedFor: para que entrou na rotina. noticed: o que você percebeu/viu (sem prometer resultado). pro: o que mais te conquistou. caution: um alerta honesto (só se houver ressalva real no texto; senão deixe vazio). repurchase: recompraria ou não, com sua voz (só se o texto falar de experiência real de uso; senão deixe vazio). duration: há quanto tempo usa/testou (só se essa informação estiver no texto; senão deixe vazio).
+- Se um campo não fizer sentido para este conteúdo específico (por exemplo, um artigo que é pesquisa e não teve uso pessoal confirmado), devolva string vazia "" nesse campo em vez de inventar.`;

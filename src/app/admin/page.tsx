@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 import { TAG_TYPE_LABELS, slugify, type Tag, type TagType } from "@/lib/tags";
+import { EMPTY_RESUMO_RAPIDO, RESUMO_RAPIDO_FIELDS, resumoRapidoHasContent, resumoRapidoToRow, rowToResumoRapido, type ResumoRapido } from "@/lib/summary";
 import InstallAppButton from "../ui/InstallAppButton";
 
 type NewsletterStatus = "idle" | "preparing" | "sending" | "complete" | "partial" | "failed";
@@ -209,7 +210,12 @@ export default function AdminDashboard() {
   const [newTagName, setNewTagName] = useState("");
   const [newTagType, setNewTagType] = useState<TagType>("concern");
   const [creatingTag, setCreatingTag] = useState(false);
-  
+
+  const [generatedResumoRapido, setGeneratedResumoRapido] = useState<ResumoRapido>(EMPTY_RESUMO_RAPIDO);
+  const [editingItemSummary, setEditingItemSummary] = useState<ResumoRapido>(EMPTY_RESUMO_RAPIDO);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [bulkSummaryStatus, setBulkSummaryStatus] = useState("");
+
   const [blogCategory, setBlogCategory] = useState("Papo de Mulher Madura");
   const [blogPapoFilter, setBlogPapoFilter] = useState("Confissões da maturidade");
   const [isFeatured, setIsFeatured] = useState(false);
@@ -415,8 +421,13 @@ export default function AdminDashboard() {
   const startEditingItem = async (payload: any, contentType: "journal" | "product") => {
     setEditingItem(payload);
     setEditingItemTagIds([]);
-    const { data } = await supabase.from("content_tags").select("tag_id").eq("content_type", contentType).eq("content_id", payload.id);
+    setEditingItemSummary(EMPTY_RESUMO_RAPIDO);
+    const [{ data }, { data: summaryData }] = await Promise.all([
+      supabase.from("content_tags").select("tag_id").eq("content_type", contentType).eq("content_id", payload.id),
+      supabase.from("content_summaries").select("*").eq("content_type", contentType).eq("content_id", payload.id).maybeSingle(),
+    ]);
     setEditingItemTagIds((data || []).map((row: any) => row.tag_id));
+    setEditingItemSummary(rowToResumoRapido(summaryData));
   };
 
   const toggleEditingItemTag = (tagId: string) => {
@@ -438,6 +449,57 @@ export default function AdminDashboard() {
       alert(error.message);
     }
     setCreatingTag(false);
+  };
+
+  const handleGenerateSummaryForEditingItem = async () => {
+    if (!editingItem) return;
+    if (!confirmAiSpend()) return;
+    setGeneratingSummary(true);
+    try {
+      const data = await adminRequest("/api/generate-summary", {
+        method: "POST",
+        body: JSON.stringify({ contentType: editingItem.type === "product" ? "product" : "journal", title: editingItem.title, sourceHtml: editingItem.content }),
+      });
+      setEditingItemSummary(data.resumoRapido || EMPTY_RESUMO_RAPIDO);
+      setMessage("Resumo gerado! Revise e clique em Salvar Alterações para publicar.");
+    } catch (error: any) {
+      setMessage("Erro: " + error.message);
+    }
+    setGeneratingSummary(false);
+  };
+
+  const handleBulkGenerateSummaries = async () => {
+    if (!confirmAiSpend()) return;
+    const candidates = [
+      ...products.map((p) => ({ contentType: "product" as const, id: p.id, title: p.title, sourceHtml: p.description })),
+      ...journals.filter((j) => j.category === "Estudei para te explicar").map((j) => ({ contentType: "journal" as const, id: j.id, title: j.title, sourceHtml: j.content })),
+    ];
+    if (!candidates.length) return setMessage("Nada para resumir ainda.");
+
+    const { data: existing } = await supabase.from("content_summaries").select("content_type,content_id");
+    const existingKeys = new Set((existing || []).map((row: any) => `${row.content_type}:${row.content_id}`));
+    const pending = candidates.filter((item) => !existingKeys.has(`${item.contentType}:${item.id}`));
+    if (!pending.length) return setMessage("Todo mundo já tem resumo. ✨");
+    if (!confirm(`Vou gerar resumo para ${pending.length} itens que ainda não têm "Em 30 segundos". Isso dispara ${pending.length} chamadas de IA (uma de cada vez). Continuar?`)) return;
+
+    let done = 0;
+    let failed = 0;
+    setBulkSummaryStatus(`Gerando 0 de ${pending.length}...`);
+    for (const item of pending) {
+      try {
+        const data = await adminRequest("/api/generate-summary", { method: "POST", body: JSON.stringify({ contentType: item.contentType, title: item.title, sourceHtml: item.sourceHtml }) });
+        const resumo = data.resumoRapido as ResumoRapido;
+        if (resumoRapidoHasContent(resumo)) {
+          await supabase.from("content_summaries").insert([{ content_type: item.contentType, content_id: item.id, generated_by: "ai", ...resumoRapidoToRow(resumo) }]);
+        }
+      } catch {
+        failed += 1;
+      }
+      done += 1;
+      setBulkSummaryStatus(`Gerando ${done} de ${pending.length}...`);
+    }
+    setBulkSummaryStatus("");
+    setMessage(`Resumos gerados: ${done - failed} de ${pending.length}.${failed ? ` ${failed} falharam — pode rodar de novo pra tentar só o que faltou.` : ""}`);
   };
 
   useEffect(() => {
@@ -536,6 +598,7 @@ export default function AdminDashboard() {
       setGeneratedBlogPost(data.blogPost);
       setAccessoryDetailsUsed(Array.isArray(data.inputDetailsUsed) ? data.inputDetailsUsed : []);
       setAccessoryHumorApplied(Boolean(data.humorApplied));
+      setGeneratedResumoRapido(data.resumoRapido || EMPTY_RESUMO_RAPIDO);
       setBlogCategory("Estudei para te explicar");
       const seconds = data.performance?.durationMs ? ` em ${(data.performance.durationMs / 1000).toFixed(1)}s` : "";
       const cacheNote = data.performance?.cached ? " usando o cache econômico" : "";
@@ -607,7 +670,8 @@ export default function AdminDashboard() {
 
       setGeneratedBlogTitle(data.title || title || "Crônica da Luana");
       setGeneratedBlogPost(data.text);
-      
+      setGeneratedResumoRapido(data.resumoRapido || EMPTY_RESUMO_RAPIDO);
+
       if (data.imagePrompt) {
         setMessage("Buscando inspiração de imagem fotográfica...");
         try {
@@ -813,6 +877,10 @@ export default function AdminDashboard() {
             await previousNew.or('category.is.null,category.neq."Estudei para te explicar"');
           }
         }
+
+        if (journalId && blogCategory === "Estudei para te explicar" && resumoRapidoHasContent(generatedResumoRapido)) {
+          await supabase.from("content_summaries").insert([{ content_type: "journal", content_id: journalId, generated_by: "ai", ...resumoRapidoToRow(generatedResumoRapido) }]);
+        }
       }
 
       if (activeTab === "product" && generatedReview) {
@@ -842,6 +910,10 @@ export default function AdminDashboard() {
         if (isNew && prodData?.id) {
           await supabase.from("products").update({ is_new: false }).neq("id", prodData.id);
         }
+
+        if (prodData?.id && resumoRapidoHasContent(generatedResumoRapido)) {
+          await supabase.from("content_summaries").insert([{ content_type: "product", content_id: prodData.id, generated_by: "ai", ...resumoRapidoToRow(generatedResumoRapido) }]);
+        }
       }
 
       setMessage("Sucesso! Tudo publicado no ar!");
@@ -850,7 +922,7 @@ export default function AdminDashboard() {
       setGeneratedReview(""); setGeneratedProductName("");
       setGeneratedBlogTitle(""); setGeneratedBlogPost("");
       setBlogPapoFilter("Confissões da maturidade");
-      setPostDate("");
+      setPostDate(""); setGeneratedResumoRapido(EMPTY_RESUMO_RAPIDO);
 
     } catch (error: any) {
       setMessage("Erro: " + error.message);
@@ -960,8 +1032,18 @@ export default function AdminDashboard() {
         await supabase.from("content_tags").insert(editingItemTagIds.map((tagId) => ({ tag_id: tagId, content_type: contentType, content_id: editingItem.id })));
       }
 
+      if (resumoRapidoHasContent(editingItemSummary)) {
+        await supabase.from("content_summaries").upsert(
+          { content_type: contentType, content_id: editingItem.id, generated_by: "manual", ...resumoRapidoToRow(editingItemSummary) },
+          { onConflict: "content_type,content_id" },
+        );
+      } else {
+        await supabase.from("content_summaries").delete().eq("content_type", contentType).eq("content_id", editingItem.id);
+      }
+
       setEditingItem(null);
       setEditingItemTagIds([]);
+      setEditingItemSummary(EMPTY_RESUMO_RAPIDO);
       fetchManageData();
       setMessage("Atualizado com sucesso! As classificações já estão refletidas nos filtros.");
     } catch (error: any) {
@@ -991,8 +1073,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.62</p>
-                <p>Atualizado em 25/09/2026 às 16:50</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.63</p>
+                <p>Atualizado em 25/09/2026 às 19:20</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1351,6 +1433,14 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 )}
+                {!editingItem && (manageType === "vitrine" || manageType === "estudei") && (
+                  <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] px-4 py-3">
+                    <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Faltam &quot;Em 30 segundos&quot; na Vitrine ou em Estudei? Gero de uma vez para tudo que ainda não tem, a partir do texto já publicado.</p>
+                    <button type="button" onClick={handleBulkGenerateSummaries} disabled={Boolean(bulkSummaryStatus)} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
+                      {bulkSummaryStatus || "✨ Gerar resumos que faltam"}
+                    </button>
+                  </div>
+                )}
                 {editingItem ? (
                   <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
                     <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif">
@@ -1462,9 +1552,33 @@ export default function AdminDashboard() {
                         </button>
                       </div>
                     </fieldset>
+                    {(editingItem.type === "product" || editingItem.category === "Estudei para te explicar") && (
+                      <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                        <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Em 30 segundos</legend>
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                          <p className="text-xs text-[var(--color-gold-light)] opacity-65">Aparece na ficha antes do texto completo. Deixe em branco o que não fizer sentido aqui.</p>
+                          <button type="button" onClick={handleGenerateSummaryForEditingItem} disabled={generatingSummary} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
+                            {generatingSummary ? "Gerando…" : "✨ Gerar com IA"}
+                          </button>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {RESUMO_RAPIDO_FIELDS.map(({ key, label }) => (
+                            <label key={key} className="block text-xs font-bold uppercase tracking-wider text-[var(--color-gold-light)]">
+                              {label}
+                              <input
+                                type="text"
+                                value={editingItemSummary[key]}
+                                onChange={(event) => setEditingItemSummary({ ...editingItemSummary, [key]: event.target.value })}
+                                className="mt-1 w-full px-3 py-2 text-sm normal-case tracking-normal"
+                              />
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                    )}
                     <textarea value={editingItem.content} onChange={(e) => setEditingItem({ ...editingItem, content: e.target.value })} rows={15} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed border border-[var(--color-wine-light)] p-4 rounded" ></textarea>
                     <div className="flex gap-4 mt-4">
-                      <button onClick={() => { setEditingItem(null); setEditingItemTagIds([]); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-3 rounded font-bold uppercase">
+                      <button onClick={() => { setEditingItem(null); setEditingItemTagIds([]); setEditingItemSummary(EMPTY_RESUMO_RAPIDO); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-3 rounded font-bold uppercase">
                         Cancelar
                       </button>
                       <button onClick={handleUpdateItem} disabled={loading || !editingItem.created_at} className="flex-2 w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-3 rounded font-bold uppercase disabled:opacity-50">

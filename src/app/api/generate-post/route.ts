@@ -3,9 +3,10 @@ import { GoogleGenAI } from "@google/genai";
 import { getCreativeDirection, originalityRules } from "@/lib/creative-direction";
 import { authenticateAiRequest } from "@/lib/ai/auth";
 import { loadAiContext, parseJson, recordGeneration, suggestMemoryFromNotes, topicTags } from "@/lib/ai/context";
-import { LUANA_VOICE, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
+import { LUANA_VOICE, QUICK_SUMMARY_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 import { postSchema } from "@/lib/ai/schemas";
 import { generateAi } from "@/lib/ai/runtime";
+import { EMPTY_RESUMO_RAPIDO, type ResumoRapido } from "@/lib/summary";
 
 export const maxDuration = 60; 
 
@@ -37,14 +38,16 @@ export async function POST(req: Request) {
     } 
     
     const context = await loadAiContext(supabase, user.id, "blog", topicTags(title, impressions, category));
-    const prompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}
+    const isEstudei = category === "Estudei para te explicar";
+    const prompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${QUICK_SUMMARY_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}
 
 Escreva um artigo completo para a categoria "${category || "Diário"}" do blog. Tema: "${title || "Crônica de uma mulher madura"}". NOTAS PESSOAIS DA LUANA: "${impressions || "Nenhuma nota pessoal fornecida."}"
 
 DIREÇÃO CRIATIVA EXCLUSIVA DESTA GERAÇÃO: ${getCreativeDirection()}.
 ${originalityRules}
 
-Não copie as notas literalmente: preserve o sentido e desenvolva somente o que elas sustentam. Use HTML (<p>, <h3>, <i>, <strong>, <ul>, <ol>). Crie um título com um hook (gancho) fascinante, elegante e instigante que desperte o desejo imediato de leitura na nossa audiência. O título não deve soar falso ou como "clickbait barato", mas sim como um segredo irresistível sendo compartilhado. O imagePrompt deve ser em inglês, nascer do conceito deste texto e evitar clichês de vinho, café, robe, luxo genérico e mulher diante do espelho.`;
+Não copie as notas literalmente: preserve o sentido e desenvolva somente o que elas sustentam. Use HTML (<p>, <h3>, <i>, <strong>, <ul>, <ol>). Crie um título com um hook (gancho) fascinante, elegante e instigante que desperte o desejo imediato de leitura na nossa audiência. O título não deve soar falso ou como "clickbait barato", mas sim como um segredo irresistível sendo compartilhado. O imagePrompt deve ser em inglês, nascer do conceito deste texto e evitar clichês de vinho, café, robe, luxo genérico e mulher diante do espelho.
+${isEstudei ? "resumoRapido deve resumir o artigo (text) que você acabou de escrever — é a ficha rápida de \"Estudei para te explicar\"." : "Este é um artigo de Papo de Mulher (crônica/relato, não ficha de produto/ativo): devolva todos os campos de resumoRapido como string vazia \"\"."}`;
     const contents = []; 
     if (imagePart) contents.push(imagePart); 
     contents.push(prompt); 
@@ -54,7 +57,8 @@ Não copie as notas literalmente: preserve o sentido e desenvolva somente o que 
       config: { responseMimeType: "application/json", responseJsonSchema: postSchema, temperature: 0.85 },
     }); 
 
-    const generated = parseJson<{ title: string; text: string; imagePrompt: string; openingStyle: string; structureStyle: string; closingStyle: string; notablePhrases: string[] }>(response.text);
+    const generated = parseJson<{ title: string; text: string; imagePrompt: string; openingStyle: string; structureStyle: string; closingStyle: string; notablePhrases: string[]; resumoRapido: ResumoRapido }>(response.text);
+    generated.resumoRapido ||= EMPTY_RESUMO_RAPIDO;
     await recordGeneration(supabase, user.id, { contentType: "blog", topic: `${title || ""} ${category || ""}`, title: generated.title, openingStyle: generated.openingStyle, structureStyle: generated.structureStyle, closingStyle: generated.closingStyle, notablePhrases: generated.notablePhrases, memoryIds: context.memoryIds, usage });
     await suggestMemoryFromNotes(supabase, user.id, impressions, topicTags(title, impressions, category));
     return NextResponse.json(generated);
