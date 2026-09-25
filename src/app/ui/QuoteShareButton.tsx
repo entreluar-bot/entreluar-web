@@ -246,7 +246,7 @@ export default function QuoteShareButton({ quote, className = "" }: QuoteShareBu
   return (
     <div className={`share-action quote-share ${className}`}>
       <button type="button" onClick={share} disabled={isGenerating} className="ghost-button share-button quote-share__button">
-        {isGenerating ? "Criando imagem..." : "Compartilhar como imagem"}
+        {isGenerating ? "Criando imagem..." : "Compartilhe com uma amiga"}
       </button>
       {message && <p className="share-message quote-share__message" role="status">{message}</p>}
     </div>

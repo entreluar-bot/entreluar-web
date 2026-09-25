@@ -73,6 +73,7 @@ export default async function Resenhas() {
       <div className="content-wrap">
         <header className="page-intro page-intro--compact">
           <h1 className="section-title">Estudei para<br /><em>te explicar</em></h1>
+          <p>Eu estudo os ativos, separo evidência de promessa e te conto o que importa — sem complicar e sem enrolação.</p>
         </header>
         {posts.length ? <ReviewFilters posts={posts} tagGroups={tagGroups} /> : <div className="empty-state">A lupa está trabalhando. Quando a evidência chegar, eu traduzo sem enrolação. 🔬</div>}
       </div>
