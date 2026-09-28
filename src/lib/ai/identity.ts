@@ -41,6 +41,7 @@ export const TAG_SUGGESTION_RULES = `
 TAGS SUGERIDAS (campo suggestedTagSlugs):
 - Escolha só entre os slugs exatos da lista "TAGS DISPONÍVEIS" informada abaixo — nunca invente um slug novo nem escreva o nome, sempre o slug.
 - Sugira de 2 a 8 tags que realmente se aplicam ao produto/artigo (queixas que ele resolve, ativos que contém, fase de vida relacionada).
+- Se for um produto de skincare (não maquiagem, acessório ou roupa), use o "modo de uso" que você pesquisou na página oficial da marca para também sugerir, quando a informação estiver clara: exatamente UMA tag do grupo "Fase da rotina" (em qual passo da rotina ele entra — limpeza, sérum, tratamento, área dos olhos, hidratante, protetor solar), UMA tag do grupo "Período da rotina" (manhã, noite ou ambos — protetor solar é sempre manhã; ativos fortes como retinol/retinal são sempre noite) e, se a fórmula indicar claramente, uma tag de "Tipo de pele" e uma de "Origem" (marca brasileira ou coreana). Nunca invente fase/período que o modo de uso não sustente — nesse caso, simplesmente não sugira essa tag.
 - Se nenhuma tag da lista fizer sentido, devolva um array vazio — não force uma tag que não encaixa.`;
 
 export const POLL_SUGGESTION_RULES = `
