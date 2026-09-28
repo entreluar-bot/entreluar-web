@@ -11,7 +11,7 @@ import { buildAccessoryPrompt } from "@/lib/ai/prompts";
 import { accessorySchema, productSchema } from "@/lib/ai/schemas";
 import { combineUsage, generateAi, normalizeCacheSubject, type AiUsage } from "@/lib/ai/runtime";
 import { EMPTY_RESUMO_RAPIDO, type ResumoRapido } from "@/lib/summary";
-import { filterValidTagSlugs, formatTagsForPrompt, type Tag } from "@/lib/tags";
+import { ensureIngredientTag, filterValidTagSlugs, formatTagsForPrompt, type Tag } from "@/lib/tags";
 
 export const maxDuration = 60;
 
@@ -25,7 +25,7 @@ type ProductGeneration = {
   experienceStatus: "testado" | "impressao_inicial" | "pesquisado" | "nao_informado";
   researchSummary: string; openingStyle: string; structureStyle: string; notablePhrases: string[];
   inputDetailsUsed?: string[]; humorApplied?: boolean; resumoRapido: ResumoRapido;
-  resumoRapidoArtigo: ResumoRapido; suggestedTagSlugs: string[]; suggestedPoll: PollSuggestion;
+  resumoRapidoArtigo: ResumoRapido; suggestedTagSlugs: string[]; mainActiveIngredient: string; suggestedPoll: PollSuggestion;
 };
 type ResearchResult = { summary: string; evidenceLevel: ProductGeneration["evidenceLevel"] };
 
@@ -120,9 +120,10 @@ export async function POST(req: Request) {
       generated.resumoRapido ||= EMPTY_RESUMO_RAPIDO;
       generated.resumoRapidoArtigo = EMPTY_RESUMO_RAPIDO;
       generated.suggestedTagSlugs = filterValidTagSlugs(generated.suggestedTagSlugs, tags);
+      generated.mainActiveIngredient = "";
       generated.suggestedPoll = EMPTY_POLL_SUGGESTION;
       await finalizeGeneration({ supabase, userId: user.id, requestHash, requestId, generated, context, contentType, title, usages, timings, cacheHit: false, retryCount: retryFeedback ? 1 : 0, searchQueries: 0 });
-      return NextResponse.json({ ...generated, sources: [], performance: { cached: false, durationMs: Date.now() - requestStartedAt } });
+      return NextResponse.json({ ...generated, sources: [], newIngredientTag: null, performance: { cached: false, durationMs: Date.now() - requestStartedAt } });
     }
 
     let productName = String(title || "").trim();
@@ -173,7 +174,7 @@ PESQUISA VERIFICADA, SEM EXTRAPOLAR: ${research.summary}
 TAGS DISPONÍVEIS:
 ${formatTagsForPrompt(tags)}
 
-Crie productReview em primeira pessoa, 4 a 7 frases, com as notas como coração, explicação leve de 1 ou 2 ativos e 1 a 3 emojis. Não invente uso. Termine exatamente com: <br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>
+Crie productReview em primeira pessoa, 4 a 7 frases, com as notas como coração, explicação leve de 1 ou 2 ativos e 1 a 3 emojis. Se for produto de skincare com etapa/período aplicável, inclua uma frase natural dizendo quando usar (manhã e/ou noite) e em que momento da rotina (ex.: antes do hidratante, depois do sérum), coerente com a tag de etapa/período que você escolher em suggestedTagSlugs — sem virar bula. Não invente uso. Termine exatamente com: <br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>
 blogTitle deve ser um título criativo e único destacando o poder ou benefício principal do produto/ativo para a pele madura. NUNCA use "Estudei para te explicar:" nem comece com "A verdade sobre...". Varie o formato a cada geração. blogPost deve usar HTML, parágrafos curtos e exatamente estes títulos, nesta ordem:
 <i>[conclusão curta sem promessa milagrosa]</i>
 <h3>📣 A Promessa da Indústria</h3>
@@ -184,7 +185,7 @@ blogTitle deve ser um título criativo e único destacando o poder ou benefício
 <h3>⚖️ É hype ou é milagre?</h3>
 Diferencie promessa, evidência e experiência; não liste fontes ou URLs. Finalize com: <br><br><a href="${link || "#"}" target="_blank" class="text-[var(--color-gold)] font-bold underline">✨ Ver o produto indicado pela Luana</a>
 researchSummary deve reutilizar o resumo fornecido. evidenceLevel deve ser ${research.evidenceLevel}.
-resumoRapido deve resumir o productReview que você acabou de escrever, pra ficha do produto na Vitrine. resumoRapidoArtigo deve resumir o blogPost, pra ficha do artigo (são resumos diferentes, um do produto e outro do ativo/tema). suggestedTagSlugs e suggestedPoll seguem as regras acima.`;
+resumoRapido deve resumir o productReview que você acabou de escrever, pra ficha do produto na Vitrine. resumoRapidoArtigo deve resumir o blogPost, pra ficha do artigo (são resumos diferentes, um do produto e outro do ativo/tema). suggestedTagSlugs, mainActiveIngredient e suggestedPoll seguem as regras acima.`;
 
     let retryCount = 0;
     const writingStartedAt = Date.now();
@@ -211,9 +212,19 @@ resumoRapido deve resumir o productReview que você acabou de escrever, pra fich
     generated.researchSummary = research.summary.slice(0, 3500);
     if (!generated.productReview.includes('href="/resenhas"')) generated.productReview += `<br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>`;
 
+    generated.mainActiveIngredient = String(generated.mainActiveIngredient || "").trim();
+    let newIngredientTag: Tag | null = null;
+    if (generated.mainActiveIngredient) {
+      const ingredientResult = await ensureIngredientTag(supabase, tags, generated.mainActiveIngredient);
+      if (ingredientResult) {
+        if (!generated.suggestedTagSlugs.includes(ingredientResult.tag.slug)) generated.suggestedTagSlugs.push(ingredientResult.tag.slug);
+        if (ingredientResult.isNew) newIngredientTag = ingredientResult.tag;
+      }
+    }
+
     await finalizeGeneration({ supabase, userId: user.id, requestHash, requestId, generated, context, contentType, title: productName, usages, timings, cacheHit: Boolean(cachedResearch), retryCount, searchQueries });
     await suggestMemoryFromNotes(supabase, user.id, impressions, topicTags(productName, impressions, "skincare cosmetico"));
-    return NextResponse.json({ ...generated, sources, performance: { cached: Boolean(cachedResearch), durationMs: Date.now() - requestStartedAt, stages: timings } });
+    return NextResponse.json({ ...generated, sources, newIngredientTag, performance: { cached: Boolean(cachedResearch), durationMs: Date.now() - requestStartedAt, stages: timings } });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erro ao gerar conteúdo";
     return NextResponse.json({ error: message }, { status: message.includes("autoriz") || message.includes("Sessão") ? 401 : 500 });

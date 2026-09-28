@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
 import type { ContentSummary } from "@/lib/summary";
+import { routinePeriodFromTagSlug, routineStepFromTagSlug, type RoutinePeriodKey, type RoutineStepKey } from "@/lib/routine";
 import ShareButton from "../../ui/ShareButton";
 import QuickSummaryCard from "../../ui/QuickSummaryCard";
 import AddToRoutineButton from "../../ui/AddToRoutineButton";
@@ -51,14 +52,26 @@ export async function generateMetadata({ params }: ProductPostProps): Promise<Me
 export default async function ProductPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: summaryData }] = await Promise.all([
+  const [{ data }, { data: summaryData }, { data: routineTagRows }, { data: routineLinkRows }] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).single(),
     supabase.from("content_summaries").select("*").eq("content_type", "product").eq("content_id", id).maybeSingle(),
+    supabase.from("tags").select("id,slug,type").in("type", ["routine_step", "usage_period"]),
+    supabase.from("content_tags").select("tag_id").eq("content_type", "product").eq("content_id", id),
   ]);
   if (!data) notFound();
   const product = data as Product;
   const summary = summaryData as ContentSummary | null;
   const shareUrl = `${siteUrl}/vitrine/${product.id}`;
+
+  const routineTagById = new Map((routineTagRows || []).map((tag: { id: string; slug: string; type: string }) => [tag.id, tag] as const));
+  let defaultRoutineStep: RoutineStepKey | undefined;
+  let defaultRoutinePeriod: RoutinePeriodKey | undefined;
+  for (const link of (routineLinkRows || []) as Array<{ tag_id: string }>) {
+    const tag = routineTagById.get(link.tag_id);
+    if (!tag) continue;
+    if (tag.type === "routine_step" && !defaultRoutineStep) defaultRoutineStep = routineStepFromTagSlug(tag.slug) ?? undefined;
+    if (tag.type === "usage_period" && !defaultRoutinePeriod) defaultRoutinePeriod = routinePeriodFromTagSlug(tag.slug) ?? undefined;
+  }
 
   return (
     <main className="site-shell">
@@ -82,7 +95,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} />
-            <AddToRoutineButton id={product.id} title={product.title} image_url={product.image_url} className="sm:mt-0" />
+            <AddToRoutineButton id={product.id} title={product.title} image_url={product.image_url} defaultPeriod={defaultRoutinePeriod} defaultStep={defaultRoutineStep} className="sm:mt-0" />
           </div>
           <section className="next-steps" aria-label="Continue navegando">
             <Link href={product.companion_journal_id ? `/resenhas/${product.companion_journal_id}` : "/resenhas"} className="ghost-button">Entender ativos →</Link>

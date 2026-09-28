@@ -1,8 +1,8 @@
 ﻿"use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
-import { TAG_TYPE_LABELS, slugify, type Tag, type TagType } from "@/lib/tags";
+import { categoryTagSlug, TAG_TYPE_LABELS, slugify, type Tag, type TagType } from "@/lib/tags";
 import { EMPTY_RESUMO_RAPIDO, resumoRapidoFields, resumoRapidoHasContent, resumoRapidoToRow, rowToResumoRapido, type ResumoRapido } from "@/lib/summary";
 import InstallAppButton from "../ui/InstallAppButton";
 
@@ -223,6 +223,7 @@ export default function AdminDashboard() {
   const [creatingTag, setCreatingTag] = useState(false);
   const [suggestingTags, setSuggestingTags] = useState(false);
   const [bulkTagStatus, setBulkTagStatus] = useState("");
+  const [bulkIngredientStatus, setBulkIngredientStatus] = useState("");
 
   const [generatedResumoRapido, setGeneratedResumoRapido] = useState<ResumoRapido>(EMPTY_RESUMO_RAPIDO);
   const [generatedResumoRapidoArtigo, setGeneratedResumoRapidoArtigo] = useState<ResumoRapido>(EMPTY_RESUMO_RAPIDO);
@@ -281,6 +282,13 @@ export default function AdminDashboard() {
       if (data) setTags(data as Tag[]);
     });
   }, []);
+
+  const categoryOptions = useMemo(() => {
+    const canonical = new Set<string>(PRODUCT_CATEGORIES);
+    const used = new Set(products.map((p) => String(p.category || "").trim()).filter(Boolean));
+    const extra = Array.from(used).filter((c) => !canonical.has(c)).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return [...PRODUCT_CATEGORIES, ...extra];
+  }, [products]);
 
   useEffect(() => {
     if (activeTab === "inbox") fetchEmails();
@@ -546,6 +554,12 @@ export default function AdminDashboard() {
     setEditingItemTagIds((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]));
   };
 
+  const handleEditingCategoryChange = (category: string) => {
+    setEditingItem((prev: any) => ({ ...prev, category }));
+    const categoryTag = tags.find((tag) => tag.type === "category" && tag.slug === categoryTagSlug(category));
+    if (categoryTag) setEditingItemTagIds((prev) => (prev.includes(categoryTag.id) ? prev : [...prev, categoryTag.id]));
+  };
+
   const toggleGeneratedTag = (tagId: string) => {
     setGeneratedTagIds((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]));
   };
@@ -588,8 +602,10 @@ export default function AdminDashboard() {
         method: "POST",
         body: JSON.stringify({ contentType: editingItem.type === "product" ? "product" : "journal", title: editingItem.title, sourceHtml: editingItem.content }),
       });
+      const mergedTags = data.newIngredientTag ? [...tags, data.newIngredientTag as Tag] : tags;
+      if (data.newIngredientTag) setTags((prev) => [...prev, data.newIngredientTag as Tag].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
       const slugs = new Set((data.suggestedTagSlugs || []) as string[]);
-      const suggestedIds = tags.filter((tag) => slugs.has(tag.slug)).map((tag) => tag.id);
+      const suggestedIds = mergedTags.filter((tag) => slugs.has(tag.slug)).map((tag) => tag.id);
       setEditingItemTagIds((prev) => Array.from(new Set([...prev, ...suggestedIds])));
       setMessage(suggestedIds.length ? "Tags sugeridas! Revise e clique em Salvar Alterações." : "A IA não achou tags da lista que se encaixassem aqui.");
     } catch (error: any) {
@@ -631,6 +647,75 @@ export default function AdminDashboard() {
     }
     setBulkTagStatus("");
     setMessage(`Tags sugeridas: ${done - failed} de ${pending.length}.${failed ? ` ${failed} falharam — pode rodar de novo pra tentar só o que faltou.` : ""}`);
+  };
+
+  const isStyleProduct = (category: string | null | undefined) => category === "Acessórios" || category === "Roupas";
+
+  const handleBulkEnsureRequiredTags = async () => {
+    if (!confirmAiSpend()) return;
+    if (!products.length) return setMessage("Nenhum produto cadastrado ainda.");
+
+    const { data: linkRows } = await supabase.from("content_tags").select("content_id,tag_id").eq("content_type", "product");
+    const linksByProduct = new Map<string, Set<string>>();
+    (linkRows || []).forEach((row: any) => {
+      if (!linksByProduct.has(row.content_id)) linksByProduct.set(row.content_id, new Set());
+      linksByProduct.get(row.content_id)!.add(row.tag_id);
+    });
+    const tagById = new Map(tags.map((tag) => [tag.id, tag]));
+    const linkedHasType = (productId: string, type: TagType) =>
+      Array.from(linksByProduct.get(productId) || []).some((tagId) => tagById.get(tagId)?.type === type);
+
+    const pending = products.filter((p) =>
+      !linkedHasType(p.id, "category") || !linkedHasType(p.id, "concern") || (!isStyleProduct(p.category) && !linkedHasType(p.id, "ingredient"))
+    );
+    if (!pending.length) return setMessage("Todos os produtos já têm queixa, categoria e princípio ativo. ✨");
+    if (!confirm(`Vou garantir queixa, categoria e princípio ativo em ${pending.length} produtos que ainda não têm tudo. Isso pode disparar chamadas de IA (uma por produto) e já grava direto. Continuar?`)) return;
+
+    let done = 0;
+    let failed = 0;
+    const skippedConcern: string[] = [];
+    let localTags = tags;
+    setBulkIngredientStatus(`Garantindo tags 0 de ${pending.length}...`);
+    for (const product of pending) {
+      try {
+        const linkedIds = linksByProduct.get(product.id) || new Set<string>();
+        const toInsert = new Set<string>();
+
+        if (!linkedHasType(product.id, "category")) {
+          const categoryTag = localTags.find((tag) => tag.type === "category" && tag.slug === categoryTagSlug(product.category || ""));
+          if (categoryTag) toInsert.add(categoryTag.id);
+        }
+
+        const needsConcern = !linkedHasType(product.id, "concern");
+        const needsIngredient = !isStyleProduct(product.category) && !linkedHasType(product.id, "ingredient");
+        if (needsConcern || needsIngredient) {
+          const data = await adminRequest("/api/generate-tags", { method: "POST", body: JSON.stringify({ contentType: "product", title: product.title, sourceHtml: product.description }) });
+          if (data.newIngredientTag && !localTags.some((tag) => tag.id === data.newIngredientTag.id)) {
+            localTags = [...localTags, data.newIngredientTag as Tag];
+            setTags((prev) => (prev.some((tag) => tag.id === data.newIngredientTag.id) ? prev : [...prev, data.newIngredientTag as Tag]));
+          }
+          const slugs = new Set((data.suggestedTagSlugs || []) as string[]);
+          let gotConcern = false;
+          localTags.filter((tag) => slugs.has(tag.slug)).forEach((tag) => {
+            if (linkedIds.has(tag.id)) return;
+            if (tag.type === "concern" && needsConcern) { toInsert.add(tag.id); gotConcern = true; }
+            if (tag.type === "ingredient" && needsIngredient) toInsert.add(tag.id);
+          });
+          if (needsConcern && !gotConcern) skippedConcern.push(product.title);
+        }
+
+        if (toInsert.size) {
+          await supabase.from("content_tags").insert(Array.from(toInsert).map((tagId) => ({ tag_id: tagId, content_type: "product", content_id: product.id })));
+        }
+      } catch {
+        failed += 1;
+      }
+      done += 1;
+      setBulkIngredientStatus(`Garantindo tags ${done} de ${pending.length}...`);
+    }
+    setBulkIngredientStatus("");
+    const concernNote = skippedConcern.length ? ` ${skippedConcern.length} ficaram sem queixa (a IA não achou uma certeira) — revise manualmente: ${skippedConcern.slice(0, 5).join(", ")}${skippedConcern.length > 5 ? "…" : ""}.` : "";
+    setMessage(`Tags garantidas em ${done - failed} de ${pending.length} produtos.${failed ? ` ${failed} falharam — rode de novo pra tentar só o que faltou.` : ""}${concernNote}`);
   };
 
   const handleGenerateSummaryForEditingItem = async () => {
@@ -782,8 +867,13 @@ export default function AdminDashboard() {
       setAccessoryHumorApplied(Boolean(data.humorApplied));
       setGeneratedResumoRapido(data.resumoRapido || EMPTY_RESUMO_RAPIDO);
       setGeneratedResumoRapidoArtigo(data.resumoRapidoArtigo || EMPTY_RESUMO_RAPIDO);
+      const mergedTags = data.newIngredientTag ? [...tags, data.newIngredientTag as Tag] : tags;
+      if (data.newIngredientTag) setTags((prev) => [...prev, data.newIngredientTag as Tag].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
       const suggestedSlugs = new Set((data.suggestedTagSlugs || []) as string[]);
-      setGeneratedTagIds(tags.filter((tag) => suggestedSlugs.has(tag.slug)).map((tag) => tag.id));
+      const categoryTag = mergedTags.find((tag) => tag.type === "category" && tag.slug === categoryTagSlug(productCategory));
+      const preselectedIds = new Set(mergedTags.filter((tag) => suggestedSlugs.has(tag.slug)).map((tag) => tag.id));
+      if (categoryTag) preselectedIds.add(categoryTag.id);
+      setGeneratedTagIds(Array.from(preselectedIds));
       setGeneratedPollQuestion(data.suggestedPoll?.question || "");
       setGeneratedPollOptions(Array.isArray(data.suggestedPoll?.options) && data.suggestedPoll.options.length ? data.suggestedPoll.options : ["", ""]);
       setBlogCategory("Estudei para te explicar");
@@ -1647,8 +1737,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.79</p>
-                <p>Atualizado em 25/09/2026 às 20:44</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.82</p>
+                <p>Atualizado em 28/09/2026 às 09:00</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1734,7 +1824,7 @@ export default function AdminDashboard() {
                       <div>
                         <label className="block text-[var(--color-gold-light)] text-sm mb-1">Categoria</label>
                         <select value={productCategory} onChange={(e) => setProductCategory(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
-                            {PRODUCT_CATEGORIES.map((category) => <option value={category} key={category}>{category}</option>)}
+                            {categoryOptions.map((category) => <option value={category} key={category}>{category}{(PRODUCT_CATEGORIES as readonly string[]).includes(category) ? "" : " (fora do padrão)"}</option>)}
                         </select>
                       </div>
                     </div>
@@ -1826,7 +1916,10 @@ export default function AdminDashboard() {
                       <fieldset className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                         <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Temas e tags sugeridas</legend>
                         <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">A IA já marcou o que encaixou. Ajuste antes de publicar — vale pro produto e pro artigo.</p>
-                        {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => {
+                        {!tags.some((tag) => tag.type === "concern" && generatedTagIds.includes(tag.id)) && (
+                          <p className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-400">⚠️ Nenhuma queixa selecionada — a IA não achou uma queixa certeira, escolha manualmente antes de publicar.</p>
+                        )}
+                        {(["concern", "ingredient", "life_topic", "category", "routine_step", "usage_period"] as TagType[]).map((type) => {
                           const optionsForType = tags.filter((tag) => tag.type === type);
                           if (!optionsForType.length) return null;
                           return (
@@ -1860,7 +1953,7 @@ export default function AdminDashboard() {
                             className="min-w-[180px] flex-1 rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-2 text-sm text-[var(--color-gold-light)]"
                           />
                           <select value={newTagType} onChange={(event) => setNewTagType(event.target.value as TagType)} className="rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-2 py-2 text-xs text-[var(--color-gold-light)]">
-                            {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
+                            {(["concern", "ingredient", "life_topic", "category", "routine_step", "usage_period"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
                           </select>
                           <button type="button" onClick={handleCreateTag} disabled={creatingTag || !newTagName.trim()} className="rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
                             {creatingTag ? "Criando…" : "Criar tag"}
@@ -2140,6 +2233,14 @@ export default function AdminDashboard() {
                     </button>
                   </div>
                 )}
+                {!editingItem && manageType === "vitrine" && (
+                  <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] px-4 py-3">
+                    <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Todo produto precisa sair com queixa, categoria e princípio ativo. Garanto isso pra quem ainda está incompleto.</p>
+                    <button type="button" onClick={handleBulkEnsureRequiredTags} disabled={Boolean(bulkIngredientStatus)} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
+                      {bulkIngredientStatus || "🧪 Garantir queixa, categoria e ativo"}
+                    </button>
+                  </div>
+                )}
                 {editingItem ? (
                   <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
                     <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif">
@@ -2147,10 +2248,10 @@ export default function AdminDashboard() {
                     </h3>
                     <div className="mb-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem_11rem]">
                       <input type="text" value={editingItem.title} onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })} className="flex-1 bg-transparent border-b border-[var(--color-wine-light)] py-2 text-[var(--color-gold)] font-bold focus:outline-none" />
-                      <select value={editingItem.category || ""} onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-2 py-2 text-[var(--color-gold-light)] text-sm">
+                      <select value={editingItem.category || ""} onChange={(e) => handleEditingCategoryChange(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-2 py-2 text-[var(--color-gold-light)] text-sm">
                         {editingItem.type === "product" ? (
                           <>
-                            {PRODUCT_CATEGORIES.map((category) => <option value={category} key={category}>{category}</option>)}
+                            {categoryOptions.map((category) => <option value={category} key={category}>{category}{(PRODUCT_CATEGORIES as readonly string[]).includes(category) ? "" : " (fora do padrão)"}</option>)}
                           </>
                         ) : (
                           <>
@@ -2215,7 +2316,10 @@ export default function AdminDashboard() {
                           {suggestingTags ? "Sugerindo…" : "✨ Sugerir com IA"}
                         </button>
                       </div>
-                      {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => {
+                      {editingItem.type === "product" && !tags.some((tag) => tag.type === "concern" && editingItemTagIds.includes(tag.id)) && (
+                        <p className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-400">⚠️ Nenhuma queixa selecionada — escolha manualmente ou clique em &quot;Sugerir com IA&quot;.</p>
+                      )}
+                      {(["concern", "ingredient", "life_topic", "category", "routine_step", "usage_period"] as TagType[]).map((type) => {
                         const optionsForType = tags.filter((tag) => tag.type === type);
                         if (!optionsForType.length) return null;
                         return (
@@ -2249,7 +2353,7 @@ export default function AdminDashboard() {
                           className="min-w-[180px] flex-1 rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-2 text-sm text-[var(--color-gold-light)]"
                         />
                         <select value={newTagType} onChange={(event) => setNewTagType(event.target.value as TagType)} className="rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-2 py-2 text-xs text-[var(--color-gold-light)]">
-                          {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
+                          {(["concern", "ingredient", "life_topic", "category", "routine_step", "usage_period"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
                         </select>
                         <button type="button" onClick={handleCreateTag} disabled={creatingTag || !newTagName.trim()} className="rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
                           {creatingTag ? "Criando…" : "Criar tag"}
@@ -2369,7 +2473,7 @@ export default function AdminDashboard() {
                           <div>
                             <span className="text-[var(--color-gold-light)] font-bold">{p.title}</span>
                             <div className="mt-2 flex flex-wrap gap-1.5">
-                              <span className="rounded-full border border-[var(--color-wine-light)] px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold-light)] opacity-70">{p.category || "Sem categoria"}</span>
+                              <span className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-wider ${p.category && !(PRODUCT_CATEGORIES as readonly string[]).includes(p.category) ? "border-red-500/60 text-red-400" : "border-[var(--color-wine-light)] text-[var(--color-gold-light)] opacity-70"}`}>{p.category ? (!(PRODUCT_CATEGORIES as readonly string[]).includes(p.category) ? `⚠️ ${p.category}` : p.category) : "Sem categoria"}</span>
                               <span className="rounded-full border border-[var(--color-wine-light)] px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold-light)] opacity-70">{formatPostDate(p.created_at)}</span>
                               {p.is_featured && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Destaque</span>}
                               {p.is_most_purchased && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Mais comprado</span>}

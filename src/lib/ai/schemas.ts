@@ -3,13 +3,14 @@ export const resumoRapidoSchema = {
   properties: {
     whatIs: { type: "string" },
     usedFor: { type: "string" },
+    whenToUse: { type: "string" },
     noticed: { type: "string" },
     pro: { type: "string" },
     caution: { type: "string" },
     repurchase: { type: "string" },
     duration: { type: "string" },
   },
-  required: ["whatIs", "usedFor", "noticed", "pro", "caution", "repurchase", "duration"],
+  required: ["whatIs", "usedFor", "whenToUse", "noticed", "pro", "caution", "repurchase", "duration"],
   additionalProperties: false,
 };
 
@@ -17,8 +18,9 @@ export const tagSuggestionSchema = {
   type: "object",
   properties: {
     suggestedTagSlugs: { type: "array", items: { type: "string" }, maxItems: 8 },
+    mainActiveIngredient: { type: "string" },
   },
-  required: ["suggestedTagSlugs"],
+  required: ["suggestedTagSlugs", "mainActiveIngredient"],
   additionalProperties: false,
 };
 
@@ -67,9 +69,10 @@ export const productSchema = {
     resumoRapido: resumoRapidoSchema,
     resumoRapidoArtigo: resumoRapidoSchema,
     suggestedTagSlugs: { type: "array", items: { type: "string" }, maxItems: 8 },
+    mainActiveIngredient: { type: "string" },
     suggestedPoll: pollSuggestionSchema,
   },
-  required: ["productName", "productReview", "blogTitle", "blogPost", "identificationConfidence", "evidenceLevel", "experienceStatus", "researchSummary", "openingStyle", "structureStyle", "notablePhrases", "resumoRapido", "resumoRapidoArtigo", "suggestedTagSlugs", "suggestedPoll"],
+  required: ["productName", "productReview", "blogTitle", "blogPost", "identificationConfidence", "evidenceLevel", "experienceStatus", "researchSummary", "openingStyle", "structureStyle", "notablePhrases", "resumoRapido", "resumoRapidoArtigo", "suggestedTagSlugs", "mainActiveIngredient", "suggestedPoll"],
   additionalProperties: false,
 };
 

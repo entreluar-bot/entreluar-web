@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { ROUTINE_PERIODS, ROUTINE_STEPS, addProductToStep, type RoutinePeriodKey, type RoutineStepKey } from "@/lib/routine";
 
-export default function AddToRoutineButton({ id, title, image_url, className = "" }: { id: string; title: string; image_url?: string | null; className?: string }) {
+export default function AddToRoutineButton({ id, title, image_url, defaultPeriod, defaultStep, className = "" }: { id: string; title: string; image_url?: string | null; defaultPeriod?: RoutinePeriodKey; defaultStep?: RoutineStepKey; className?: string }) {
   const [open, setOpen] = useState(false);
-  const [period, setPeriod] = useState<RoutinePeriodKey>("manha");
-  const [step, setStep] = useState<RoutineStepKey>("serum");
+  const [period, setPeriod] = useState<RoutinePeriodKey>(defaultPeriod || "manha");
+  const [step, setStep] = useState<RoutineStepKey>(defaultStep || "serum");
   const [savedLabel, setSavedLabel] = useState("");
 
   const confirm = () => {

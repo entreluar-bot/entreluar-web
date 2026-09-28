@@ -1,10 +1,17 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import type { Product } from "../types";
-import type { Tag } from "@/lib/tags";
+import type { Tag, TagType } from "@/lib/tags";
 import ProductFilters from "./ProductFilters";
 
 export const revalidate = 0;
+
+const FILTERABLE_TAG_TYPES: TagType[] = ["concern", "routine_step", "usage_period"];
+const FILTER_GROUP_LABELS: Partial<Record<TagType, string>> = {
+  concern: "Quero cuidar de",
+  routine_step: "Etapa da rotina",
+  usage_period: "Uso: manhã ou noite",
+};
 
 export default async function Vitrine() {
   const supabase = await createClient();
@@ -12,31 +19,29 @@ export default async function Vitrine() {
   const productRows = (data || []) as Product[];
   const productIds = productRows.map((product) => product.id);
 
-  const { data: concernTagRows } = await supabase.from("tags").select("id,name,slug,type").eq("type", "concern");
-  const concernTags = (concernTagRows || []) as Tag[];
-  const { data: linkRows } = concernTags.length && productIds.length
-    ? await supabase.from("content_tags").select("tag_id,content_id").eq("content_type", "product").in("content_id", productIds).in("tag_id", concernTags.map((tag) => tag.id))
+  const { data: filterTagRows } = await supabase.from("tags").select("id,name,slug,type").in("type", FILTERABLE_TAG_TYPES);
+  const filterTags = (filterTagRows || []) as Tag[];
+  const { data: linkRows } = filterTags.length && productIds.length
+    ? await supabase.from("content_tags").select("tag_id,content_id").eq("content_type", "product").in("content_id", productIds).in("tag_id", filterTags.map((tag) => tag.id))
     : { data: [] as Array<{ tag_id: string; content_id: string }> };
 
-  const tagBySlug = new Map(concernTags.map((tag) => [tag.id, tag] as const));
+  const tagById = new Map(filterTags.map((tag) => [tag.id, tag] as const));
   const tagSlugsByProductId = new Map<string, string[]>();
   for (const link of (linkRows || []) as Array<{ tag_id: string; content_id: string }>) {
-    const tag = tagBySlug.get(link.tag_id);
+    const tag = tagById.get(link.tag_id);
     if (!tag) continue;
     tagSlugsByProductId.set(link.content_id, [...(tagSlugsByProductId.get(link.content_id) || []), tag.slug]);
   }
 
   const products = productRows.map((product) => ({ ...product, tagSlugs: tagSlugsByProductId.get(product.id) || [] }));
-  const usedConcernSlugs = new Set(products.flatMap((product) => product.tagSlugs));
-  const tagGroups = [
-    {
-      label: "Quero cuidar de",
-      options: concernTags
-        .filter((tag) => usedConcernSlugs.has(tag.slug))
-        .map((tag) => ({ slug: tag.slug, name: tag.name }))
-        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-    },
-  ];
+  const usedTagSlugs = new Set(products.flatMap((product) => product.tagSlugs));
+  const tagGroups = FILTERABLE_TAG_TYPES.map((type) => ({
+    label: FILTER_GROUP_LABELS[type] || type,
+    options: filterTags
+      .filter((tag) => tag.type === type && usedTagSlugs.has(tag.slug))
+      .map((tag) => ({ slug: tag.slug, name: tag.name }))
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+  }));
 
   return (
     <main className="site-shell">

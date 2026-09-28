@@ -1,6 +1,6 @@
-export type ResumoRapido = { whatIs: string; usedFor: string; noticed: string; pro: string; caution: string; repurchase: string; duration: string };
+export type ResumoRapido = { whatIs: string; usedFor: string; whenToUse: string; noticed: string; pro: string; caution: string; repurchase: string; duration: string };
 
-export const EMPTY_RESUMO_RAPIDO: ResumoRapido = { whatIs: "", usedFor: "", noticed: "", pro: "", caution: "", repurchase: "", duration: "" };
+export const EMPTY_RESUMO_RAPIDO: ResumoRapido = { whatIs: "", usedFor: "", whenToUse: "", noticed: "", pro: "", caution: "", repurchase: "", duration: "" };
 
 export type ContentSummary = {
   id?: string;
@@ -8,6 +8,7 @@ export type ContentSummary = {
   content_id: string;
   what_is?: string | null;
   used_for?: string | null;
+  when_to_use?: string | null;
   noticed?: string | null;
   pro?: string | null;
   caution?: string | null;
@@ -16,13 +17,14 @@ export type ContentSummary = {
   generated_by?: "manual" | "ai";
 };
 
-type SummaryFieldKey = "what_is" | "used_for" | "noticed" | "pro" | "caution" | "repurchase" | "duration";
+type SummaryFieldKey = "what_is" | "used_for" | "when_to_use" | "noticed" | "pro" | "caution" | "repurchase" | "duration";
 export type SummaryVariant = "product" | "journal";
 
 // Rótulos pra ficha de produto (Vitrine) — resumo de uma experiência com o item.
 export const SUMMARY_FIELD_LABELS_PRODUCT: Record<SummaryFieldKey, string> = {
   what_is: "Sem rodeio, é isso",
   used_for: "Entrou pra resolver",
+  when_to_use: "Quando usar",
   noticed: "O espelho não mente",
   pro: "O que me fisgou",
   caution: "Só um alerta de amiga",
@@ -30,11 +32,12 @@ export const SUMMARY_FIELD_LABELS_PRODUCT: Record<SummaryFieldKey, string> = {
   duration: "Tempo de casa",
 };
 
-// Mesmas 7 colunas, reinterpretadas pro contexto de um artigo de "Estudei
+// Mesmas colunas, reinterpretadas pro contexto de um artigo de "Estudei
 // para te explicar" (explica um ativo/tema, não é resenha de uso pessoal).
 export const SUMMARY_FIELD_LABELS_ARTICLE: Record<SummaryFieldKey, string> = {
   what_is: "Sem rodeio, é isso",
   used_for: "Serve pra isso",
+  when_to_use: "Quando usar esse ativo",
   noticed: "O que a ciência mostra",
   pro: "O que me convenceu",
   caution: "Só um alerta de amiga",
@@ -51,6 +54,7 @@ export const SUMMARY_FIELD_KEYS = Object.keys(SUMMARY_FIELD_LABELS_PRODUCT) as S
 const RESUMO_RAPIDO_KEY_BY_FIELD: Record<SummaryFieldKey, keyof ResumoRapido> = {
   what_is: "whatIs",
   used_for: "usedFor",
+  when_to_use: "whenToUse",
   noticed: "noticed",
   pro: "pro",
   caution: "caution",
@@ -72,13 +76,14 @@ export function hasAnySummaryContent(summary?: ContentSummary | null) {
 
 export function resumoRapidoHasContent(resumo?: ResumoRapido | null) {
   if (!resumo) return false;
-  return Boolean(resumo.whatIs?.trim() || resumo.usedFor?.trim() || resumo.noticed?.trim() || resumo.pro?.trim() || resumo.caution?.trim() || resumo.repurchase?.trim() || resumo.duration?.trim());
+  return Boolean(resumo.whatIs?.trim() || resumo.usedFor?.trim() || resumo.whenToUse?.trim() || resumo.noticed?.trim() || resumo.pro?.trim() || resumo.caution?.trim() || resumo.repurchase?.trim() || resumo.duration?.trim());
 }
 
-export function resumoRapidoToRow(resumo: ResumoRapido): Pick<ContentSummary, "what_is" | "used_for" | "noticed" | "pro" | "caution" | "repurchase" | "duration"> {
+export function resumoRapidoToRow(resumo: ResumoRapido): Pick<ContentSummary, "what_is" | "used_for" | "when_to_use" | "noticed" | "pro" | "caution" | "repurchase" | "duration"> {
   return {
     what_is: resumo.whatIs?.trim() || null,
     used_for: resumo.usedFor?.trim() || null,
+    when_to_use: resumo.whenToUse?.trim() || null,
     noticed: resumo.noticed?.trim() || null,
     pro: resumo.pro?.trim() || null,
     caution: resumo.caution?.trim() || null,
@@ -91,6 +96,7 @@ export function rowToResumoRapido(summary?: ContentSummary | null): ResumoRapido
   return {
     whatIs: summary?.what_is || "",
     usedFor: summary?.used_for || "",
+    whenToUse: summary?.when_to_use || "",
     noticed: summary?.noticed || "",
     pro: summary?.pro || "",
     caution: summary?.caution || "",
