@@ -1,12 +1,4 @@
-export type RoutineStepKey =
-  | "limpeza"
-  | "serum"
-  | "tratamento"
-  | "area_olhos"
-  | "hidratante"
-  | "protetor_solar"
-  | "cabelo"
-  | "suplementos";
+export type RoutineStepKey = "limpar" | "tonificar" | "tratar" | "hidratar" | "proteger";
 
 export type RoutinePeriodKey = "manha" | "noite";
 
@@ -27,14 +19,11 @@ export type RoutineMeta = {
 export type Routine = { manha: RoutinePeriod; noite: RoutinePeriod; meta?: RoutineMeta };
 
 export const ROUTINE_STEPS: Array<{ key: RoutineStepKey; label: string }> = [
-  { key: "limpeza", label: "Limpeza" },
-  { key: "serum", label: "Sérum" },
-  { key: "tratamento", label: "Tratamento" },
-  { key: "area_olhos", label: "Área dos olhos" },
-  { key: "hidratante", label: "Hidratante" },
-  { key: "protetor_solar", label: "Protetor solar" },
-  { key: "cabelo", label: "Cabelo" },
-  { key: "suplementos", label: "Suplementos" },
+  { key: "limpar", label: "Limpar" },
+  { key: "tonificar", label: "Tonificar" },
+  { key: "tratar", label: "Tratar" },
+  { key: "hidratar", label: "Hidratar" },
+  { key: "proteger", label: "Proteger" },
 ];
 
 const DEFAULT_ORDER: RoutineStepKey[] = ROUTINE_STEPS.map((step) => step.key);
@@ -51,6 +40,23 @@ export const ROUTINE_PERIODS: Array<{ key: RoutinePeriodKey; label: string; icon
 
 const STORAGE_KEY = "entreluar_minha_rotina";
 
+// Rotinas salvas antes da simplificação da fase (8 passos -> 5) usavam essas
+// chaves. Mapeamos pra continuar carregando o que já foi salvo no aparelho da
+// usuária sem quebrar a página; "área dos olhos", "cabelo" e "suplementos"
+// não têm mais passo equivalente, então esses dados só deixam de aparecer.
+const LEGACY_STEP_KEY_MAP: Record<string, RoutineStepKey> = {
+  limpeza: "limpar",
+  serum: "tonificar",
+  tratamento: "tratar",
+  hidratante: "hidratar",
+  protetor_solar: "proteger",
+};
+
+function remapLegacyKey(key: string): RoutineStepKey | null {
+  if ((DEFAULT_ORDER as string[]).includes(key)) return key as RoutineStepKey;
+  return LEGACY_STEP_KEY_MAP[key] || null;
+}
+
 function emptyPeriod(): RoutinePeriod {
   const period = ROUTINE_STEPS.reduce((acc, step) => {
     acc[step.key] = { active: false, note: "", product: null };
@@ -65,14 +71,27 @@ export function emptyRoutine(): Routine {
 }
 
 function normalizeOrder(order: unknown): RoutineStepKey[] {
-  const valid = new Set(DEFAULT_ORDER);
-  const fromStorage = Array.isArray(order) ? order.filter((key): key is RoutineStepKey => valid.has(key as RoutineStepKey)) : [];
-  const missing = DEFAULT_ORDER.filter((key) => !fromStorage.includes(key));
-  return [...fromStorage, ...missing];
+  const fromStorage = Array.isArray(order)
+    ? order.map((key) => remapLegacyKey(String(key))).filter((key): key is RoutineStepKey => key !== null)
+    : [];
+  const deduped = [...new Set(fromStorage)];
+  const missing = DEFAULT_ORDER.filter((key) => !deduped.includes(key));
+  return [...deduped, ...missing];
+}
+
+function remapPeriodEntries(parsed: Record<string, unknown> | undefined): Partial<Record<RoutineStepKey, RoutineStepEntry>> {
+  const remapped: Partial<Record<RoutineStepKey, RoutineStepEntry>> = {};
+  if (!parsed) return remapped;
+  for (const [key, value] of Object.entries(parsed)) {
+    if (key === "order") continue;
+    const newKey = remapLegacyKey(key);
+    if (newKey) remapped[newKey] = value as RoutineStepEntry;
+  }
+  return remapped;
 }
 
 function normalizePeriod(fallback: RoutinePeriod, parsed: Partial<RoutinePeriod> | undefined): RoutinePeriod {
-  const merged = { ...fallback, ...(parsed || {}) } as RoutinePeriod;
+  const merged = { ...fallback, ...remapPeriodEntries(parsed as Record<string, unknown> | undefined) } as RoutinePeriod;
   merged.order = normalizeOrder(parsed?.order);
   return merged;
 }

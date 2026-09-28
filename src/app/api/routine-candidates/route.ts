@@ -8,6 +8,7 @@ export type RoutineCandidate = Product & {
   periods: RoutinePeriodKey[];
   skinTypes: string[];
   origin?: "brasileiro" | "coreano" | "outro";
+  bodyPart?: string;
   sensitiveFriendly: boolean;
   concernSlugs: string[];
 };
@@ -15,16 +16,7 @@ export type RoutineCandidate = Product & {
 type ContentTagLink = { tag_id: string; content_id: string };
 type TagRow = { id: string; slug: string; type: string };
 
-const ROUTINE_PHASE_SLUGS = new Set<RoutineStepKey>([
-  "limpeza",
-  "serum",
-  "tratamento",
-  "area_olhos",
-  "hidratante",
-  "protetor_solar",
-  "cabelo",
-  "suplementos",
-]);
+const ROUTINE_PHASE_SLUGS = new Set<RoutineStepKey>(["limpar", "tonificar", "tratar", "hidratar", "proteger"]);
 
 export async function GET() {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -32,7 +24,7 @@ export async function GET() {
   const { data: tagRows } = await supabase
     .from("tags")
     .select("id,slug,type")
-    .or("type.in.(routine_phase,routine_period,skin_type,origin),slug.eq.sensibilidade");
+    .or("type.in.(routine_phase,routine_period,skin_type,origin,body_part),slug.eq.sensibilidade");
   const tags = (tagRows || []) as TagRow[];
   if (!tags.length) return NextResponse.json({ candidates: [] });
 
@@ -95,6 +87,7 @@ export async function GET() {
       periods,
       skinTypes: productTags.filter((tag) => tag.type === "skin_type").map((tag) => tag.slug),
       origin: productTags.find((tag) => tag.type === "origin")?.slug as "brasileiro" | "coreano" | "outro" | undefined,
+      bodyPart: productTags.find((tag) => tag.type === "body_part")?.slug,
       sensitiveFriendly: productTags.some((tag) => tag.slug === "sensibilidade"),
       concernSlugs: concernSlugsByProduct.get(product.id) || [],
     };
