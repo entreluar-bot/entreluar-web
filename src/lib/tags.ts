@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type TagType = "concern" | "ingredient" | "life_topic" | "category";
+export type TagType = "concern" | "ingredient" | "life_topic" | "category" | "routine_step" | "usage_period";
 
 export type Tag = { id: string; name: string; slug: string; type: TagType };
 
@@ -11,6 +11,8 @@ export const TAG_TYPE_LABELS: Record<TagType, string> = {
   ingredient: "Ativo",
   life_topic: "Vida 50+ & menopausa",
   category: "Categoria",
+  routine_step: "Etapa da rotina",
+  usage_period: "Uso: manhã ou noite",
 };
 
 export function formatTagsForPrompt(tags: Tag[]) {

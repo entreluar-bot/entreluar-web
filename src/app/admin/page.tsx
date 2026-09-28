@@ -1737,8 +1737,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.81</p>
-                <p>Atualizado em 28/09/2026 às 07:14</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.82</p>
+                <p>Atualizado em 28/09/2026 às 09:00</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1919,7 +1919,7 @@ export default function AdminDashboard() {
                         {!tags.some((tag) => tag.type === "concern" && generatedTagIds.includes(tag.id)) && (
                           <p className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-400">⚠️ Nenhuma queixa selecionada — a IA não achou uma queixa certeira, escolha manualmente antes de publicar.</p>
                         )}
-                        {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => {
+                        {(["concern", "ingredient", "life_topic", "category", "routine_step", "usage_period"] as TagType[]).map((type) => {
                           const optionsForType = tags.filter((tag) => tag.type === type);
                           if (!optionsForType.length) return null;
                           return (
@@ -1953,7 +1953,7 @@ export default function AdminDashboard() {
                             className="min-w-[180px] flex-1 rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-2 text-sm text-[var(--color-gold-light)]"
                           />
                           <select value={newTagType} onChange={(event) => setNewTagType(event.target.value as TagType)} className="rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-2 py-2 text-xs text-[var(--color-gold-light)]">
-                            {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
+                            {(["concern", "ingredient", "life_topic", "category", "routine_step", "usage_period"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
                           </select>
                           <button type="button" onClick={handleCreateTag} disabled={creatingTag || !newTagName.trim()} className="rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
                             {creatingTag ? "Criando…" : "Criar tag"}
@@ -2319,7 +2319,7 @@ export default function AdminDashboard() {
                       {editingItem.type === "product" && !tags.some((tag) => tag.type === "concern" && editingItemTagIds.includes(tag.id)) && (
                         <p className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-400">⚠️ Nenhuma queixa selecionada — escolha manualmente ou clique em &quot;Sugerir com IA&quot;.</p>
                       )}
-                      {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => {
+                      {(["concern", "ingredient", "life_topic", "category", "routine_step", "usage_period"] as TagType[]).map((type) => {
                         const optionsForType = tags.filter((tag) => tag.type === type);
                         if (!optionsForType.length) return null;
                         return (
@@ -2353,7 +2353,7 @@ export default function AdminDashboard() {
                           className="min-w-[180px] flex-1 rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-2 text-sm text-[var(--color-gold-light)]"
                         />
                         <select value={newTagType} onChange={(event) => setNewTagType(event.target.value as TagType)} className="rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-2 py-2 text-xs text-[var(--color-gold-light)]">
-                          {(["concern", "ingredient", "life_topic", "category"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
+                          {(["concern", "ingredient", "life_topic", "category", "routine_step", "usage_period"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
                         </select>
                         <button type="button" onClick={handleCreateTag} disabled={creatingTag || !newTagName.trim()} className="rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
                           {creatingTag ? "Criando…" : "Criar tag"}

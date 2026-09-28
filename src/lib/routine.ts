@@ -1,9 +1,11 @@
 export type RoutineStepKey =
   | "limpeza"
+  | "tonico"
   | "serum"
   | "tratamento"
   | "area_olhos"
   | "hidratante"
+  | "firmador"
   | "protetor_solar"
   | "cabelo"
   | "suplementos";
@@ -20,10 +22,12 @@ export type Routine = { manha: RoutinePeriod; noite: RoutinePeriod };
 
 export const ROUTINE_STEPS: Array<{ key: RoutineStepKey; label: string }> = [
   { key: "limpeza", label: "Limpeza" },
+  { key: "tonico", label: "Tônico" },
   { key: "serum", label: "Sérum" },
   { key: "tratamento", label: "Tratamento" },
   { key: "area_olhos", label: "Área dos olhos" },
   { key: "hidratante", label: "Hidratante" },
+  { key: "firmador", label: "Firmador" },
   { key: "protetor_solar", label: "Protetor solar" },
   { key: "cabelo", label: "Cabelo" },
   { key: "suplementos", label: "Suplementos" },
@@ -33,6 +37,34 @@ export const ROUTINE_PERIODS: Array<{ key: RoutinePeriodKey; label: string; icon
   { key: "manha", label: "Minha manhã", icon: "☀️" },
   { key: "noite", label: "Minha noite", icon: "🌙" },
 ];
+
+// Mapeia o slug da tag "Etapa da rotina" (cadastrada em tags.type = 'routine_step')
+// pro passo correspondente aqui — pra pré-selecionar o passo certo ao adicionar
+// um produto já classificado à rotina. "Tratar" é ambíguo entre sérum e
+// tratamento; escolhe sérum por ser a etapa mais comum de tratamento leve.
+const ROUTINE_STEP_BY_TAG_SLUG: Record<string, RoutineStepKey> = {
+  limpar: "limpeza",
+  tonificar: "tonico",
+  tratar: "serum",
+  hidratar: "hidratante",
+  proteger: "protetor_solar",
+  firmar: "firmador",
+};
+
+export function routineStepFromTagSlug(slug: string): RoutineStepKey | null {
+  return ROUTINE_STEP_BY_TAG_SLUG[slug] || null;
+}
+
+// Mapeia o slug da tag "Uso: manhã ou noite" (tags.type = 'usage_period') pro
+// período correspondente aqui.
+const ROUTINE_PERIOD_BY_TAG_SLUG: Record<string, RoutinePeriodKey> = {
+  manha: "manha",
+  noite: "noite",
+};
+
+export function routinePeriodFromTagSlug(slug: string): RoutinePeriodKey | null {
+  return ROUTINE_PERIOD_BY_TAG_SLUG[slug] || null;
+}
 
 const STORAGE_KEY = "entreluar_minha_rotina";
 

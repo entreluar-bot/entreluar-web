@@ -29,13 +29,13 @@ export const QUICK_SUMMARY_RULES = `
 RESUMO "EM 30 SEGUNDOS" (campo resumoRapido):
 - Preencha resumoRapido resumindo SOMENTE o que você mesma escreveu no texto principal acima (productReview/blogPost/text) — nunca acrescente fato, benefício, opinião ou experiência que não esteja ali.
 - Cada campo é uma frase curtíssima (até ~12 palavras), no seu tom: direta, com humor de amiga, nada de linguagem clínica ou de bula.
-- whatIs: o que é, sem rodeio. usedFor: para que entrou na rotina. noticed: o que você percebeu/viu (sem prometer resultado). pro: o que mais te conquistou. caution: um alerta honesto (só se houver ressalva real no texto; senão deixe vazio). repurchase: recompraria ou não, com sua voz (só se o texto falar de experiência real de uso; senão deixe vazio). duration: há quanto tempo usa/testou (só se essa informação estiver no texto; senão deixe vazio).
+- whatIs: o que é, sem rodeio. usedFor: para que entrou na rotina. whenToUse: quando e em que ordem da rotina usar (ex.: "Manhã, depois do sérum" ou "Noite, antes do hidratante") — só pra produto de skincare com etapa/período aplicável; string vazia se for acessório, roupa, suplemento ou algo sem lugar fixo numa rotina de manhã/noite. noticed: o que você percebeu/viu (sem prometer resultado). pro: o que mais te conquistou. caution: um alerta honesto (só se houver ressalva real no texto; senão deixe vazio). repurchase: recompraria ou não, com sua voz (só se o texto falar de experiência real de uso; senão deixe vazio). duration: há quanto tempo usa/testou (só se essa informação estiver no texto; senão deixe vazio).
 - Se um campo não fizer sentido para este conteúdo específico (por exemplo, um artigo que é pesquisa e não teve uso pessoal confirmado), devolva string vazia "" nesse campo em vez de inventar.`;
 
 export const QUICK_SUMMARY_RULES_ARTIGO = `
 RESUMO "EM 30 SEGUNDOS" DO ARTIGO (campo resumoRapidoArtigo):
-- Mesmas 7 chaves de resumoRapido, mas aqui resumindo o blogPost (o artigo "Estudei para te explicar"), não o productReview — é a ficha rápida do ATIVO/TEMA, não do produto.
-- whatIs: o que é o ativo/tema, sem rodeio. usedFor: pra que ele serve. noticed: o que a ciência/pesquisa mostra sobre ele (sem prometer resultado). pro: o que mais te convenceu na pesquisa. caution: cuidado ou contraindicação real, se houver (senão vazio). repurchase: reinterprete como "vale a pena buscar esse ativo?" — sua opinião curta sobre valer a pena procurar, não sobre recompra de um produto específico. duration: tempo típico pra começar a ver resultado, só se isso estiver no texto (senão vazio).
+- Mesmas chaves de resumoRapido, mas aqui resumindo o blogPost (o artigo "Estudei para te explicar"), não o productReview — é a ficha rápida do ATIVO/TEMA, não do produto.
+- whatIs: o que é o ativo/tema, sem rodeio. usedFor: pra que ele serve. whenToUse: quando esse tipo de ativo costuma entrar na rotina (manhã, noite ou ambos, e em que ordem) — string vazia se o artigo não falar de rotina de aplicação. noticed: o que a ciência/pesquisa mostra sobre ele (sem prometer resultado). pro: o que mais te convenceu na pesquisa. caution: cuidado ou contraindicação real, se houver (senão vazio). repurchase: reinterprete como "vale a pena buscar esse ativo?" — sua opinião curta sobre valer a pena procurar, não sobre recompra de um produto específico. duration: tempo típico pra começar a ver resultado, só se isso estiver no texto (senão vazio).
 - Mesma regra de nunca inventar: só o que está no blogPost. Campo que não couber, devolva "".`;
 
 export const TAG_SUGGESTION_RULES = `
@@ -43,6 +43,7 @@ TAGS SUGERIDAS (campo suggestedTagSlugs):
 - Escolha só entre os slugs exatos da lista "TAGS DISPONÍVEIS" informada abaixo — nunca invente um slug novo nem escreva o nome, sempre o slug.
 - Sugira de 2 a 8 tags que realmente se aplicam ao produto/artigo (queixas que ele resolve, ativos que contém, fase de vida relacionada).
 - Sempre que existir uma queixa (tipo "Queixa / necessidade") da lista que realmente se aplique, inclua pelo menos uma — só devolva sem nenhuma queixa se genuinamente nenhuma da lista fizer sentido.
+- Se for um produto de skincare (não acessório, roupa ou suplemento sem etapa fixa): inclua exatamente uma tag do tipo "Etapa da rotina" (a etapa em que ele entra — limpar, tonificar, tratar, hidratar, proteger ou firmar; raramente duas, só se o produto realmente cumprir duas funções) e pelo menos uma tag do tipo "Uso: manhã ou noite" (as duas, se for indicado para os dois períodos).
 - Se nenhuma tag da lista fizer sentido pra outros tipos, tudo bem devolver sem eles — não force uma tag que não encaixa.
 
 PRINCÍPIO ATIVO PRINCIPAL (campo mainActiveIngredient):

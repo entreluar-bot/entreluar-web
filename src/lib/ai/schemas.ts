@@ -3,13 +3,14 @@ export const resumoRapidoSchema = {
   properties: {
     whatIs: { type: "string" },
     usedFor: { type: "string" },
+    whenToUse: { type: "string" },
     noticed: { type: "string" },
     pro: { type: "string" },
     caution: { type: "string" },
     repurchase: { type: "string" },
     duration: { type: "string" },
   },
-  required: ["whatIs", "usedFor", "noticed", "pro", "caution", "repurchase", "duration"],
+  required: ["whatIs", "usedFor", "whenToUse", "noticed", "pro", "caution", "repurchase", "duration"],
   additionalProperties: false,
 };
 
