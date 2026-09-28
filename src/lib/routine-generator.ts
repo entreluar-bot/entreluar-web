@@ -9,13 +9,21 @@ export type RoutineCriteria = {
   complexity: "essencial" | "completa";
 };
 
-const ESSENTIAL_PHASES: RoutineStepKey[] = ["limpeza", "hidratante", "protetor_solar"];
+const ESSENTIAL_PHASES: RoutineStepKey[] = ["limpar", "hidratar", "proteger"];
 
 // Fases com ativos fortes (retinol/retinal e afins) só entram na rotina da
 // noite, mesmo que o produto não tenha uma tag de período explícita — regra
 // de segurança fixa, não é um critério que a usuária escolhe.
-const NIGHT_ONLY_PHASES = new Set<RoutineStepKey>(["tratamento"]);
-const MORNING_ONLY_PHASES = new Set<RoutineStepKey>(["protetor_solar"]);
+const NIGHT_ONLY_PHASES = new Set<RoutineStepKey>(["tratar"]);
+const MORNING_ONLY_PHASES = new Set<RoutineStepKey>(["proteger"]);
+
+// Os 5 passos são genéricos, pensados para o rosto como um todo. Um produto
+// de área específica (olhos, pescoço, mãos...) não deve ser sugerido como o
+// hidratante/tratamento geral — só entram candidatos sem parte do corpo
+// marcada ou marcados como "rosto".
+function isGeneralCandidate(candidate: RoutineCandidate) {
+  return !candidate.bodyPart || candidate.bodyPart === "rosto";
+}
 
 function phasesForComplexity(complexity: RoutineCriteria["complexity"], candidates: RoutineCandidate[]): RoutineStepKey[] {
   const canonicalOrder = ROUTINE_STEPS.map((step) => step.key);
@@ -23,7 +31,7 @@ function phasesForComplexity(complexity: RoutineCriteria["complexity"], candidat
   if (complexity === "completa") return canonicalOrder.filter((phase) => availablePhases.has(phase));
 
   const essentialPhases = new Set(ESSENTIAL_PHASES.filter((phase) => availablePhases.has(phase)));
-  if (availablePhases.has("tratamento")) essentialPhases.add("tratamento");
+  if (availablePhases.has("tratar")) essentialPhases.add("tratar");
   return canonicalOrder.filter((phase) => essentialPhases.has(phase));
 }
 
@@ -44,7 +52,12 @@ function scoreCandidate(candidate: RoutineCandidate, criteria: RoutineCriteria) 
 
 function pickBestCandidate(candidates: RoutineCandidate[], phase: RoutineStepKey, period: RoutinePeriodKey, criteria: RoutineCriteria, used: Set<string>) {
   const pool = candidates.filter(
-    (candidate) => candidate.phase === phase && candidate.periods.includes(period) && periodAllowsPhase(period, phase) && !used.has(candidate.id),
+    (candidate) =>
+      candidate.phase === phase &&
+      candidate.periods.includes(period) &&
+      periodAllowsPhase(period, phase) &&
+      isGeneralCandidate(candidate) &&
+      !used.has(candidate.id),
   );
   if (!pool.length) return null;
 

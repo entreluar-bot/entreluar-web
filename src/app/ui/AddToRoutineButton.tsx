@@ -7,7 +7,7 @@ import { ROUTINE_PERIODS, ROUTINE_STEPS, addProductToStep, type RoutinePeriodKey
 export default function AddToRoutineButton({ id, title, image_url, className = "" }: { id: string; title: string; image_url?: string | null; className?: string }) {
   const [open, setOpen] = useState(false);
   const [period, setPeriod] = useState<RoutinePeriodKey>("manha");
-  const [step, setStep] = useState<RoutineStepKey>("serum");
+  const [step, setStep] = useState<RoutineStepKey>("tonificar");
   const [savedLabel, setSavedLabel] = useState("");
 
   const confirm = () => {
