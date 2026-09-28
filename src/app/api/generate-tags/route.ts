@@ -6,7 +6,7 @@ import { LUANA_VOICE, TAG_SUGGESTION_RULES, TRUTH_RULES } from "@/lib/ai/identit
 import { tagSuggestionSchema } from "@/lib/ai/schemas";
 import { generateAi } from "@/lib/ai/runtime";
 import { plainTextFromHtml } from "@/lib/share-metadata";
-import { filterValidTagSlugs, formatTagsForPrompt, type Tag } from "@/lib/tags";
+import { ensureIngredientTag, filterValidTagSlugs, formatTagsForPrompt, type Tag } from "@/lib/tags";
 
 export const maxDuration = 30;
 
@@ -34,17 +34,28 @@ TEXTO JÁ PUBLICADO:
 TAGS DISPONÍVEIS:
 ${formatTagsForPrompt(tags)}
 
-Preencha suggestedTagSlugs só com slugs dessa lista.`;
+Preencha suggestedTagSlugs só com slugs dessa lista. mainActiveIngredient segue a regra acima${contentType === "product" ? "" : " (deixe vazio, pois isto não é um produto)"}.`;
 
     const { response, usage } = await generateAi(ai, "tags", {
       contents: prompt,
       config: { responseMimeType: "application/json", responseJsonSchema: tagSuggestionSchema, temperature: 0.3 },
     });
 
-    const parsed = parseJson<{ suggestedTagSlugs: string[] }>(response.text);
+    const parsed = parseJson<{ suggestedTagSlugs: string[]; mainActiveIngredient?: string }>(response.text);
     const suggestedTagSlugs = filterValidTagSlugs(parsed?.suggestedTagSlugs, tags);
+    let newIngredientTag: Tag | null = null;
+    if (contentType === "product") {
+      const mainActiveIngredient = String(parsed?.mainActiveIngredient || "").trim();
+      if (mainActiveIngredient) {
+        const ingredientResult = await ensureIngredientTag(supabase, tags, mainActiveIngredient);
+        if (ingredientResult) {
+          if (!suggestedTagSlugs.includes(ingredientResult.tag.slug)) suggestedTagSlugs.push(ingredientResult.tag.slug);
+          if (ingredientResult.isNew) newIngredientTag = ingredientResult.tag;
+        }
+      }
+    }
     await recordGeneration(supabase, user.id, { contentType: "tags", topic: title, usage });
-    return NextResponse.json({ suggestedTagSlugs });
+    return NextResponse.json({ suggestedTagSlugs, newIngredientTag });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erro ao sugerir tags";
     return NextResponse.json({ error: message }, { status: message.includes("autoriz") || message.includes("Sessão") ? 401 : 500 });

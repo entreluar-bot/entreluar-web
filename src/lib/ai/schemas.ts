@@ -17,8 +17,9 @@ export const tagSuggestionSchema = {
   type: "object",
   properties: {
     suggestedTagSlugs: { type: "array", items: { type: "string" }, maxItems: 8 },
+    mainActiveIngredient: { type: "string" },
   },
-  required: ["suggestedTagSlugs"],
+  required: ["suggestedTagSlugs", "mainActiveIngredient"],
   additionalProperties: false,
 };
 
@@ -67,9 +68,10 @@ export const productSchema = {
     resumoRapido: resumoRapidoSchema,
     resumoRapidoArtigo: resumoRapidoSchema,
     suggestedTagSlugs: { type: "array", items: { type: "string" }, maxItems: 8 },
+    mainActiveIngredient: { type: "string" },
     suggestedPoll: pollSuggestionSchema,
   },
-  required: ["productName", "productReview", "blogTitle", "blogPost", "identificationConfidence", "evidenceLevel", "experienceStatus", "researchSummary", "openingStyle", "structureStyle", "notablePhrases", "resumoRapido", "resumoRapidoArtigo", "suggestedTagSlugs", "suggestedPoll"],
+  required: ["productName", "productReview", "blogTitle", "blogPost", "identificationConfidence", "evidenceLevel", "experienceStatus", "researchSummary", "openingStyle", "structureStyle", "notablePhrases", "resumoRapido", "resumoRapidoArtigo", "suggestedTagSlugs", "mainActiveIngredient", "suggestedPoll"],
   additionalProperties: false,
 };
 

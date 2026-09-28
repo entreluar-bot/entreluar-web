@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 export type TagType = "concern" | "ingredient" | "life_topic" | "category";
 
 export type Tag = { id: string; name: string; slug: string; type: TagType };
@@ -35,4 +37,26 @@ export function slugify(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-+|-+$)/g, "");
+}
+
+// Prefixado porque o slug de tag é único no banco pra qualquer tipo, e algumas
+// categorias de produto (ex.: "Corpo") já colidem com slugs de life_topic/concern.
+export function categoryTagSlug(category: string) {
+  return `categoria-${slugify(category)}`;
+}
+
+export async function ensureIngredientTag(
+  supabase: SupabaseClient,
+  tags: Tag[],
+  rawName: string
+): Promise<{ tag: Tag; isNew: boolean } | null> {
+  const name = rawName.trim();
+  if (!name) return null;
+  const slug = slugify(name);
+  if (!slug) return null;
+  const existing = tags.find((tag) => tag.type === "ingredient" && tag.slug === slug);
+  if (existing) return { tag: existing, isNew: false };
+  const { data, error } = await supabase.from("tags").insert([{ name, slug, type: "ingredient" }]).select().single();
+  if (error || !data) return null;
+  return { tag: data as Tag, isNew: true };
 }

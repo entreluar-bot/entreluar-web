@@ -41,7 +41,13 @@ export const TAG_SUGGESTION_RULES = `
 TAGS SUGERIDAS (campo suggestedTagSlugs):
 - Escolha só entre os slugs exatos da lista "TAGS DISPONÍVEIS" informada abaixo — nunca invente um slug novo nem escreva o nome, sempre o slug.
 - Sugira de 2 a 8 tags que realmente se aplicam ao produto/artigo (queixas que ele resolve, ativos que contém, fase de vida relacionada).
-- Se nenhuma tag da lista fizer sentido, devolva um array vazio — não force uma tag que não encaixa.`;
+- Sempre que existir uma queixa (tipo "Queixa / necessidade") da lista que realmente se aplique, inclua pelo menos uma — só devolva sem nenhuma queixa se genuinamente nenhuma da lista fizer sentido.
+- Se nenhuma tag da lista fizer sentido pra outros tipos, tudo bem devolver sem eles — não force uma tag que não encaixa.
+
+PRINCÍPIO ATIVO PRINCIPAL (campo mainActiveIngredient):
+- Identifique o único ativo cosmético principal e confirmado do produto (o que mais sustenta a promessa dele), com base só no que está confirmado na pesquisa/texto fornecido — nunca invente um ativo que não foi mencionado.
+- Se esse ativo já corresponder a uma tag do tipo "Ativo" na lista "TAGS DISPONÍVEIS", escreva exatamente o nome dessa tag (não o slug). Se não existir ainda, escreva o nome comum em português do ativo (ex.: "Bakuchiol"), pra virar uma tag nova.
+- Devolva string vazia "" só quando o item genuinamente não tiver ativo cosmético aplicável (acessório, roupa, ferramenta, suplemento sem ativo confirmado etc.) — nunca invente um ativo pra preencher o campo.`;
 
 export const POLL_SUGGESTION_RULES = `
 ENQUETE SUGERIDA (campo suggestedPoll):
