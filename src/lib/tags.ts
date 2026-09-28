@@ -1,4 +1,4 @@
-export type TagType = "concern" | "ingredient" | "life_topic" | "category";
+export type TagType = "concern" | "ingredient" | "life_topic" | "category" | "routine_phase" | "routine_period" | "skin_type" | "origin";
 
 export type Tag = { id: string; name: string; slug: string; type: TagType };
 
@@ -9,6 +9,10 @@ export const TAG_TYPE_LABELS: Record<TagType, string> = {
   ingredient: "Ativo",
   life_topic: "Vida 50+ & menopausa",
   category: "Categoria",
+  routine_phase: "Fase da rotina",
+  routine_period: "Período da rotina",
+  skin_type: "Tipo de pele",
+  origin: "Origem",
 };
 
 export function formatTagsForPrompt(tags: Tag[]) {
