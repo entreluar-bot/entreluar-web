@@ -166,9 +166,9 @@ const compressImage = (file: File): Promise<File> => {
           }
         }, "image/jpeg", 0.7);
       };
-      img.onerror = (error) => reject(error);
+      img.onerror = () => reject(new Error("Não consegui abrir essa foto (formato não suportado ou arquivo corrompido)."));
     };
-    reader.onerror = (error) => reject(error);
+    reader.onerror = () => reject(new Error("Não consegui ler o arquivo da foto."));
   });
 };
 
@@ -1032,7 +1032,13 @@ export default function AdminDashboard() {
       const fileToUpload = displayImageFile || imageFile;
       
       if (fileToUpload) {
-        const compressedFile = await compressImage(fileToUpload);
+        let compressedFile: File;
+        try {
+          compressedFile = await compressImage(fileToUpload);
+        } catch {
+          setMessage("Não consegui otimizar essa foto, vou publicar com a original...");
+          compressedFile = fileToUpload;
+        }
         const fileName = `official_${Math.random()}.jpg`;
         const { error: uploadError } = await supabase.storage.from("products").upload(fileName, compressedFile);
         if (uploadError) throw new Error("Erro no upload da foto oficial.");
@@ -1647,8 +1653,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.84</p>
-                <p>Atualizado em 28/09/2026 às 13:50</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.85</p>
+                <p>Atualizado em 28/09/2026 às 19:10</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
