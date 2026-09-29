@@ -1255,9 +1255,10 @@ export default function AdminDashboard() {
       }
 
       // Produto e seu artigo "Estudei" companheiro têm que compartilhar exatamente
-      // as mesmas tags de queixa/ativo/vida-50+ (fase/período/tipo de pele/origem
-      // ficam de fora, só existem em produto).
-      const SYNCED_TAG_TYPES = new Set(["concern", "ingredient", "life_topic"]);
+      // as mesmas tags de queixa/ativo (fase/período/tipo de pele/origem ficam de
+      // fora, só existem em produto). "Vida 50+" não entra aqui — essa tag só
+      // existe no Papo de Mulher, nunca em Vitrine/Estudei.
+      const SYNCED_TAG_TYPES = new Set(["concern", "ingredient"]);
       let companionContentType: "product" | "journal" | null = null;
       let companionId: string | null = null;
       if (editingItem.type === "product" && editingItem.companionJournalId) {
@@ -1678,8 +1679,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.87</p>
-                <p>Atualizado em 29/09/2026 às 05:16</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.88</p>
+                <p>Atualizado em 29/09/2026 às 05:36</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
