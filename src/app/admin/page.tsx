@@ -1331,8 +1331,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.89</p>
-                <p>Atualizado em 29/09/2026 às 13:30</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.90</p>
+                <p>Atualizado em 29/09/2026 às 14:15</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -2191,41 +2191,67 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {activeTab === "comments" && (
-              <div className="space-y-6">
-                <div className="rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-5">
-                  <p className="eyebrow">O papo continuou por aqui</p>
-                  <h2 className="font-display mt-2 text-3xl text-[var(--color-gold)]">Comentários para aprovar</h2>
-                  <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)] opacity-70">As leitoras enviam email e impressão. O email fica só para você; no site aparece como Amiga Entreluar.</p>
-                </div>
-                {comments.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-70">Nenhum comentário chegou por enquanto.</div>
-                ) : (
-                  <div className="space-y-4">
-                    {comments.map((comment) => {
-                      const journal = Array.isArray(comment.journal) ? comment.journal[0] : comment.journal;
-                      return (
-                        <article key={comment.id} className={`rounded-2xl border p-5 ${comment.status === "pending" ? "border-[var(--color-gold)] bg-[#3a1820]" : "border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]"}`}>
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">{comment.status === "pending" ? "Pendente" : comment.status === "approved" ? "Aprovado" : "Rejeitado"}</p>
-                              <h3 className="mt-2 font-serif text-xl text-[var(--color-gold-light)]">{journal?.title || "Papo de Mulher"}</h3>
-                              <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-55">{comment.email} • {new Date(comment.created_at).toLocaleString("pt-BR")}</p>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {comment.status !== "approved" && <button onClick={() => handleCommentStatus(comment, "approved")} disabled={loading} className="rounded border border-[var(--color-gold)] px-3 py-1 text-xs text-[var(--color-gold)]">Aprovar</button>}
-                              {comment.status !== "rejected" && <button onClick={() => handleCommentStatus(comment, "rejected")} disabled={loading} className="rounded border border-red-900 px-3 py-1 text-xs text-red-300">Rejeitar</button>}
-                              {comment.status !== "pending" && <button onClick={() => handleCommentStatus(comment, "pending")} disabled={loading} className="rounded border border-[var(--color-wine-light)] px-3 py-1 text-xs text-[var(--color-gold-light)]">Voltar para pendente</button>}
-                            </div>
-                          </div>
-                          <p className="mt-4 whitespace-pre-wrap leading-7 text-[var(--color-gold-light)]">{comment.body}</p>
-                        </article>
-                      );
-                    })}
+            {activeTab === "comments" && (() => {
+              const pending = comments.filter((comment) => comment.status === "pending");
+              const moderated = comments.filter((comment) => comment.status !== "pending");
+              const renderComment = (comment: SiteComment) => {
+                const journal = Array.isArray(comment.journal) ? comment.journal[0] : comment.journal;
+                return (
+                  <article key={comment.id} className={`rounded-2xl border p-5 ${comment.status === "pending" ? "border-[var(--color-gold)] bg-[#3a1820]" : "border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]"}`}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">{comment.status === "pending" ? "Pendente" : comment.status === "approved" ? "Aprovado" : "Rejeitado"}</p>
+                        <h3 className="mt-2 font-serif text-xl text-[var(--color-gold-light)]">{journal?.title || "Papo de Mulher"}</h3>
+                        <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-55">{comment.email} • {new Date(comment.created_at).toLocaleString("pt-BR")}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {comment.status !== "approved" && <button onClick={() => handleCommentStatus(comment, "approved")} disabled={loading} className="rounded border border-[var(--color-gold)] px-3 py-1 text-xs text-[var(--color-gold)]">Aprovar</button>}
+                        {comment.status !== "rejected" && <button onClick={() => handleCommentStatus(comment, "rejected")} disabled={loading} className="rounded border border-red-900 px-3 py-1 text-xs text-red-300">Rejeitar</button>}
+                        {comment.status !== "pending" && <button onClick={() => handleCommentStatus(comment, "pending")} disabled={loading} className="rounded border border-[var(--color-wine-light)] px-3 py-1 text-xs text-[var(--color-gold-light)]">Voltar para pendente</button>}
+                      </div>
+                    </div>
+                    <p className="mt-4 whitespace-pre-wrap leading-7 text-[var(--color-gold-light)]">{comment.body}</p>
+                  </article>
+                );
+              };
+              return (
+                <div className="space-y-8">
+                  <div className="rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-5">
+                    <p className="eyebrow">O papo continuou por aqui</p>
+                    <h2 className="font-display mt-2 text-3xl text-[var(--color-gold)]">Comentários</h2>
+                    <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)] opacity-70">As leitoras enviam email e impressão. O email fica só para você; no site aparece como Amiga Entreluar.</p>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {comments.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-70">Nenhum comentário chegou por enquanto.</div>
+                  ) : (
+                    <>
+                      <section>
+                        <div className="mb-3 flex items-center justify-between">
+                          <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Precisa da sua ação</h3>
+                          <span className={`rounded-full px-3 py-1 text-xs font-bold ${pending.length > 0 ? "bg-[var(--color-gold)] text-[var(--color-wine-dark)]" : "bg-[var(--color-wine-light)] text-[var(--color-gold-light)] opacity-60"}`}>{pending.length}</span>
+                        </div>
+                        {pending.length === 0 ? (
+                          <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-6 text-center text-sm text-[var(--color-gold-light)] opacity-60">Tudo em dia! Nenhum comentário esperando moderação. ✨</div>
+                        ) : (
+                          <div className="space-y-4">{pending.map(renderComment)}</div>
+                        )}
+                      </section>
+
+                      {moderated.length > 0 && (
+                        <details className="group rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]">
+                          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-5 py-4 text-sm font-bold uppercase tracking-widest text-[var(--color-gold-light)]">
+                            <span>Já moderados <span className="opacity-60">({moderated.length})</span></span>
+                            <span className="text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+                          </summary>
+                          <div className="space-y-4 border-t border-[var(--color-wine-light)] p-5">{moderated.map(renderComment)}</div>
+                        </details>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
 
             {activeTab === "traffic" && (
               <div className="space-y-6">
