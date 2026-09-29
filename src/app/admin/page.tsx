@@ -174,7 +174,7 @@ const compressImage = (file: File): Promise<File> => {
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"product" | "blog" | "manage" | "comments" | "inbox" | "quotes" | "drops" | "newsletter" | "memory">("product");
+  const [activeTab, setActiveTab] = useState<"overview" | "product" | "blog" | "manage" | "traffic" | "comments" | "inbox" | "quotes" | "drops" | "newsletter" | "memory">("overview");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
   const [impressions, setImpressions] = useState("");
@@ -214,6 +214,7 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<any[]>([]);
   const [journals, setJournals] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [contentPreview, setContentPreview] = useState(false);
   const [manageType, setManageType] = useState<ManageType>("papo");
 
   const [tags, setTags] = useState<Tag[]>([]);
@@ -283,12 +284,16 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(""), 6000);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
+  useEffect(() => {
     if (activeTab === "inbox") fetchEmails();
     if (activeTab === "manage" || activeTab === "quotes" || activeTab === "drops") fetchManageData();
-    if (activeTab === "newsletter") {
-      fetchSubscribers();
-      fetchTrafficAnalytics();
-    }
+    if (activeTab === "newsletter") fetchSubscribers();
+    if (activeTab === "traffic" || activeTab === "overview") fetchTrafficAnalytics();
     if (activeTab === "comments") fetchComments();
     if (activeTab === "memory") fetchMemories();
   }, [activeTab]);
@@ -328,7 +333,7 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if (user) fetchMemories();
+    if (user) { fetchMemories(); fetchComments(); fetchTrafficAnalytics(); }
   }, [user]);
 
   const confirmAiSpend = () => aiUsage.costBrl < 10 || confirm("A meta mensal de R$ 10 já foi alcançada. Deseja mesmo gerar outro conteúdo com custo de IA?");
@@ -470,6 +475,7 @@ export default function AdminDashboard() {
 
   const startEditingItem = async (payload: any, contentType: "journal" | "product") => {
     setEditingItem(payload);
+    setContentPreview(false);
     setEditingItemTagIds([]);
     setEditingItemSummary(EMPTY_RESUMO_RAPIDO);
     setEditingItemPoll(EMPTY_POLL);
@@ -512,7 +518,7 @@ export default function AdminDashboard() {
       await refreshEditingPoll(editingItem.id);
       setMessage("Enquete salva! Já aparece no artigo.");
     } catch (error: any) {
-      alert(error.message);
+      setMessage("Erro: " + error.message);
     }
     setSavingPoll(false);
   };
@@ -524,7 +530,7 @@ export default function AdminDashboard() {
       await supabase.from("polls").update({ active: !editingItemPoll.active }).eq("id", editingItemPoll.id);
       await refreshEditingPoll(editingItem.id);
     } catch (error: any) {
-      alert(error.message);
+      setMessage("Erro: " + error.message);
     }
     setSavingPoll(false);
   };
@@ -537,7 +543,7 @@ export default function AdminDashboard() {
       await supabase.from("polls").delete().eq("id", editingItemPoll.id);
       setEditingItemPoll(EMPTY_POLL);
     } catch (error: any) {
-      alert(error.message);
+      setMessage("Erro: " + error.message);
     }
     setSavingPoll(false);
   };
@@ -574,7 +580,7 @@ export default function AdminDashboard() {
       setTags((prev) => [...prev, data as Tag].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
       setNewTagName("");
     } catch (error: any) {
-      alert(error.message);
+      setMessage("Erro: " + error.message);
     }
     setCreatingTag(false);
   };
@@ -1186,7 +1192,7 @@ export default function AdminDashboard() {
     try {
       await supabase.from("journal").delete().eq("id", id);
       fetchManageData();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { setMessage("Erro: " + e.message); }
   };
 
   const handleDeleteQuote = async (id: string) => {
@@ -1194,7 +1200,7 @@ export default function AdminDashboard() {
     try {
       await supabase.from("quotes").delete().eq("id", id);
       fetchManageData();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { setMessage("Erro: " + e.message); }
   };
 
   const handleDeleteDrop = async (id: string) => {
@@ -1202,7 +1208,7 @@ export default function AdminDashboard() {
     try {
       await supabase.from("drops").delete().eq("id", id);
       fetchManageData();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { setMessage("Erro: " + e.message); }
   };
 
   const handleUpdateItem = async () => {
@@ -1295,7 +1301,7 @@ export default function AdminDashboard() {
       fetchManageData();
       setMessage("Atualizado com sucesso! As classificações já estão refletidas nos filtros.");
     } catch (error: any) {
-      alert(error.message);
+      setMessage("Erro: " + error.message);
     }
     setLoading(false);
   };
@@ -1307,6 +1313,10 @@ export default function AdminDashboard() {
     trafficAnalytics.periods.all,
   ] : [];
   const trafficSourceRows = trafficAnalytics?.periods.last30.sources || [];
+  const pendingCommentsCount = comments.filter((comment) => comment.status === "pending").length;
+
+  const tabButtonClass = (tab: typeof activeTab) => `flex-1 whitespace-nowrap py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === tab ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`;
+  const subTabButtonClass = (tab: typeof activeTab) => `rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === tab ? "bg-[var(--color-wine)] text-[var(--color-gold)]" : "bg-transparent text-[var(--color-gold-light)] opacity-70 hover:opacity-100"}`;
 
   if (!user) return <div className="admin-shell grid min-h-screen place-items-center text-[var(--color-gold)]"><div className="glass-panel rounded-3xl px-8 py-6">Preparando o seu ateliê… ✨</div></div>;
 
@@ -1315,372 +1325,14 @@ export default function AdminDashboard() {
       <div className="mx-auto max-w-5xl">
         <header className="glass-panel mb-8 flex flex-col gap-5 rounded-[28px] p-5 md:flex-row md:items-center md:justify-between md:p-7">
           <div>
-            <button
-              onClick={async () => {
-                try {
-                  const data = {
-  "polls": [
-    {
-      "id": "e06198cc-7187-4cd6-84c3-f71db5a5011a",
-      "journal_id": "8acf446c-c70a-49ea-a945-394eace8daf5",
-      "question": "Você já sentiu a necessidade de encerrar ciclos longos que pareciam \"perfeitos\" por fora?",
-      "active": true
-    },
-    {
-      "id": "aa5c4a5b-f904-4df4-b854-c12e60af2b06",
-      "journal_id": "212bc909-1b81-41fe-b02b-297cac900ffc",
-      "question": "Como você se sente quando decide não fazer absolutamente nada?",
-      "active": true
-    },
-    {
-      "id": "596bc1c2-4c1d-4fff-bb27-ed814d5abc37",
-      "journal_id": "4b0e02fd-86a9-4474-a311-9c6b912c6474",
-      "question": "Em qual fase capilar você está hoje?",
-      "active": true
-    },
-    {
-      "id": "6ca5c8b1-c9c1-433b-b6f2-9f8d35756e42",
-      "journal_id": "35eda7de-9b9b-4348-9e92-ee98c67d3d66",
-      "question": "Qual sintoma novo da maturidade te pegou mais de surpresa?",
-      "active": true
-    },
-    {
-      "id": "018430c9-2464-476d-bb76-0962dbedf80b",
-      "journal_id": "de2a5865-b71d-4d40-9668-01562e956b6f",
-      "question": "A sua paciência também sofreu alterações com a idade?",
-      "active": true
-    },
-    {
-      "id": "5cfc4f51-c3a7-4fa5-8752-06f9aeb4b523",
-      "journal_id": "26052a74-cf8a-408b-907e-39afc3223868",
-      "question": "Como você lida com os famosos fogachos (calorões)?",
-      "active": true
-    },
-    {
-      "id": "e042db0e-2d10-4ba2-bb7b-193dfe45daee",
-      "journal_id": "b88f6851-ecef-4a0a-b7e4-fca0f79e356e",
-      "question": "Qual a sua relação com as novas marcas e linhas de expressão?",
-      "active": true
-    },
-    {
-      "id": "e5813be9-de08-4335-8a25-54e338ad3efa",
-      "journal_id": "5e206400-bc7a-44f4-9979-6463bae1fa59",
-      "question": "Qual a sua opinião sobre a Terapia de Reposição Hormonal (TRH)?",
-      "active": true
-    },
-    {
-      "id": "e1960569-d463-46fa-9432-e66edacd2dc7",
-      "journal_id": "82edc46e-f199-4973-9430-6e8819335837",
-      "question": "A famosa \"névoa mental\" já te pegou desprevenida?",
-      "active": true
-    },
-    {
-      "id": "eeab8c64-0957-4af0-a4ad-8ee4171cefe7",
-      "journal_id": "de44bf7f-5dab-4fca-aa91-0cbfb34eea49",
-      "question": "O braço também começou a ficar curto por aí? (Vista cansada)",
-      "active": true
-    },
-    {
-      "id": "b0af1bbd-e4da-4fe8-8c75-bf1947956f91",
-      "journal_id": "1edc108b-15cb-4c72-a27f-52a20a7be640",
-      "question": "Quando o sono foge de madrugada, o que você costuma fazer?",
-      "active": true
-    }
-  ],
-  "options": [
-    {
-      "id": "2e268417-ff81-47a7-9f5b-501a29ff38b8",
-      "poll_id": "e06198cc-7187-4cd6-84c3-f71db5a5011a",
-      "label": "Sim, já joguei tudo pro alto e recomecei!",
-      "position": 0
-    },
-    {
-      "id": "219f33d2-5529-4e7e-900d-e498f66a85b8",
-      "poll_id": "e06198cc-7187-4cd6-84c3-f71db5a5011a",
-      "label": "Ainda estou criando coragem...",
-      "position": 1
-    },
-    {
-      "id": "4841e1da-3e25-4ebd-9ed5-c91791ab01f4",
-      "poll_id": "e06198cc-7187-4cd6-84c3-f71db5a5011a",
-      "label": "Na minha vida o ciclo se encerrou naturalmente.",
-      "position": 2
-    },
-    {
-      "id": "38c70033-c8f1-46f0-873a-5b3706143106",
-      "poll_id": "e06198cc-7187-4cd6-84c3-f71db5a5011a",
-      "label": "Sou do time que prefere tentar consertar sempre.",
-      "position": 3
-    },
-    {
-      "id": "76b7f1b3-22f1-4b64-b929-3a8b57dd2e70",
-      "poll_id": "aa5c4a5b-f904-4df4-b854-c12e60af2b06",
-      "label": "Descanso sem culpa, eu mereço!",
-      "position": 0
-    },
-    {
-      "id": "ee8667ab-ebff-4b90-870f-f661c03e5a48",
-      "poll_id": "aa5c4a5b-f904-4df4-b854-c12e60af2b06",
-      "label": "Fico me corroendo de culpa por dentro.",
-      "position": 1
-    },
-    {
-      "id": "90d8e620-98f6-4dc3-87d6-6096a91351ee",
-      "poll_id": "aa5c4a5b-f904-4df4-b854-c12e60af2b06",
-      "label": "Só consigo parar quando o corpo pede arrego.",
-      "position": 2
-    },
-    {
-      "id": "04b45863-979a-4ff6-b6f5-ccd6ec733d75",
-      "poll_id": "aa5c4a5b-f904-4df4-b854-c12e60af2b06",
-      "label": "O que é descanso mesmo? (socorro!)",
-      "position": 3
-    },
-    {
-      "id": "c036ff4d-b4a6-424d-93c8-9d5b1d625c6c",
-      "poll_id": "596bc1c2-4c1d-4fff-bb27-ed814d5abc37",
-      "label": "Assumi os brancos e estou amando!",
-      "position": 0
-    },
-    {
-      "id": "5b681cfd-8744-4e68-9e83-4f44f2fdf08c",
-      "poll_id": "596bc1c2-4c1d-4fff-bb27-ed814d5abc37",
-      "label": "Tinta neles! Adoro minha cor de sempre.",
-      "position": 1
-    },
-    {
-      "id": "0c67a3ce-3590-484c-979c-56b0f64d3982",
-      "poll_id": "596bc1c2-4c1d-4fff-bb27-ed814d5abc37",
-      "label": "Em transição, um dia de cada vez.",
-      "position": 2
-    },
-    {
-      "id": "d2f75b1e-e5f8-4ad6-b4f6-5f7514c469fc",
-      "poll_id": "596bc1c2-4c1d-4fff-bb27-ed814d5abc37",
-      "label": "Queria assumir os brancos, mas falta coragem.",
-      "position": 3
-    },
-    {
-      "id": "7513bad7-f1ff-44cb-ad80-a6246b9654c7",
-      "poll_id": "6ca5c8b1-c9c1-433b-b6f2-9f8d35756e42",
-      "label": "O cansaço que não passa nunca.",
-      "position": 0
-    },
-    {
-      "id": "0439dd7d-8bfb-4f52-9df5-e8a205851794",
-      "poll_id": "6ca5c8b1-c9c1-433b-b6f2-9f8d35756e42",
-      "label": "Dores em lugares que eu nem sabia que existiam.",
-      "position": 1
-    },
-    {
-      "id": "4df53942-ef08-44ff-86dd-350fc3b4e701",
-      "poll_id": "6ca5c8b1-c9c1-433b-b6f2-9f8d35756e42",
-      "label": "A mente a mil, mas o corpo pedindo pausa.",
-      "position": 2
-    },
-    {
-      "id": "48573b9d-cc16-4fc3-b698-aa9b1f9654d1",
-      "poll_id": "6ca5c8b1-c9c1-433b-b6f2-9f8d35756e42",
-      "label": "A paciência que reduziu drasticamente.",
-      "position": 3
-    },
-    {
-      "id": "cd505253-e5b0-4a68-a524-3fef51a450ea",
-      "poll_id": "018430c9-2464-476d-bb76-0962dbedf80b",
-      "label": "Sim, hoje eu falo \"não\" sem pena!",
-      "position": 0
-    },
-    {
-      "id": "70209a82-7ef5-48c3-b4af-681848f9b036",
-      "poll_id": "018430c9-2464-476d-bb76-0962dbedf80b",
-      "label": "Continuo engolindo sapos para evitar brigas...",
-      "position": 1
-    },
-    {
-      "id": "46eb567d-bcff-4aa0-8adf-6369d7cb13f2",
-      "poll_id": "018430c9-2464-476d-bb76-0962dbedf80b",
-      "label": "Depende do dia e da TPM (que ainda existe).",
-      "position": 2
-    },
-    {
-      "id": "4d50f1d9-bb68-46f8-97d6-d702ad5475e4",
-      "poll_id": "018430c9-2464-476d-bb76-0962dbedf80b",
-      "label": "Fiquei até mais zen e tolerante.",
-      "position": 3
-    },
-    {
-      "id": "f372d733-5fc7-4121-9996-11a21ccea05f",
-      "poll_id": "5cfc4f51-c3a7-4fa5-8752-06f9aeb4b523",
-      "label": "Passo mal, acordo várias vezes à noite.",
-      "position": 0
-    },
-    {
-      "id": "f50d1da3-f382-464a-9173-b903e487f45d",
-      "poll_id": "5cfc4f51-c3a7-4fa5-8752-06f9aeb4b523",
-      "label": "Já aprendi a conviver e andar com leque.",
-      "position": 1
-    },
-    {
-      "id": "d9c5ba94-864a-4039-9d1e-34a4173b1159",
-      "poll_id": "5cfc4f51-c3a7-4fa5-8752-06f9aeb4b523",
-      "label": "Faço reposição e eles sumiram!",
-      "position": 2
-    },
-    {
-      "id": "8841345d-f985-4082-b1d7-1daa67f4c35b",
-      "poll_id": "5cfc4f51-c3a7-4fa5-8752-06f9aeb4b523",
-      "label": "Graças a Deus, ainda não cheguei nessa fase.",
-      "position": 3
-    },
-    {
-      "id": "99498229-58d6-40d1-9697-ea36e31a1cfa",
-      "poll_id": "e042db0e-2d10-4ba2-bb7b-193dfe45daee",
-      "label": "Cuido com carinho, mas aceito minha história.",
-      "position": 0
-    },
-    {
-      "id": "1a524655-d918-45a1-84a4-e377a7a11e24",
-      "poll_id": "e042db0e-2d10-4ba2-bb7b-193dfe45daee",
-      "label": "Passo todos os cremes possíveis e imagináveis!",
-      "position": 1
-    },
-    {
-      "id": "af80bea1-a9ec-4cc6-9a96-15890ccaf231",
-      "poll_id": "e042db0e-2d10-4ba2-bb7b-193dfe45daee",
-      "label": "Sou adepta de procedimentos estéticos sem culpa.",
-      "position": 2
-    },
-    {
-      "id": "913ddcb8-4303-4984-b67b-a6a77cc61330",
-      "poll_id": "e042db0e-2d10-4ba2-bb7b-193dfe45daee",
-      "label": "Confesso que ainda sofro quando me olho no espelho.",
-      "position": 3
-    },
-    {
-      "id": "54d418f3-015a-430d-8664-99ee74608fbb",
-      "poll_id": "e5813be9-de08-4335-8a25-54e338ad3efa",
-      "label": "Já faço e devolveu minha qualidade de vida!",
-      "position": 0
-    },
-    {
-      "id": "1a3ed58a-fdc3-4ea6-95cb-7c63f20258b3",
-      "poll_id": "e5813be9-de08-4335-8a25-54e338ad3efa",
-      "label": "Morro de vontade, mas tenho medo/dúvidas.",
-      "position": 1
-    },
-    {
-      "id": "7463e62d-990b-40c1-85e6-bcaf9cd4ef11",
-      "poll_id": "e5813be9-de08-4335-8a25-54e338ad3efa",
-      "label": "Meu médico disse que eu não posso fazer.",
-      "position": 2
-    },
-    {
-      "id": "9a4b7094-b84f-4cf3-b6ae-1a695b6030fc",
-      "poll_id": "e5813be9-de08-4335-8a25-54e338ad3efa",
-      "label": "Prefiro métodos 100% naturais.",
-      "position": 3
-    },
-    {
-      "id": "6def655b-0183-48f7-bcd1-ee0887dab8a2",
-      "poll_id": "e1960569-d463-46fa-9432-e66edacd2dc7",
-      "label": "O tempo todo, esqueço até o que ia falar!",
-      "position": 0
-    },
-    {
-      "id": "2a8a50aa-c894-4411-af4c-2a0824fd47e1",
-      "poll_id": "e1960569-d463-46fa-9432-e66edacd2dc7",
-      "label": "De vez em quando o \"tico e teco\" falham.",
-      "position": 1
-    },
-    {
-      "id": "ad803efc-f974-4d6c-9e06-eed44175a4aa",
-      "poll_id": "e1960569-d463-46fa-9432-e66edacd2dc7",
-      "label": "Comecei a anotar tudo para não esquecer.",
-      "position": 2
-    },
-    {
-      "id": "4359807d-18d7-4da7-b1b9-194d752746ef",
-      "poll_id": "e1960569-d463-46fa-9432-e66edacd2dc7",
-      "label": "Por enquanto minha memória está intacta.",
-      "position": 3
-    },
-    {
-      "id": "fca91c65-6ec6-4b26-a28c-e2ff5caaa238",
-      "poll_id": "eeab8c64-0957-4af0-a4ad-8ee4171cefe7",
-      "label": "Sim, já tenho óculos espalhados pela casa toda!",
-      "position": 0
-    },
-    {
-      "id": "bd9ac965-0f28-4547-8167-b712752450df",
-      "poll_id": "eeab8c64-0957-4af0-a4ad-8ee4171cefe7",
-      "label": "Ainda reluto, mas afasto o celular pra ler.",
-      "position": 1
-    },
-    {
-      "id": "c1b143f5-018d-4763-bbed-58e9c7c1a073",
-      "poll_id": "eeab8c64-0957-4af0-a4ad-8ee4171cefe7",
-      "label": "Fiz cirurgia ou uso lentes, resolvi o problema.",
-      "position": 2
-    },
-    {
-      "id": "db356336-5e0c-4d05-802e-b9c1844f621b",
-      "poll_id": "eeab8c64-0957-4af0-a4ad-8ee4171cefe7",
-      "label": "Minha visão de perto continua de águia.",
-      "position": 3
-    },
-    {
-      "id": "30181c8c-eebb-4178-85ac-20cf05f80172",
-      "poll_id": "b0af1bbd-e4da-4fe8-8c75-bf1947956f91",
-      "label": "Fico rolando na cama fritando a cabeça.",
-      "position": 0
-    },
-    {
-      "id": "d61611e0-9642-4182-9be4-eced7c0bb380",
-      "poll_id": "b0af1bbd-e4da-4fe8-8c75-bf1947956f91",
-      "label": "Levanto, faço um chá e vou ler um livro.",
-      "position": 1
-    },
-    {
-      "id": "c1c1d6dd-74c3-45bb-ae14-82143d6841b9",
-      "poll_id": "b0af1bbd-e4da-4fe8-8c75-bf1947956f91",
-      "label": "Pego o celular e vou rodar o feed das redes.",
-      "position": 2
-    },
-    {
-      "id": "3816cbea-ecd3-4418-b37f-6c8f3ed0b795",
-      "poll_id": "b0af1bbd-e4da-4fe8-8c75-bf1947956f91",
-      "label": "Graças a Deus, meu sono continua uma pedra!",
-      "position": 3
-    }
-  ]
-};
-                  const { error: err1 } = await supabase.from("polls").insert(data.polls);
-                  if (err1) {
-                    alert("Erro polls: " + JSON.stringify(err1));
-                    return;
-                  }
-                  const { error: err2 } = await supabase.from("poll_options").insert(data.options);
-                  if (err2) {
-                    alert("Erro options: " + JSON.stringify(err2));
-                    return;
-                  }
-                  alert("Enquetes criadas com sucesso!");
-                } catch (e: any) {
-                  alert("Error: " + e.message);
-                }
-              }}
-              className="mb-4 rounded bg-[var(--color-gold)] px-4 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)]"
-            >
-              GERAR ENQUETES (TEMP)
-            </button>
             <p className="eyebrow mb-2">Ateliê de conteúdo</p>
             <h1 className="font-display text-4xl text-[var(--color-gold-light)]">Painel da Luana</h1>
             <p className="mt-1 text-sm text-[var(--muted)]">Crie, revise e publique. Para colar fotos, use Ctrl+V.</p>
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.88</p>
-                <p>Atualizado em 29/09/2026 às 05:36</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.89</p>
+                <p>Atualizado em 29/09/2026 às 13:30</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1691,39 +1343,106 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <div className="admin-tabs mb-8 flex gap-2 overflow-x-auto pb-2">
-          <button onClick={() => { setActiveTab("product"); setGeneratedReview(""); }} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "product" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
-            Vitrine (Mágica)
-          </button>
-          <button onClick={() => { setActiveTab("blog"); setGeneratedBlogPost(""); }} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "blog" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
-            Papo de Mulher Madura
-          </button>
-          <button onClick={() => setActiveTab("manage")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "manage" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
-            Gerenciar
-          </button>
-          <button onClick={() => setActiveTab("comments")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "comments" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
-            Comentários
-          </button>
-          <button onClick={() => { setActiveTab("quotes"); setQuoteText(""); }} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "quotes" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
-            Pílulas (Quotes)
-          </button>
-          <button onClick={() => setActiveTab("drops")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "drops" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
-            Drops (Insta)
-          </button>
-          <button onClick={() => setActiveTab("inbox")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "inbox" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
-            E-mails
-          </button>
-          <button onClick={() => setActiveTab("newsletter")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "newsletter" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
-            Marketing
-          </button>
-          <button onClick={() => setActiveTab("memory")} className={`flex-1 py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === "memory" ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`}>
-            Memória IA
-          </button>
+        <div className="admin-tabs mb-8 flex flex-col gap-3">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button onClick={() => setActiveTab("overview")} className={tabButtonClass("overview")}>
+              Visão Geral
+            </button>
+            <button onClick={() => { setActiveTab("product"); setGeneratedReview(""); }} className={tabButtonClass("product")}>
+              Vitrine (Mágica)
+            </button>
+            <button onClick={() => { setActiveTab("blog"); setGeneratedBlogPost(""); }} className={tabButtonClass("blog")}>
+              Papo de Mulher
+            </button>
+            <button onClick={() => setActiveTab("manage")} className={tabButtonClass("manage")}>
+              Gerenciar
+            </button>
+            <button onClick={() => setActiveTab("traffic")} className={tabButtonClass("traffic")}>
+              Tráfego
+            </button>
+          </div>
+
+          <details className="group rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--color-gold-light)]">
+              <span>Mais ferramentas {pendingCommentsCount > 0 && <span className="ml-1 rounded-full bg-[var(--color-gold)] px-2 py-0.5 text-[10px] text-[var(--color-wine-dark)]">{pendingCommentsCount}</span>}</span>
+              <span className="text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+            </summary>
+            <div className="flex flex-wrap gap-2 border-t border-[var(--color-wine-light)] p-3">
+              <button onClick={() => setActiveTab("comments")} className={subTabButtonClass("comments")}>
+                Comentários {pendingCommentsCount > 0 && <span className="ml-1 rounded-full bg-[var(--color-gold)] px-1.5 py-0.5 text-[10px] text-[var(--color-wine-dark)]">{pendingCommentsCount}</span>}
+              </button>
+              <button onClick={() => { setActiveTab("quotes"); setQuoteText(""); }} className={subTabButtonClass("quotes")}>
+                Pílulas (Quotes)
+              </button>
+              <button onClick={() => setActiveTab("drops")} className={subTabButtonClass("drops")}>
+                Drops (Insta)
+              </button>
+              <button onClick={() => setActiveTab("inbox")} className={subTabButtonClass("inbox")}>
+                E-mails
+              </button>
+              <button onClick={() => setActiveTab("newsletter")} className={subTabButtonClass("newsletter")}>
+                Marketing
+              </button>
+              <button onClick={() => setActiveTab("memory")} className={subTabButtonClass("memory")}>
+                Memória IA
+              </button>
+            </div>
+          </details>
         </div>
 
         <div className="grid grid-cols-1 gap-8">
           <div className="glass-panel mx-auto w-full max-w-4xl rounded-[28px] p-4 shadow-lg md:p-8">
-            
+
+            {activeTab === "overview" && (
+              <div className="space-y-6">
+                <div>
+                  <p className="eyebrow mb-2">Hoje no ateliê</p>
+                  <h2 className="font-display text-3xl text-[var(--color-gold-light)]">Visão Geral</h2>
+                  <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Um resumo rápido antes de mergulhar no trabalho do dia.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <div className="rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4">
+                    <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Visitas hoje</p>
+                    <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{trafficAnalytics ? trafficAnalytics.periods.today.visits.toLocaleString("pt-BR") : "—"}</p>
+                  </div>
+                  <div className="rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4">
+                    <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Visitas em 7 dias</p>
+                    <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{trafficAnalytics ? trafficAnalytics.periods.last7.visits.toLocaleString("pt-BR") : "—"}</p>
+                  </div>
+                  <div className={`rounded-xl border p-4 ${pendingCommentsCount > 0 ? "border-[var(--color-gold)] bg-[#3a1820]" : "border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]"}`}>
+                    <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Comentários pendentes</p>
+                    <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{pendingCommentsCount}</p>
+                  </div>
+                  <div className="rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4">
+                    <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Custo de IA no mês</p>
+                    <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">R$ {aiUsage.costBrl.toFixed(2).replace(".", ",")}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[var(--color-gold-light)] opacity-70">Atalhos rápidos</p>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <button onClick={() => { setActiveTab("product"); setGeneratedReview(""); }} className="rounded-xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-4 text-left text-sm font-bold uppercase tracking-widest text-[var(--color-gold)] transition-colors hover:bg-[var(--color-wine-light)]">✨ Gerar Vitrine</button>
+                    <button onClick={() => { setActiveTab("blog"); setGeneratedBlogPost(""); }} className="rounded-xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-4 text-left text-sm font-bold uppercase tracking-widest text-[var(--color-gold)] transition-colors hover:bg-[var(--color-wine-light)]">💬 Gerar Papo de Mulher</button>
+                    <button onClick={() => setActiveTab("traffic")} className="rounded-xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-4 text-left text-sm font-bold uppercase tracking-widest text-[var(--color-gold)] transition-colors hover:bg-[var(--color-wine-light)]">📈 Ver tráfego completo</button>
+                  </div>
+                </div>
+
+                {pendingCommentsCount > 0 && (
+                  <button onClick={() => setActiveTab("comments")} className="w-full rounded-xl border border-[var(--color-gold)] bg-[#3a1820] p-4 text-left text-sm text-[var(--color-gold-light)]">
+                    Você tem <strong className="text-[var(--color-gold)]">{pendingCommentsCount}</strong> comentário{pendingCommentsCount === 1 ? "" : "s"} esperando moderação. Toque para revisar.
+                  </button>
+                )}
+
+                {aiUsage.costBrl >= 8 && (
+                  <div className={`rounded-xl border p-4 text-sm font-bold ${aiUsage.costBrl >= 10 ? "border-red-400 bg-red-950/40 text-red-200" : "border-amber-400 bg-amber-950/30 text-amber-100"}`}>
+                    {aiUsage.costBrl >= 10 ? "⚠️ A meta mensal de R$ 10 de IA foi alcançada. Confirme o custo antes de novas gerações." : "💛 O gasto de IA passou de R$ 8 neste mês e está perto da meta."}
+                  </div>
+                )}
+              </div>
+            )}
+
             {activeTab === "product" && (
               <div className="space-y-6">
                 {!generatedReview ? (
@@ -1825,7 +1544,6 @@ export default function AdminDashboard() {
                         </label>
                       </div>
 
-                    {message && <p className="text-sm text-[#f3e5ab] mt-2 italic text-center font-bold">{message}</p>}
                     
                     <button onClick={handleGenerateText} disabled={loading} className="w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform mt-4">
                       {loading ? "A IA ESTÁ LENDO A FOTO..." : "GERAR MÁGICA TOTAL"}
@@ -1993,7 +1711,6 @@ export default function AdminDashboard() {
                       )}
                     </div>
 
-                    {message && <p className="text-sm text-[#f3e5ab] mt-2 italic text-center font-bold">{message}</p>}
 
                     <div className="flex gap-4 mt-6">
                        <button onClick={() => { setGeneratedReview(""); setGeneratedProductName(""); setGeneratedBlogTitle(""); setGeneratedBlogPost(""); setAccessoryDetailsUsed([]); setAccessoryHumorApplied(false); setGeneratedResumoRapido(EMPTY_RESUMO_RAPIDO); setGeneratedResumoRapidoArtigo(EMPTY_RESUMO_RAPIDO); setGeneratedTagIds([]); setGeneratedPollQuestion(""); setGeneratedPollOptions([]); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-4 rounded font-bold uppercase hover:bg-[var(--color-wine-dark)] transition-colors">
@@ -2091,7 +1808,6 @@ export default function AdminDashboard() {
                       )}
                     </div>
 
-                    {message && <p className="text-sm text-[#f3e5ab] mt-2 italic text-center font-bold">{message}</p>}
                     
                     <button onClick={handleGenerateBlogOnly} disabled={loading} className="w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform mt-4">
                       {loading ? "A IA ESTÁ ESCREVENDO..." : "ESCREVER CRÔNICA"}
@@ -2125,7 +1841,6 @@ export default function AdminDashboard() {
                       )}
                     </div>
 
-                    {message && <p className="text-sm text-[#f3e5ab] mt-2 italic text-center font-bold">{message}</p>}
 
                     <div className="flex gap-4 mt-6">
                        <button onClick={() => { setGeneratedBlogTitle(""); setGeneratedBlogPost(""); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-4 rounded font-bold uppercase hover:bg-[var(--color-wine-dark)] transition-colors">
@@ -2382,7 +2097,18 @@ export default function AdminDashboard() {
                         )}
                       </fieldset>
                     )}
-                    <textarea value={editingItem.content} onChange={(e) => setEditingItem({ ...editingItem, content: e.target.value })} rows={15} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed border border-[var(--color-wine-light)] p-4 rounded" ></textarea>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label className="text-sm text-[var(--color-gold-light)]">Corpo do artigo</label>
+                      <div className="flex gap-1 rounded-lg border border-[var(--color-wine-light)] p-1">
+                        <button type="button" onClick={() => setContentPreview(false)} className={`rounded px-3 py-1 text-xs font-bold uppercase tracking-widest ${!contentPreview ? "bg-[var(--color-wine)] text-[var(--color-gold)]" : "text-[var(--color-gold-light)] opacity-60"}`}>Editar</button>
+                        <button type="button" onClick={() => setContentPreview(true)} className={`rounded px-3 py-1 text-xs font-bold uppercase tracking-widest ${contentPreview ? "bg-[var(--color-wine)] text-[var(--color-gold)]" : "text-[var(--color-gold-light)] opacity-60"}`}>Prévia</button>
+                      </div>
+                    </div>
+                    {contentPreview ? (
+                      <div className="max-h-[420px] min-h-[200px] overflow-auto rounded border border-[var(--color-wine-light)] bg-white p-4 text-sm leading-relaxed text-[#2b151b]" dangerouslySetInnerHTML={{ __html: editingItem.content }} />
+                    ) : (
+                      <textarea value={editingItem.content} onChange={(e) => setEditingItem({ ...editingItem, content: e.target.value })} rows={15} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed border border-[var(--color-wine-light)] p-4 rounded" ></textarea>
+                    )}
                     <div className="flex gap-4 mt-4">
                       <button onClick={() => { setEditingItem(null); setEditingItemTagIds([]); setEditingItemSummary(EMPTY_RESUMO_RAPIDO); setEditingItemPoll(EMPTY_POLL); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-3 rounded font-bold uppercase">
                         Cancelar
@@ -2472,7 +2198,6 @@ export default function AdminDashboard() {
                   <h2 className="font-display mt-2 text-3xl text-[var(--color-gold)]">Comentários para aprovar</h2>
                   <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)] opacity-70">As leitoras enviam email e impressão. O email fica só para você; no site aparece como Amiga Entreluar.</p>
                 </div>
-                {message && <p className="text-center text-sm font-bold italic text-[#f3e5ab]">{message}</p>}
                 {comments.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-70">Nenhum comentário chegou por enquanto.</div>
                 ) : (
@@ -2502,6 +2227,65 @@ export default function AdminDashboard() {
               </div>
             )}
 
+            {activeTab === "traffic" && (
+              <div className="space-y-6">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="eyebrow mb-2">Tráfego do site</p>
+                    <h2 className="font-display text-3xl text-[var(--color-gold-light)]">Como estão as visitas</h2>
+                    <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Mede todos os acessos gravados no site e separa por Instagram, Facebook, Direto e Internet.</p>
+                  </div>
+                  <button type="button" onClick={fetchTrafficAnalytics} className="self-start border border-[var(--color-gold)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)] hover:bg-[var(--color-wine-light)]">Atualizar</button>
+                </div>
+
+                {trafficAnalytics ? (
+                  <>
+                    <div className="grid gap-3 md:grid-cols-4">
+                      {trafficPeriods.map((period) => (
+                        <div key={period.label} className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                          <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">{period.label}</p>
+                          <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{period.visits.toLocaleString("pt-BR")}</p>
+                          <p className="mt-2 text-xs text-[var(--color-gold-light)] opacity-60">{period.uniqueSessions.toLocaleString("pt-BR")} visitantes · {period.conversions.toLocaleString("pt-BR")} cadastros</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                      <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Origem nos últimos 30 dias</p>
+                      {trafficSourceRows.map((source) => {
+                        const maxVisits = Math.max(...trafficSourceRows.map((item) => item.visits), 1);
+                        return (
+                          <div key={source.source} className="border-t border-[var(--color-wine-light)] py-3 text-sm text-[var(--color-gold-light)] first:border-t-0">
+                            <div className="flex justify-between gap-4">
+                              <span>{source.label}</span>
+                              <strong className="text-[var(--color-gold)]">{source.visits.toLocaleString("pt-BR")}</strong>
+                            </div>
+                            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--color-wine)]">
+                              <div className="h-full rounded-full bg-[var(--color-gold)]" style={{ width: `${(source.visits / maxVisits) * 100}%` }} />
+                            </div>
+                            <p className="mt-1 text-xs opacity-55">{source.uniqueSessions.toLocaleString("pt-BR")} visitantes · {source.conversions.toLocaleString("pt-BR")} cadastros · {source.conversionRate.toFixed(1).replace(".", ",")}%</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                      <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Páginas mais visitadas em 30 dias</p>
+                      {trafficAnalytics.periods.last30.topPages.length ? trafficAnalytics.periods.last30.topPages.map((page) => (
+                        <div key={page.path} className="flex justify-between gap-4 border-t border-[var(--color-wine-light)] py-2 text-sm text-[var(--color-gold-light)] first:border-t-0">
+                          <span className="truncate">{page.path}</span>
+                          <strong className="text-[var(--color-gold)]">{page.visits}</strong>
+                        </div>
+                      )) : <p className="text-sm text-[var(--color-gold-light)] opacity-60">Sem visitas registradas ainda.</p>}
+                    </div>
+                    <p className="text-xs leading-5 text-[var(--color-gold-light)] opacity-55">Direto inclui quem digitou o endereço, abriu favorito ou veio sem origem identificável. Internet agrupa Google, outros sites e navegadores externos.</p>
+                  </>
+                ) : (
+                  <p className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4 text-sm text-[var(--color-gold-light)] opacity-70">{trafficAnalyticsStatus}</p>
+                )}
+              </div>
+            )}
+
             {activeTab === "newsletter" && (
               <div className="space-y-6">
                 <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-wine-light)] mb-8 flex justify-between items-center">
@@ -2514,58 +2298,6 @@ export default function AdminDashboard() {
                     {subscribersCount}
                   </div>
                 </div>
-
-                <section className="rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-6" aria-labelledby="traffic-analytics-title">
-                  <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <p className="eyebrow mb-2">Tráfego do site</p>
-                      <h3 id="traffic-analytics-title" className="font-serif text-2xl text-[var(--color-gold)]">Visitas por origem</h3>
-                      <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Mede todos os acessos gravados no site e separa por Instagram, Facebook, Direto e Internet.</p>
-                    </div>
-                    <button type="button" onClick={fetchTrafficAnalytics} className="border border-[var(--color-gold)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)] hover:bg-[var(--color-wine-light)]">Atualizar</button>
-                  </div>
-
-                  {trafficAnalytics ? (
-                    <>
-                      <div className="grid gap-3 md:grid-cols-4">
-                        {trafficPeriods.map((period) => (
-                          <div key={period.label} className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                            <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">{period.label}</p>
-                            <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{period.visits.toLocaleString("pt-BR")}</p>
-                            <p className="mt-2 text-xs text-[var(--color-gold-light)] opacity-60">{period.uniqueSessions.toLocaleString("pt-BR")} visitantes · {period.conversions.toLocaleString("pt-BR")} cadastros</p>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="mt-5 grid gap-4 md:grid-cols-2">
-                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                          <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Origem nos últimos 30 dias</p>
-                          {trafficSourceRows.map((source) => (
-                            <div key={source.source} className="border-t border-[var(--color-wine-light)] py-2 text-sm text-[var(--color-gold-light)]">
-                              <div className="flex justify-between gap-4">
-                                <span>{source.label}</span>
-                                <strong className="text-[var(--color-gold)]">{source.visits.toLocaleString("pt-BR")}</strong>
-                              </div>
-                              <p className="text-xs opacity-55">{source.uniqueSessions.toLocaleString("pt-BR")} visitantes · {source.conversions.toLocaleString("pt-BR")} cadastros · {source.conversionRate.toFixed(1).replace(".", ",")}%</p>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                          <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Páginas mais visitadas em 30 dias</p>
-                          {trafficAnalytics.periods.last30.topPages.length ? trafficAnalytics.periods.last30.topPages.map((page) => (
-                            <div key={page.path} className="flex justify-between gap-4 border-t border-[var(--color-wine-light)] py-2 text-sm text-[var(--color-gold-light)]">
-                              <span className="truncate">{page.path}</span>
-                              <strong className="text-[var(--color-gold)]">{page.visits}</strong>
-                            </div>
-                          )) : <p className="text-sm text-[var(--color-gold-light)] opacity-60">Sem visitas registradas ainda.</p>}
-                        </div>
-                      </div>
-                      <p className="mt-4 text-xs leading-5 text-[var(--color-gold-light)] opacity-55">Direto inclui quem digitou o endereço, abriu favorito ou veio sem origem identificável. Internet agrupa Google, outros sites e navegadores externos.</p>
-                    </>
-                  ) : (
-                    <p className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4 text-sm text-[var(--color-gold-light)] opacity-70">{trafficAnalyticsStatus}</p>
-                  )}
-                </section>
 
                 <div className="space-y-4">
                   <label className="block text-[var(--color-gold-light)] text-sm">Qual experiência você quer criar?</label>
@@ -2757,7 +2489,6 @@ export default function AdminDashboard() {
                     {memoryPrivacy === "publica" && <label className="md:col-span-2 flex items-center gap-3 text-sm text-[var(--color-gold-light)]"><input type="checkbox" checked={memoryAllowInContent} onChange={(e) => setMemoryAllowInContent(e.target.checked)} /> Autorizo citar esta informação nos textos quando for pertinente.</label>}
                   </div>
                   <button onClick={handleSaveMemory} disabled={loading} className="mt-5 w-full rounded-lg bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] py-3 font-bold uppercase tracking-widest text-[var(--color-wine-dark)] disabled:opacity-50">Guardar memória</button>
-                  {message && <p className="mt-4 text-center text-sm font-bold italic text-[#f3e5ab]">{message}</p>}
                 </section>
 
                 <section>
@@ -2802,7 +2533,6 @@ export default function AdminDashboard() {
                       </button>
                     </div>
                   )}
-                  {message && <p className="text-sm text-[#f3e5ab] mt-4 italic text-center font-bold">{message}</p>}
                 </div>
                 <div>
                   <h3 className="mb-6 border-b border-[var(--color-wine-light)] pb-2 font-serif text-2xl text-[var(--color-gold)]">Pílulas publicadas</h3>
@@ -2834,7 +2564,6 @@ export default function AdminDashboard() {
                     <button onClick={handlePublishDrop} disabled={loading || !dropUrl} className="w-full mt-4 bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase hover:scale-105 transition-transform disabled:opacity-50">
                       {loading ? "Publicando..." : "Publicar Drop"}
                     </button>
-                    {message && <p className="text-sm text-[#f3e5ab] mt-4 italic text-center font-bold">{message}</p>}
                   </div>
                 </div>
                 <div>
@@ -2920,6 +2649,20 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {message && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-xl border px-4 py-3 text-center text-sm font-bold shadow-xl ${
+            message.toLowerCase().startsWith("erro")
+              ? "border-red-400 bg-red-950/95 text-red-100"
+              : "border-[var(--color-gold)] bg-[var(--color-wine-dark)]/95 text-[#f3e5ab]"
+          }`}
+        >
+          {message}
+        </div>
+      )}
     </div>
   );
 }
