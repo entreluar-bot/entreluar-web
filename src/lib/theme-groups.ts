@@ -4,7 +4,13 @@ export type ThemeGroup = {
   subtitle: string;
   icon: string;
   tagSlugs: string[];
+  // Grupos de tag "vida 50+" (type: life_topic) só fazem sentido pra Papo de
+  // Mulher — Vitrine e Estudei não devem aparecer aqui (ver
+  // PAPO_DE_MULHER_CATEGORIES).
+  onlyPapoDeMulher?: boolean;
 };
+
+export const PAPO_DE_MULHER_CATEGORIES = ["Papo de Mulher Madura", "Confissões de Madrugada", "Sobrevivendo com Humor"];
 
 // Grupos de exibição da navegação por tema ("O que você quer descobrir
 // hoje?"). Cada grupo apenas relaciona tags que já existem em `tags`
@@ -31,6 +37,7 @@ export const THEME_GROUPS: ThemeGroup[] = [
     subtitle: "Sono, fogachos, libido e energia",
     icon: "☾",
     tagSlugs: ["sono", "fogachos", "libido", "humor", "energia", "corpo"],
+    onlyPapoDeMulher: true,
   },
   {
     slug: "vida-50",
@@ -38,6 +45,7 @@ export const THEME_GROUPS: ThemeGroup[] = [
     subtitle: "Relacionamentos, recomeços e vida real",
     icon: "◔",
     tagSlugs: ["relacionamentos", "autocuidado", "recomecos", "trabalho", "comportamento", "vida-real"],
+    onlyPapoDeMulher: true,
   },
   {
     slug: "ativos",

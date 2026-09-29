@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { THEME_GROUPS } from "@/lib/theme-groups";
+import { PAPO_DE_MULHER_CATEGORIES, THEME_GROUPS } from "@/lib/theme-groups";
 import type { Tag } from "@/lib/tags";
 import type { JournalPost, Product } from "@/app/types";
 import ThemeGroupFilters, { type ThemeItem } from "./ThemeGroupFilters";
@@ -39,11 +39,15 @@ export default async function ThemeGroupPage({ params }: { params: Promise<{ slu
 
   const [journalResult, productResult] = await Promise.all([
     journalIds.size ? supabase.from("journal").select("*").in("id", [...journalIds]) : Promise.resolve({ data: [] as JournalPost[] }),
-    productIds.size ? supabase.from("products").select("*").in("id", [...productIds]) : Promise.resolve({ data: [] as Product[] }),
+    !group.onlyPapoDeMulher && productIds.size ? supabase.from("products").select("*").in("id", [...productIds]) : Promise.resolve({ data: [] as Product[] }),
   ]);
 
+  const journalPosts = ((journalResult.data || []) as JournalPost[]).filter((post) =>
+    !group.onlyPapoDeMulher || PAPO_DE_MULHER_CATEGORIES.includes(post.category || ""),
+  );
+
   const items: ThemeItem[] = [
-    ...((journalResult.data || []) as JournalPost[]).map((post) => ({
+    ...journalPosts.map((post) => ({
       kind: "journal" as const,
       id: post.id,
       tagSlugs: tagSlugsByContent.get(`journal:${post.id}`) || [],

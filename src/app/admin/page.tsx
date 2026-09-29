@@ -1255,9 +1255,10 @@ export default function AdminDashboard() {
       }
 
       // Produto e seu artigo "Estudei" companheiro têm que compartilhar exatamente
-      // as mesmas tags de queixa/ativo/vida-50+ (fase/período/tipo de pele/origem
-      // ficam de fora, só existem em produto).
-      const SYNCED_TAG_TYPES = new Set(["concern", "ingredient", "life_topic"]);
+      // as mesmas tags de queixa/ativo (fase/período/tipo de pele/origem ficam de
+      // fora, só existem em produto). "Vida 50+" não entra aqui — essa tag só
+      // existe no Papo de Mulher, nunca em Vitrine/Estudei.
+      const SYNCED_TAG_TYPES = new Set(["concern", "ingredient"]);
       let companionContentType: "product" | "journal" | null = null;
       let companionId: string | null = null;
       if (editingItem.type === "product" && editingItem.companionJournalId) {
