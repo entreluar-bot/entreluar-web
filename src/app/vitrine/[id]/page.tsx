@@ -8,7 +8,8 @@ import type { ContentSummary } from "@/lib/summary";
 import ShareButton from "../../ui/ShareButton";
 import QuickSummaryCard from "../../ui/QuickSummaryCard";
 import AddToRoutineButton from "../../ui/AddToRoutineButton";
-import type { Product } from "../../types";
+import ConversationCircle from "../../ui/ConversationCircle";
+import type { JournalComment, Product } from "../../types";
 
 export const revalidate = 0;
 
@@ -51,13 +52,20 @@ export async function generateMetadata({ params }: ProductPostProps): Promise<Me
 export default async function ProductPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: summaryData }] = await Promise.all([
+  const [{ data }, { data: summaryData }, { data: commentRows }] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).single(),
     supabase.from("content_summaries").select("*").eq("content_type", "product").eq("content_id", id).maybeSingle(),
+    supabase
+      .from("journal_comments")
+      .select("id,product_id,body,status,created_at,approved_at")
+      .eq("product_id", id)
+      .eq("status", "approved")
+      .order("created_at", { ascending: false }),
   ]);
   if (!data) notFound();
   const product = data as Product;
   const summary = summaryData as ContentSummary | null;
+  const comments = (commentRows || []) as JournalComment[];
   const shareUrl = `${siteUrl}/vitrine/${product.id}`;
 
   return (
@@ -74,6 +82,9 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
         <header className="p-6 md:p-12">
           <p className="eyebrow">{product.category || "Escolha da Luana"}</p>
           <h1 className="section-title my-4">{product.title}</h1>
+          {comments.length > 0 && (
+            <a href="#conversation-circle-title" className="conversation-jumplink">💬 {comments.length} comentário{comments.length === 1 ? "" : "s"} — ver e participar →</a>
+          )}
           {product.price && <p className="font-display text-3xl text-[var(--champagne)]">{product.price}</p>}
           <QuickSummaryCard summary={summary} />
           <div className="prose-luxe mt-8" dangerouslySetInnerHTML={{ __html: product.description }} />
@@ -84,6 +95,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
             <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} />
             <AddToRoutineButton id={product.id} title={product.title} image_url={product.image_url} className="sm:mt-0" />
           </div>
+          <ConversationCircle postId={product.id} postTitle={product.title} comments={comments} contentType="product" variant="product" />
           <section className="next-steps" aria-label="Continue navegando">
             <Link href={product.companion_journal_id ? `/resenhas/${product.companion_journal_id}` : "/resenhas"} className="ghost-button">Entender ativos →</Link>
             <Link href="/blog" className="ghost-button">Entrar num papo →</Link>

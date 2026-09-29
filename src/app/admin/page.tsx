@@ -71,7 +71,8 @@ type LuanaMemory = {
 
 type SiteComment = {
   id: string;
-  journal_id: string;
+  journal_id?: string | null;
+  product_id?: string | null;
   email: string;
   body: string;
   status: "pending" | "approved" | "rejected";
@@ -80,6 +81,7 @@ type SiteComment = {
   approved_at?: string | null;
   moderated_at?: string | null;
   journal?: { title?: string | null; category?: string | null } | { title?: string | null; category?: string | null }[] | null;
+  product?: { title?: string | null } | { title?: string | null }[] | null;
 };
 
 type AiUsageSummary = {
@@ -1331,8 +1333,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.91</p>
-                <p>Atualizado em 29/09/2026 às 14:45</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.92</p>
+                <p>Atualizado em 29/09/2026 às 16:00</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -2204,12 +2206,17 @@ export default function AdminDashboard() {
               const moderated = comments.filter((comment) => comment.status !== "pending");
               const renderComment = (comment: SiteComment) => {
                 const journal = Array.isArray(comment.journal) ? comment.journal[0] : comment.journal;
+                const product = Array.isArray(comment.product) ? comment.product[0] : comment.product;
+                const originLabel = product ? "Vitrine" : journal?.category === "Estudei para te explicar" ? "Estudei" : "Papo de Mulher";
                 return (
                   <article key={comment.id} className={`rounded-2xl border p-5 ${comment.status === "pending" ? "border-[var(--color-gold)] bg-[#3a1820]" : "border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]"}`}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">{comment.status === "pending" ? "Pendente" : comment.status === "approved" ? "Aprovado" : "Rejeitado"}</p>
-                        <h3 className="mt-2 font-serif text-xl text-[var(--color-gold-light)]">{journal?.title || "Papo de Mulher"}</h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">{comment.status === "pending" ? "Pendente" : comment.status === "approved" ? "Aprovado" : "Rejeitado"}</p>
+                          <span className="rounded-full border border-[var(--color-wine-light)] px-2 py-0.5 text-[10px] uppercase tracking-widest text-[var(--color-gold-light)] opacity-70">{originLabel}</span>
+                        </div>
+                        <h3 className="mt-2 font-serif text-xl text-[var(--color-gold-light)]">{journal?.title || product?.title || "Papo de Mulher"}</h3>
                         <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-55">{comment.email} • {new Date(comment.created_at).toLocaleString("pt-BR")}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">

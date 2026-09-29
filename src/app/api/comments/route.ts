@@ -14,7 +14,8 @@ export async function POST(req: Request) {
   try {
     const payload = await req.json();
     const postId = clean(payload.postId, 80);
-    const postTitle = clean(payload.postTitle, 160) || "Papo de Mulher";
+    const contentType = payload.contentType === "product" ? "product" : "journal";
+    const postTitle = clean(payload.postTitle, 160) || (contentType === "product" ? "Vitrine" : "Papo de Mulher");
     const email = clean(payload.email, 180).toLowerCase();
     const body = clean(payload.body, 1200);
     const path = clean(payload.path, 400);
@@ -31,7 +32,8 @@ export async function POST(req: Request) {
 
     const supabase = createClient(url, anonKey, { auth: { persistSession: false } });
     const { error } = await supabase.from("journal_comments").insert([{
-      journal_id: postId,
+      journal_id: contentType === "journal" ? postId : null,
+      product_id: contentType === "product" ? postId : null,
       email,
       body,
       source_path: path,

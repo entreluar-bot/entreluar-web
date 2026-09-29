@@ -9,7 +9,8 @@ import { getActivePollForJournal } from "@/lib/poll";
 import ShareButton from "../../ui/ShareButton";
 import QuickSummaryCard from "../../ui/QuickSummaryCard";
 import PollWidget from "../../ui/PollWidget";
-import type { JournalPost } from "../../types";
+import ConversationCircle from "../../ui/ConversationCircle";
+import type { JournalComment, JournalPost } from "../../types";
 
 export const revalidate = 0;
 
@@ -52,14 +53,21 @@ export async function generateMetadata({ params }: ReviewPostProps): Promise<Met
 export default async function ReviewPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: summaryData }, poll] = await Promise.all([
+  const [{ data }, { data: summaryData }, poll, { data: commentRows }] = await Promise.all([
     supabase.from("journal").select("*").eq("id", id).single(),
     supabase.from("content_summaries").select("*").eq("content_type", "journal").eq("content_id", id).maybeSingle(),
     getActivePollForJournal(supabase, id),
+    supabase
+      .from("journal_comments")
+      .select("id,journal_id,body,status,created_at,approved_at")
+      .eq("journal_id", id)
+      .eq("status", "approved")
+      .order("created_at", { ascending: false }),
   ]);
   if (!data) notFound();
   const post = data as JournalPost;
   const summary = summaryData as ContentSummary | null;
+  const comments = (commentRows || []) as JournalComment[];
   const shareUrl = `${siteUrl}/resenhas/${post.id}`;
 
   return (
@@ -76,10 +84,14 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
         <header className="p-6 md:p-12">
           <p className="eyebrow">Estudei para te explicar • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
           <h1 className="section-title my-6">{post.title}</h1>
+          {comments.length > 0 && (
+            <a href="#conversation-circle-title" className="conversation-jumplink">💬 {comments.length} comentário{comments.length === 1 ? "" : "s"} — ver e participar →</a>
+          )}
           <QuickSummaryCard summary={summary} />
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
           <ShareButton title={post.title} url={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} className="mt-10 border-t border-[var(--line)] pt-8" />
           {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
+          <ConversationCircle postId={post.id} postTitle={post.title} comments={comments} contentType="journal" variant="journal-estudei" />
           <section className="next-steps" aria-label="Continue navegando">
             <Link href="/vitrine" className="ghost-button">Ver achados relacionados →</Link>
             <Link href="/blog" className="ghost-button">Conversar sobre vida real →</Link>

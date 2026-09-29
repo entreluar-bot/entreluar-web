@@ -5,15 +5,35 @@ import type { JournalComment } from "../types";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const COPY = {
+  journal: {
+    prompt: "O que você pensou, viveu, discordou, lembrou ou riu lendo esse papo?",
+    empty: "Seja a primeira a abrir essa roda ✨",
+  },
+  "journal-estudei": {
+    prompt: "O que mais te surpreendeu nessa explicação? Ficou alguma dúvida?",
+    empty: "Seja a primeira a comentar essa explicação ✨",
+  },
+  product: {
+    prompt: "Já usou ou vai testar? Conta pra gente o que achou.",
+    empty: "Seja a primeira a comentar esse achado ✨",
+  },
+} as const;
+
 export default function ConversationCircle({
   postId,
   postTitle,
   comments,
+  contentType = "journal",
+  variant = "journal",
 }: {
   postId: string;
   postTitle: string;
   comments: JournalComment[];
+  contentType?: "journal" | "product";
+  variant?: keyof typeof COPY;
 }) {
+  const copy = COPY[variant] || COPY.journal;
   const [email, setEmail] = useState("");
   const [body, setBody] = useState("");
   const [website, setWebsite] = useState("");
@@ -43,6 +63,7 @@ export default function ConversationCircle({
         body: JSON.stringify({
           postId,
           postTitle,
+          contentType,
           email: cleanEmail,
           body: cleanBody,
           website,
@@ -67,7 +88,7 @@ export default function ConversationCircle({
       <div className="conversation-heading">
         <p className="eyebrow">Roda de conversa</p>
         <h2 id="conversation-circle-title" className="font-display mt-3 text-4xl leading-none text-[var(--champagne-pale)]">
-          O papo continuou por aqui.
+          O papo continuou por aqui{comments.length > 0 ? ` — ${comments.length} comentário${comments.length === 1 ? "" : "s"}` : ""}.
         </h2>
       </div>
 
@@ -75,8 +96,11 @@ export default function ConversationCircle({
         {comments.length ? (
           comments.map((comment) => (
             <article key={comment.id} className="conversation-comment">
-              <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
-                <p className="eyebrow">Amiga Entreluar</p>
+              <div className="conversation-comment__head">
+                <span className="conversation-avatar" aria-hidden="true">A</span>
+                <div className="flex-1">
+                  <p className="eyebrow">Amiga Entreluar</p>
+                </div>
                 <time className="text-[10px] uppercase tracking-widest text-[var(--muted)]" dateTime={comment.created_at}>
                   {new Date(comment.created_at).toLocaleDateString("pt-BR")}
                 </time>
@@ -85,8 +109,9 @@ export default function ConversationCircle({
             </article>
           ))
         ) : (
-          <div className="empty-state">
-            Ainda não tem comentários por aqui. Pode ser a sua vez de abrir a conversa.
+          <div className="conversation-empty">
+            <p className="eyebrow">Ainda não tem ninguém aqui</p>
+            <p className="mt-2 font-display text-2xl leading-tight text-[var(--champagne-pale)]">{copy.empty}</p>
           </div>
         )}
       </div>
@@ -102,13 +127,13 @@ export default function ConversationCircle({
           <span>Email</span>
           <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seuemail@exemplo.com" autoComplete="email" required />
         </label>
-        <label className="hidden" aria-hidden="true">
+        <label className="hidden" style={{ display: "none" }} aria-hidden="true">
           Site
           <input tabIndex={-1} autoComplete="off" value={website} onChange={(event) => setWebsite(event.target.value)} />
         </label>
         <label>
           <span>Sua impressão</span>
-          <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={5} maxLength={1200} placeholder="O que você pensou, viveu, discordou, lembrou ou riu lendo esse papo?" required />
+          <textarea value={body} onChange={(event) => setBody(event.target.value)} rows={5} maxLength={1200} placeholder={copy.prompt} required />
         </label>
         <button type="submit" disabled={loading} className="luxe-button w-full">
           {loading ? "Enviando..." : "Contar o que achei"}
