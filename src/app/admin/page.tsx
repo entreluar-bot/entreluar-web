@@ -125,8 +125,8 @@ const PAPO_FILTERS = [
   "Corpo em modo surpresa",
   "Pausa sem culpa",
   "Beleza sem tribunal",
-  "Rindo para não surtar",
-  "Confissões da maturidade",
+  "Rindo para nÃ£o surtar",
+  "ConfissÃµes da maturidade",
 ];
 
 const compressImage = (file: File): Promise<File> => {
@@ -168,9 +168,9 @@ const compressImage = (file: File): Promise<File> => {
           }
         }, "image/jpeg", 0.7);
       };
-      img.onerror = () => reject(new Error("Não consegui abrir essa foto (formato não suportado ou arquivo corrompido)."));
+      img.onerror = () => reject(new Error("NÃ£o consegui abrir essa foto (formato nÃ£o suportado ou arquivo corrompido)."));
     };
-    reader.onerror = () => reject(new Error("Não consegui ler o arquivo da foto."));
+    reader.onerror = () => reject(new Error("NÃ£o consegui ler o arquivo da foto."));
   });
 };
 
@@ -232,6 +232,7 @@ export default function AdminDashboard() {
   const [editingItemSummary, setEditingItemSummary] = useState<ResumoRapido>(EMPTY_RESUMO_RAPIDO);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [bulkSummaryStatus, setBulkSummaryStatus] = useState("");
+  const [socialProofLoading, setSocialProofLoading] = useState<Record<string, boolean>>({});
 
   const [generatedTagIds, setGeneratedTagIds] = useState<string[]>([]);
   const [generatedPollQuestion, setGeneratedPollQuestion] = useState("");
@@ -241,7 +242,7 @@ export default function AdminDashboard() {
   const [savingPoll, setSavingPoll] = useState(false);
 
   const [blogCategory, setBlogCategory] = useState("Papo de Mulher Madura");
-  const [blogPapoFilter, setBlogPapoFilter] = useState("Confissões da maturidade");
+  const [blogPapoFilter, setBlogPapoFilter] = useState("ConfissÃµes da maturidade");
   const [isFeatured, setIsFeatured] = useState(false);
   const [isMostViewed, setIsMostViewed] = useState(false);
   const [isNew, setIsNew] = useState(true);
@@ -259,7 +260,7 @@ export default function AdminDashboard() {
   const [nlSubject, setNlSubject] = useState("");
   const [nlHtml, setNlHtml] = useState("");
   const [trafficAnalytics, setTrafficAnalytics] = useState<TrafficAnalytics | null>(null);
-  const [trafficAnalyticsStatus, setTrafficAnalyticsStatus] = useState("Carregando tráfego...");
+  const [trafficAnalyticsStatus, setTrafficAnalyticsStatus] = useState("Carregando trÃ¡fego...");
 
   const [memories, setMemories] = useState<LuanaMemory[]>([]);
   const [comments, setComments] = useState<SiteComment[]>([]);
@@ -307,7 +308,7 @@ export default function AdminDashboard() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}`, ...(init?.headers || {}) },
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Não foi possível concluir a ação.");
+    if (!response.ok) throw new Error(data.error || "NÃ£o foi possÃ­vel concluir a aÃ§Ã£o.");
     return data;
   };
 
@@ -320,7 +321,7 @@ export default function AdminDashboard() {
       const data = await adminRequest("/api/comments/admin");
       setComments(data.comments || []);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Não foi possível carregar comentários.");
+      setMessage(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel carregar comentÃ¡rios.");
     }
   };
 
@@ -330,7 +331,7 @@ export default function AdminDashboard() {
       setMemories(data.memories || []);
       setAiUsage({ ...emptyAiUsage, ...(data.usage || {}) });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Não foi possível carregar a memória.");
+      setMessage(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel carregar a memÃ³ria.");
     }
   };
 
@@ -338,17 +339,17 @@ export default function AdminDashboard() {
     if (user) { fetchMemories(); fetchComments(); fetchTrafficAnalytics(); }
   }, [user]);
 
-  const confirmAiSpend = () => aiUsage.costBrl < 10 || confirm("A meta mensal de R$ 10 já foi alcançada. Deseja mesmo gerar outro conteúdo com custo de IA?");
+  const confirmAiSpend = () => aiUsage.costBrl < 10 || confirm("A meta mensal de R$ 10 jÃ¡ foi alcanÃ§ada. Deseja mesmo gerar outro conteÃºdo com custo de IA?");
 
   const handleSaveMemory = async () => {
-    if (memoryContent.trim().length < 3) return setMessage("Escreva uma lembrança um pouco mais completa.");
+    if (memoryContent.trim().length < 3) return setMessage("Escreva uma lembranÃ§a um pouco mais completa.");
     setLoading(true);
     try {
       await memoryRequest("", { method: "POST", body: JSON.stringify({ content: memoryContent, tags: memoryTags, category: memoryCategory, privacy: memoryPrivacy, allowInContent: memoryAllowInContent }) });
       setMemoryContent(""); setMemoryTags(""); setMemoryAllowInContent(false);
-      setMessage("Memória aprovada e guardada ✨");
+      setMessage("MemÃ³ria aprovada e guardada âœ¨");
       await fetchMemories();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível guardar a memória."); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel guardar a memÃ³ria."); }
     setLoading(false);
   };
 
@@ -356,7 +357,7 @@ export default function AdminDashboard() {
     try {
       await memoryRequest("", { method: "PATCH", body: JSON.stringify({ id: memory.id, status }) });
       await fetchMemories();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível atualizar a memória."); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel atualizar a memÃ³ria."); }
   };
 
   const handleCommentStatus = async (comment: SiteComment, status: SiteComment["status"]) => {
@@ -364,36 +365,36 @@ export default function AdminDashboard() {
       setLoading(true);
       await adminRequest("/api/comments/admin", { method: "PATCH", body: JSON.stringify({ id: comment.id, status }) });
       await fetchComments();
-      setMessage(status === "approved" ? "Comentário aprovado e publicado na roda. ✨" : status === "rejected" ? "Comentário rejeitado e escondido do site." : "Comentário voltou para pendente.");
+      setMessage(status === "approved" ? "ComentÃ¡rio aprovado e publicado na roda. âœ¨" : status === "rejected" ? "ComentÃ¡rio rejeitado e escondido do site." : "ComentÃ¡rio voltou para pendente.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Não foi possível moderar comentário.");
+      setMessage(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel moderar comentÃ¡rio.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleEditMemory = async (memory: LuanaMemory) => {
-    const content = prompt("Corrija esta memória:", memory.content)?.trim();
+    const content = prompt("Corrija esta memÃ³ria:", memory.content)?.trim();
     if (!content || content === memory.content) return;
     try {
       await memoryRequest("", { method: "PATCH", body: JSON.stringify({ id: memory.id, content }) });
       await fetchMemories();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível corrigir a memória."); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel corrigir a memÃ³ria."); }
   };
 
   const handleMemoryPrivacy = async (memory: LuanaMemory, privacy: LuanaMemory["privacy"]) => {
     try {
       await memoryRequest("", { method: "PATCH", body: JSON.stringify({ id: memory.id, privacy, allowInContent: privacy === "publica" ? memory.allow_in_content : false }) });
       await fetchMemories();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível mudar a privacidade."); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel mudar a privacidade."); }
   };
 
   const handleDeleteMemory = async (id: string) => {
-    if (!confirm("Excluir esta memória da Luana?")) return;
+    if (!confirm("Excluir esta memÃ³ria da Luana?")) return;
     try {
       await memoryRequest(`?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       await fetchMemories();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível excluir a memória."); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel excluir a memÃ³ria."); }
   };
 
   const fetchSubscribers = async () => {
@@ -403,34 +404,34 @@ export default function AdminDashboard() {
         headers: { Authorization: `Bearer ${session?.access_token || ""}` },
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Não foi possível consultar a base.");
+      if (!response.ok) throw new Error(data.error || "NÃ£o foi possÃ­vel consultar a base.");
       setSubscribersCount(data.requested || 0);
       setEmailSubscribers(data.subscribers || []);
       setEmailDeliveries(data.deliveries || []);
       const ignored = (data.invalid || 0) + (data.duplicates || 0);
-      setSubscriberNotes(ignored > 0 ? `${ignored} cadastro${ignored === 1 ? " foi ignorado" : "s foram ignorados"} por estar inválido ou repetido.` : "Base validada e pronta para envio.");
+      setSubscriberNotes(ignored > 0 ? `${ignored} cadastro${ignored === 1 ? " foi ignorado" : "s foram ignorados"} por estar invÃ¡lido ou repetido.` : "Base validada e pronta para envio.");
     } catch (error) {
       setSubscribersCount(0);
       setEmailSubscribers([]);
       setEmailDeliveries([]);
-      setSubscriberNotes(error instanceof Error ? error.message : "Não foi possível consultar a base.");
+      setSubscriberNotes(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel consultar a base.");
     }
   };
 
   const fetchTrafficAnalytics = async () => {
     try {
-      setTrafficAnalyticsStatus("Carregando tráfego...");
+      setTrafficAnalyticsStatus("Carregando trÃ¡fego...");
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch("/api/traffic-analytics", {
         headers: { Authorization: `Bearer ${session?.access_token || ""}` },
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Não foi possível consultar o tráfego.");
+      if (!response.ok) throw new Error(data.error || "NÃ£o foi possÃ­vel consultar o trÃ¡fego.");
       setTrafficAnalytics(data);
       setTrafficAnalyticsStatus("");
     } catch (error) {
       setTrafficAnalytics(null);
-      setTrafficAnalyticsStatus(error instanceof Error ? error.message : "Não foi possível consultar o tráfego.");
+      setTrafficAnalyticsStatus(error instanceof Error ? error.message : "NÃ£o foi possÃ­vel consultar o trÃ¡fego.");
     }
   };
 
@@ -506,7 +507,7 @@ export default function AdminDashboard() {
     if (!editingItem) return;
     const question = editingItemPoll.question.trim();
     const options = editingItemPoll.options.map((option) => option.trim()).filter(Boolean);
-    if (!question || options.length < 2) return setMessage("A enquete precisa de uma pergunta e pelo menos 2 opções.");
+    if (!question || options.length < 2) return setMessage("A enquete precisa de uma pergunta e pelo menos 2 opÃ§Ãµes.");
     setSavingPoll(true);
     try {
       const { data: pollRow, error: pollError } = await supabase
@@ -518,7 +519,7 @@ export default function AdminDashboard() {
       await supabase.from("poll_options").delete().eq("poll_id", pollRow.id);
       await supabase.from("poll_options").insert(options.map((label, index) => ({ poll_id: pollRow.id, label, position: index })));
       await refreshEditingPoll(editingItem.id);
-      setMessage("Enquete salva! Já aparece no artigo.");
+      setMessage("Enquete salva! JÃ¡ aparece no artigo.");
     } catch (error: any) {
       setMessage("Erro: " + error.message);
     }
@@ -539,7 +540,7 @@ export default function AdminDashboard() {
 
   const handleDeletePoll = async () => {
     if (!editingItemPoll.id) return;
-    if (!confirm("Excluir esta enquete apaga também todos os votos já registrados. Confirma?")) return;
+    if (!confirm("Excluir esta enquete apaga tambÃ©m todos os votos jÃ¡ registrados. Confirma?")) return;
     setSavingPoll(true);
     try {
       await supabase.from("polls").delete().eq("id", editingItemPoll.id);
@@ -599,7 +600,7 @@ export default function AdminDashboard() {
       const slugs = new Set((data.suggestedTagSlugs || []) as string[]);
       const suggestedIds = tags.filter((tag) => slugs.has(tag.slug)).map((tag) => tag.id);
       setEditingItemTagIds((prev) => Array.from(new Set([...prev, ...suggestedIds])));
-      setMessage(suggestedIds.length ? "Tags sugeridas! Revise e clique em Salvar Alterações." : "A IA não achou tags da lista que se encaixassem aqui.");
+      setMessage(suggestedIds.length ? "Tags sugeridas! Revise e clique em Salvar AlteraÃ§Ãµes." : "A IA nÃ£o achou tags da lista que se encaixassem aqui.");
     } catch (error: any) {
       setMessage("Erro: " + error.message);
     }
@@ -617,8 +618,8 @@ export default function AdminDashboard() {
     const { data: existing } = await supabase.from("content_tags").select("content_type,content_id");
     const existingKeys = new Set((existing || []).map((row: any) => `${row.content_type}:${row.content_id}`));
     const pending = candidates.filter((item) => !existingKeys.has(`${item.contentType}:${item.id}`));
-    if (!pending.length) return setMessage("Todo mundo já tem tags. ✨");
-    if (!confirm(`Vou sugerir tags para ${pending.length} itens que ainda não têm nenhuma. Isso dispara ${pending.length} chamadas de IA (uma de cada vez) e já grava direto — você revisa depois em Gerenciar. Continuar?`)) return;
+    if (!pending.length) return setMessage("Todo mundo jÃ¡ tem tags. âœ¨");
+    if (!confirm(`Vou sugerir tags para ${pending.length} itens que ainda nÃ£o tÃªm nenhuma. Isso dispara ${pending.length} chamadas de IA (uma de cada vez) e jÃ¡ grava direto â€” vocÃª revisa depois em Gerenciar. Continuar?`)) return;
 
     let done = 0;
     let failed = 0;
@@ -638,7 +639,7 @@ export default function AdminDashboard() {
       setBulkTagStatus(`Etiquetando ${done} de ${pending.length}...`);
     }
     setBulkTagStatus("");
-    setMessage(`Tags sugeridas: ${done - failed} de ${pending.length}.${failed ? ` ${failed} falharam — pode rodar de novo pra tentar só o que faltou.` : ""}`);
+    setMessage(`Tags sugeridas: ${done - failed} de ${pending.length}.${failed ? ` ${failed} falharam â€” pode rodar de novo pra tentar sÃ³ o que faltou.` : ""}`);
   };
 
   const handleGenerateSummaryForEditingItem = async () => {
@@ -651,7 +652,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({ contentType: editingItem.type === "product" ? "product" : "journal", title: editingItem.title, sourceHtml: editingItem.content }),
       });
       setEditingItemSummary(data.resumoRapido || EMPTY_RESUMO_RAPIDO);
-      setMessage("Resumo gerado! Revise e clique em Salvar Alterações para publicar.");
+      setMessage("Resumo gerado! Revise e clique em Salvar AlteraÃ§Ãµes para publicar.");
     } catch (error: any) {
       setMessage("Erro: " + error.message);
     }
@@ -669,8 +670,8 @@ export default function AdminDashboard() {
     const { data: existing } = await supabase.from("content_summaries").select("content_type,content_id");
     const existingKeys = new Set((existing || []).map((row: any) => `${row.content_type}:${row.content_id}`));
     const pending = candidates.filter((item) => !existingKeys.has(`${item.contentType}:${item.id}`));
-    if (!pending.length) return setMessage("Todo mundo já tem resumo. ✨");
-    if (!confirm(`Vou gerar resumo para ${pending.length} itens que ainda não têm "Em 30 segundos". Isso dispara ${pending.length} chamadas de IA (uma de cada vez). Continuar?`)) return;
+    if (!pending.length) return setMessage("Todo mundo jÃ¡ tem resumo. âœ¨");
+    if (!confirm(`Vou gerar resumo para ${pending.length} itens que ainda nÃ£o tÃªm "Em 30 segundos". Isso dispara ${pending.length} chamadas de IA (uma de cada vez). Continuar?`)) return;
 
     let done = 0;
     let failed = 0;
@@ -689,7 +690,23 @@ export default function AdminDashboard() {
       setBulkSummaryStatus(`Gerando ${done} de ${pending.length}...`);
     }
     setBulkSummaryStatus("");
-    setMessage(`Resumos gerados: ${done - failed} de ${pending.length}.${failed ? ` ${failed} falharam — pode rodar de novo pra tentar só o que faltou.` : ""}`);
+    setMessage(`Resumos gerados: ${done - failed} de ${pending.length}.${failed ? ` ${failed} falharam â€” pode rodar de novo pra tentar sÃ³ o que faltou.` : ""}`);
+  };
+
+  const handleGenerateSocialProof = async (journalId: string, category: string, title: string, content: string) => {
+    if (!confirmAiSpend()) return;
+    setSocialProofLoading(prev => ({ ...prev, [journalId]: true }));
+    try {
+      const data = await adminRequest("/api/generate-social-proof", {
+        method: "POST",
+        body: JSON.stringify({ journalId, category, title, content }),
+      });
+      setMessage(`Sucesso! Foram gerados ${data.comments} comentários e ${data.votes} votos na enquete para essa postagem. 🎉`);
+    } catch (err: any) {
+      setMessage(`Ops, erro ao gerar prova social: ${err.message}`);
+    } finally {
+      setSocialProofLoading(prev => ({ ...prev, [journalId]: false }));
+    }
   };
 
   useEffect(() => {
@@ -733,16 +750,16 @@ export default function AdminDashboard() {
 
   const handleGenerateText = async () => {
     if (!confirmAiSpend()) return;
-    if (!imageFile) return setMessage("Você precisa colar uma imagem do produto primeiro!");
-    if (!link) return setMessage("O link da loja é obrigatório!");
+    if (!imageFile) return setMessage("VocÃª precisa colar uma imagem do produto primeiro!");
+    if (!link) return setMessage("O link da loja Ã© obrigatÃ³rio!");
 
     setLoading(true);
     setAccessoryDetailsUsed([]);
     setAccessoryHumorApplied(false);
-    setMessage("Iniciando mágica (pode demorar uns 15 segundos)...");
+    setMessage("Iniciando mÃ¡gica (pode demorar uns 15 segundos)...");
     const progressTimers = [
-      window.setTimeout(() => setMessage(title ? "Consultando a pesquisa já guardada..." : "Identificando o produto na foto..."), 1200),
-      window.setTimeout(() => setMessage("Conferindo fórmula e evidências..."), 4500),
+      window.setTimeout(() => setMessage(title ? "Consultando a pesquisa jÃ¡ guardada..." : "Identificando o produto na foto..."), 1200),
+      window.setTimeout(() => setMessage("Conferindo fÃ³rmula e evidÃªncias..."), 4500),
       window.setTimeout(() => setMessage("Escrevendo a Vitrine e o artigo..."), 9500),
     ];
     
@@ -762,7 +779,7 @@ export default function AdminDashboard() {
         }
       }
 
-      setMessage("A IA está lendo o nome na foto e pesquisando o ativo...");
+      setMessage("A IA estÃ¡ lendo o nome na foto e pesquisando o ativo...");
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -777,10 +794,10 @@ export default function AdminDashboard() {
         if (textRes.includes("502") || textRes.includes("Timeout") || textRes.includes("<html")) {
            throw new Error("A IA demorou muito para responder. Tente gerar novamente.");
         }
-        throw new Error("Erro na formatação da resposta: " + textRes.substring(0, 50));
+        throw new Error("Erro na formataÃ§Ã£o da resposta: " + textRes.substring(0, 50));
       }
 
-      if (!res.ok || data.error) throw new Error(data.error || "Não consegui gerar o texto agora.");
+      if (!res.ok || data.error) throw new Error(data.error || "NÃ£o consegui gerar o texto agora.");
 
       setGeneratedProductName(data.productName);
       setGeneratedReview(data.productReview);
@@ -796,7 +813,7 @@ export default function AdminDashboard() {
       setGeneratedPollOptions(Array.isArray(data.suggestedPoll?.options) && data.suggestedPoll.options.length ? data.suggestedPoll.options : ["", ""]);
       setBlogCategory("Estudei para te explicar");
       const seconds = data.performance?.durationMs ? ` em ${(data.performance.durationMs / 1000).toFixed(1)}s` : "";
-      const cacheNote = data.performance?.cached ? " usando o cache econômico" : "";
+      const cacheNote = data.performance?.cached ? " usando o cache econÃ´mico" : "";
       setMessage(`Textos gerados${seconds}${cacheNote}! Revise e publique.`);
     } catch (error: any) {
       setMessage("Erro: " + error.message);
@@ -808,7 +825,7 @@ export default function AdminDashboard() {
   const handleBrainstorm = async () => {
     if (!confirmAiSpend()) return;
     setLoading(true);
-    setMessage("Pensando em ideias polêmicas e divertidas...");
+    setMessage("Pensando em ideias polÃªmicas e divertidas...");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token || "";
@@ -820,7 +837,7 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setImpressions(data.text);
-      setMessage("Ideias geradas! Escolha uma e coloque no Título.");
+      setMessage("Ideias geradas! Escolha uma e coloque no TÃ­tulo.");
     } catch (error: any) {
       setMessage("Erro: " + error.message);
     }
@@ -829,9 +846,9 @@ export default function AdminDashboard() {
 
   const handleGenerateBlogOnly = async () => {
     if (!confirmAiSpend()) return;
-    if (!title && !impressions) return setMessage("Digite um tema ou impressões para gerar o artigo!");
+    if (!title && !impressions) return setMessage("Digite um tema ou impressÃµes para gerar o artigo!");
     setLoading(true);
-    setMessage("Escrevendo crônica do Diário...");
+    setMessage("Escrevendo crÃ´nica do DiÃ¡rio...");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token || "";
@@ -863,7 +880,7 @@ export default function AdminDashboard() {
 
       if (data.error) throw new Error(data.error);
 
-      setGeneratedBlogTitle(data.title || title || "Crônica da Luana");
+      setGeneratedBlogTitle(data.title || title || "CrÃ´nica da Luana");
       setGeneratedBlogPost(data.text);
       setGeneratedResumoRapido(data.resumoRapido || EMPTY_RESUMO_RAPIDO);
 
@@ -877,7 +894,7 @@ export default function AdminDashboard() {
       }
 
       if (data.imagePrompt) {
-        setMessage("Buscando inspiração de imagem fotográfica...");
+        setMessage("Buscando inspiraÃ§Ã£o de imagem fotogrÃ¡fica...");
         try {
           const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(data.imagePrompt)}?width=800&height=800&nologo=true`;
           const imageResponse = await fetch(imgUrl);
@@ -889,7 +906,7 @@ export default function AdminDashboard() {
         }
       }
 
-      setMessage("Crônica gerada com sucesso! Revise e publique.");
+      setMessage("CrÃ´nica gerada com sucesso! Revise e publique.");
     } catch (error: any) {
       setMessage("Erro: " + error.message);
     }
@@ -941,22 +958,22 @@ export default function AdminDashboard() {
         body: JSON.stringify({ subject: nlSubject, html: nlHtml, emailType: nlType, dispatchId })
       });
       const data = await res.json() as NewsletterResult & { error?: string };
-      if (!res.ok || data.error) throw new Error(data.error || data.errors?.[0]?.message || "O disparo não foi aceito.");
+      if (!res.ok || data.error) throw new Error(data.error || data.errors?.[0]?.message || "O disparo nÃ£o foi aceito.");
       if (data.success && data.requested === 0 && data.skipped > 0) {
         setNewsletterStatus("complete");
-        setMessage(data.message || `Envio protegido: ${data.skipped} assinantes já tinham recebido este conteúdo.`);
+        setMessage(data.message || `Envio protegido: ${data.skipped} assinantes jÃ¡ tinham recebido este conteÃºdo.`);
       } else if (data.success) {
         setNewsletterStatus("complete");
         const historyWarning = data.errors?.find((item) => item.batch === 0)?.message;
-        const skippedMessage = data.skipped > 0 ? ` ${data.skipped} destinatária${data.skipped === 1 ? " foi preservada" : "s foram preservadas"} porque já havia recebido este conteúdo.` : "";
-        setMessage(`Concluído! ${data.accepted} de ${data.requested} emails foram aceitos pelo provedor. 🎉${skippedMessage}${historyWarning ? ` ${historyWarning}` : ""}`);
+        const skippedMessage = data.skipped > 0 ? ` ${data.skipped} destinatÃ¡ria${data.skipped === 1 ? " foi preservada" : "s foram preservadas"} porque jÃ¡ havia recebido este conteÃºdo.` : "";
+        setMessage(`ConcluÃ­do! ${data.accepted} de ${data.requested} emails foram aceitos pelo provedor. ðŸŽ‰${skippedMessage}${historyWarning ? ` ${historyWarning}` : ""}`);
         setNlSubject("");
         setNlHtml("");
         setNewsletterDispatchId(null);
         await fetchSubscribers();
       } else {
         setNewsletterStatus("partial");
-        setMessage(`Envio parcial: ${data.accepted} aceitos e ${data.failed} não enviados. Você pode tentar novamente com segurança.`);
+        setMessage(`Envio parcial: ${data.accepted} aceitos e ${data.failed} nÃ£o enviados. VocÃª pode tentar novamente com seguranÃ§a.`);
       }
     } catch (error: any) {
       setNewsletterStatus("failed");
@@ -968,7 +985,7 @@ export default function AdminDashboard() {
   const handleGenerateQuote = async () => {
     if (!confirmAiSpend()) return;
     setLoading(true);
-    setMessage("Buscando inspiração nas estrelas...");
+    setMessage("Buscando inspiraÃ§Ã£o nas estrelas...");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -985,12 +1002,12 @@ export default function AdminDashboard() {
       } catch {
         throw new Error("A resposta veio incompleta. Tente gerar novamente.");
       }
-      if (!res.ok || data.error) throw new Error(data.error || "Não consegui gerar as pílulas agora.");
+      if (!res.ok || data.error) throw new Error(data.error || "NÃ£o consegui gerar as pÃ­lulas agora.");
 
       const generatedQuotes = Array.isArray(data.quotes) ? data.quotes : String(data.text || "").split("\n").filter(Boolean);
-      if (generatedQuotes.length !== 15) throw new Error("O lote não trouxe as 15 pílulas esperadas. Tente novamente.");
+      if (generatedQuotes.length !== 15) throw new Error("O lote nÃ£o trouxe as 15 pÃ­lulas esperadas. Tente novamente.");
       setQuoteText(generatedQuotes.join("\n"));
-      setMessage("15 pílulas geradas! Revise, edite e só publique quando estiver feliz com o lote.");
+      setMessage("15 pÃ­lulas geradas! Revise, edite e sÃ³ publique quando estiver feliz com o lote.");
     } catch (error: any) {
       setMessage("Erro: " + error.message);
     }
@@ -1008,7 +1025,7 @@ export default function AdminDashboard() {
       if (error) throw error;
       
       setQuoteText("");
-      setMessage(`${quotesArray.length} Pílulas publicadas com sucesso!`);
+      setMessage(`${quotesArray.length} PÃ­lulas publicadas com sucesso!`);
     } catch (error: any) {
       setMessage("Erro ao publicar: " + error.message);
     }
@@ -1044,7 +1061,7 @@ export default function AdminDashboard() {
         try {
           compressedFile = await compressImage(fileToUpload);
         } catch {
-          setMessage("Não consegui otimizar essa foto, vou publicar com a original...");
+          setMessage("NÃ£o consegui otimizar essa foto, vou publicar com a original...");
           compressedFile = fileToUpload;
         }
         const fileName = `official_${Math.random()}.jpg`;
@@ -1109,7 +1126,7 @@ export default function AdminDashboard() {
       if (activeTab === "product" && generatedReview) {
         const finalTitle = generatedProductName || title;
         
-        // Se gerou um post de diário, atualizar o link genérico para o link exato da resenha
+        // Se gerou um post de diÃ¡rio, atualizar o link genÃ©rico para o link exato da resenha
         let finalReview = generatedReview;
         if (journalId) {
           finalReview = finalReview.replace(/href="\/resenhas"/g, `href="/resenhas/${journalId}"`);
@@ -1149,7 +1166,7 @@ export default function AdminDashboard() {
       setImageFile(null); setDisplayImageFile(null); setPrice("");
       setGeneratedReview(""); setGeneratedProductName("");
       setGeneratedBlogTitle(""); setGeneratedBlogPost("");
-      setBlogPapoFilter("Confissões da maturidade");
+      setBlogPapoFilter("ConfissÃµes da maturidade");
       setPostDate(""); setGeneratedResumoRapido(EMPTY_RESUMO_RAPIDO);
       setGeneratedResumoRapidoArtigo(EMPTY_RESUMO_RAPIDO);
       setGeneratedTagIds([]); setGeneratedPollQuestion(""); setGeneratedPollOptions([]);
@@ -1173,7 +1190,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({ to: replyTo, subject: replySubject || "Resposta - Entreluar", text: replyBody, dispatchId: crypto.randomUUID() })
       });
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "O email não foi aceito.");
+      if (!res.ok || data.error) throw new Error(data.error || "O email nÃ£o foi aceito.");
       setMessage(data.warning || "E-mail enviado com sucesso!");
       setReplyTo(""); setReplySubject(""); setReplyBody("");
     } catch (error: any) {
@@ -1198,7 +1215,7 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteQuote = async (id: string) => {
-    if (!confirm("Deletar esta pílula?")) return;
+    if (!confirm("Deletar esta pÃ­lula?")) return;
     try {
       await supabase.from("quotes").delete().eq("id", id);
       fetchManageData();
@@ -1215,7 +1232,7 @@ export default function AdminDashboard() {
 
   const handleUpdateItem = async () => {
     if (!editingItem) return;
-    if (!editingItem.created_at) return setMessage("Escolha a data da publicação antes de salvar.");
+    if (!editingItem.created_at) return setMessage("Escolha a data da publicaÃ§Ã£o antes de salvar.");
     setLoading(true);
     const createdAt = new Date(`${editingItem.created_at}T12:00:00-03:00`).toISOString();
     try {
@@ -1239,7 +1256,7 @@ export default function AdminDashboard() {
           title: editingItem.title, 
           content: editingItem.content, 
           category: editingItem.category,
-          papo_filter: editingItem.category === "Estudei para te explicar" ? null : (editingItem.papo_filter || "Confissões da maturidade"),
+          papo_filter: editingItem.category === "Estudei para te explicar" ? null : (editingItem.papo_filter || "ConfissÃµes da maturidade"),
           is_featured: Boolean(editingItem.is_featured),
           is_most_viewed: Boolean(editingItem.is_most_viewed),
           is_new: Boolean(editingItem.is_new),
@@ -1262,9 +1279,9 @@ export default function AdminDashboard() {
         await supabase.from("content_tags").insert(editingItemTagIds.map((tagId) => ({ tag_id: tagId, content_type: contentType, content_id: editingItem.id })));
       }
 
-      // Produto e seu artigo "Estudei" companheiro têm que compartilhar exatamente
-      // as mesmas tags de queixa/ativo (fase/período/tipo de pele/origem ficam de
-      // fora, só existem em produto). "Vida 50+" não entra aqui — essa tag só
+      // Produto e seu artigo "Estudei" companheiro tÃªm que compartilhar exatamente
+      // as mesmas tags de queixa/ativo (fase/perÃ­odo/tipo de pele/origem ficam de
+      // fora, sÃ³ existem em produto). "Vida 50+" nÃ£o entra aqui â€” essa tag sÃ³
       // existe no Papo de Mulher, nunca em Vitrine/Estudei.
       const SYNCED_TAG_TYPES = new Set(["concern", "ingredient"]);
       let companionContentType: "product" | "journal" | null = null;
@@ -1301,7 +1318,7 @@ export default function AdminDashboard() {
       setEditingItemTagIds([]);
       setEditingItemSummary(EMPTY_RESUMO_RAPIDO);
       fetchManageData();
-      setMessage("Atualizado com sucesso! As classificações já estão refletidas nos filtros.");
+      setMessage("Atualizado com sucesso! As classificaÃ§Ãµes jÃ¡ estÃ£o refletidas nos filtros.");
     } catch (error: any) {
       setMessage("Erro: " + error.message);
     }
@@ -1320,21 +1337,21 @@ export default function AdminDashboard() {
   const tabButtonClass = (tab: typeof activeTab) => `flex-1 whitespace-nowrap py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === tab ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`;
   const subTabButtonClass = (tab: typeof activeTab) => `rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === tab ? "bg-[var(--color-wine)] text-[var(--color-gold)]" : "bg-transparent text-[var(--color-gold-light)] opacity-70 hover:opacity-100"}`;
 
-  if (!user) return <div className="admin-shell grid min-h-screen place-items-center text-[var(--color-gold)]"><div className="glass-panel rounded-3xl px-8 py-6">Preparando o seu ateliê… ✨</div></div>;
+  if (!user) return <div className="admin-shell grid min-h-screen place-items-center text-[var(--color-gold)]"><div className="glass-panel rounded-3xl px-8 py-6">Preparando o seu ateliÃªâ€¦ âœ¨</div></div>;
 
   return (
     <div className="admin-shell min-h-screen px-4 py-6 md:p-8" onPaste={handlePaste}>
       <div className="mx-auto max-w-5xl">
         <header className="glass-panel mb-8 flex flex-col gap-5 rounded-[28px] p-5 md:flex-row md:items-center md:justify-between md:p-7">
           <div>
-            <p className="eyebrow mb-2">Ateliê de conteúdo</p>
+            <p className="eyebrow mb-2">AteliÃª de conteÃºdo</p>
             <h1 className="font-display text-4xl text-[var(--color-gold-light)]">Painel da Luana</h1>
             <p className="mt-1 text-sm text-[var(--muted)]">Crie, revise e publique. Para colar fotos, use Ctrl+V.</p>
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.92</p>
-                <p>Atualizado em 29/09/2026 às 16:00</p>
+                <p className="font-bold tracking-widest uppercase">VersÃ£o 1.93</p>
+                <p>Atualizado em 29/09/2026 Ã s 20:25</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1348,10 +1365,10 @@ export default function AdminDashboard() {
         <div className="admin-tabs mb-8 flex flex-col gap-3">
           <div className="flex gap-2 overflow-x-auto pb-1">
             <button onClick={() => setActiveTab("overview")} className={tabButtonClass("overview")}>
-              Visão Geral
+              VisÃ£o Geral
             </button>
             <button onClick={() => { setActiveTab("product"); setGeneratedReview(""); }} className={tabButtonClass("product")}>
-              Vitrine (Mágica)
+              Vitrine (MÃ¡gica)
             </button>
             <button onClick={() => { setActiveTab("blog"); setGeneratedBlogPost(""); }} className={tabButtonClass("blog")}>
               Papo de Mulher
@@ -1360,21 +1377,21 @@ export default function AdminDashboard() {
               Gerenciar
             </button>
             <button onClick={() => setActiveTab("traffic")} className={tabButtonClass("traffic")}>
-              Tráfego
+              TrÃ¡fego
             </button>
           </div>
 
           <details className="group rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]">
             <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--color-gold-light)]">
               <span>Mais ferramentas {pendingCommentsCount > 0 && <span className="ml-1 rounded-full bg-[var(--color-gold)] px-2 py-0.5 text-[10px] text-[var(--color-wine-dark)]">{pendingCommentsCount}</span>}</span>
-              <span className="text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+              <span className="text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">âŒ„</span>
             </summary>
             <div className="flex flex-wrap gap-2 border-t border-[var(--color-wine-light)] p-3">
               <button onClick={() => setActiveTab("comments")} className={subTabButtonClass("comments")}>
-                Comentários {pendingCommentsCount > 0 && <span className="ml-1 rounded-full bg-[var(--color-gold)] px-1.5 py-0.5 text-[10px] text-[var(--color-wine-dark)]">{pendingCommentsCount}</span>}
+                ComentÃ¡rios {pendingCommentsCount > 0 && <span className="ml-1 rounded-full bg-[var(--color-gold)] px-1.5 py-0.5 text-[10px] text-[var(--color-wine-dark)]">{pendingCommentsCount}</span>}
               </button>
               <button onClick={() => { setActiveTab("quotes"); setQuoteText(""); }} className={subTabButtonClass("quotes")}>
-                Pílulas (Quotes)
+                PÃ­lulas (Quotes)
               </button>
               <button onClick={() => setActiveTab("drops")} className={subTabButtonClass("drops")}>
                 Drops (Insta)
@@ -1386,7 +1403,7 @@ export default function AdminDashboard() {
                 Marketing
               </button>
               <button onClick={() => setActiveTab("memory")} className={subTabButtonClass("memory")}>
-                Memória IA
+                MemÃ³ria IA
               </button>
             </div>
           </details>
@@ -1398,48 +1415,48 @@ export default function AdminDashboard() {
             {activeTab === "overview" && (
               <div className="space-y-6">
                 <div>
-                  <p className="eyebrow mb-2">Hoje no ateliê</p>
-                  <h2 className="font-display text-3xl text-[var(--color-gold-light)]">Visão Geral</h2>
-                  <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Um resumo rápido antes de mergulhar no trabalho do dia.</p>
+                  <p className="eyebrow mb-2">Hoje no ateliÃª</p>
+                  <h2 className="font-display text-3xl text-[var(--color-gold-light)]">VisÃ£o Geral</h2>
+                  <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Um resumo rÃ¡pido antes de mergulhar no trabalho do dia.</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                   <div className="rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4">
                     <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Visitas hoje</p>
-                    <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{trafficAnalytics ? trafficAnalytics.periods.today.visits.toLocaleString("pt-BR") : "—"}</p>
+                    <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{trafficAnalytics ? trafficAnalytics.periods.today.visits.toLocaleString("pt-BR") : "â€”"}</p>
                   </div>
                   <div className="rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4">
                     <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Visitas em 7 dias</p>
-                    <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{trafficAnalytics ? trafficAnalytics.periods.last7.visits.toLocaleString("pt-BR") : "—"}</p>
+                    <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{trafficAnalytics ? trafficAnalytics.periods.last7.visits.toLocaleString("pt-BR") : "â€”"}</p>
                   </div>
                   <div className={`rounded-xl border p-4 ${pendingCommentsCount > 0 ? "border-[var(--color-gold)] bg-[#3a1820]" : "border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]"}`}>
-                    <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Comentários pendentes</p>
+                    <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">ComentÃ¡rios pendentes</p>
                     <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{pendingCommentsCount}</p>
                   </div>
                   <div className="rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4">
-                    <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Custo de IA no mês</p>
+                    <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Custo de IA no mÃªs</p>
                     <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">R$ {aiUsage.costBrl.toFixed(2).replace(".", ",")}</p>
                   </div>
                 </div>
 
                 <div>
-                  <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[var(--color-gold-light)] opacity-70">Atalhos rápidos</p>
+                  <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[var(--color-gold-light)] opacity-70">Atalhos rÃ¡pidos</p>
                   <div className="grid gap-3 md:grid-cols-3">
-                    <button onClick={() => { setActiveTab("product"); setGeneratedReview(""); }} className="rounded-xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-4 text-left text-sm font-bold uppercase tracking-widest text-[var(--color-gold)] transition-colors hover:bg-[var(--color-wine-light)]">✨ Gerar Vitrine</button>
-                    <button onClick={() => { setActiveTab("blog"); setGeneratedBlogPost(""); }} className="rounded-xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-4 text-left text-sm font-bold uppercase tracking-widest text-[var(--color-gold)] transition-colors hover:bg-[var(--color-wine-light)]">💬 Gerar Papo de Mulher</button>
-                    <button onClick={() => setActiveTab("traffic")} className="rounded-xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-4 text-left text-sm font-bold uppercase tracking-widest text-[var(--color-gold)] transition-colors hover:bg-[var(--color-wine-light)]">📈 Ver tráfego completo</button>
+                    <button onClick={() => { setActiveTab("product"); setGeneratedReview(""); }} className="rounded-xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-4 text-left text-sm font-bold uppercase tracking-widest text-[var(--color-gold)] transition-colors hover:bg-[var(--color-wine-light)]">âœ¨ Gerar Vitrine</button>
+                    <button onClick={() => { setActiveTab("blog"); setGeneratedBlogPost(""); }} className="rounded-xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-4 text-left text-sm font-bold uppercase tracking-widest text-[var(--color-gold)] transition-colors hover:bg-[var(--color-wine-light)]">ðŸ’¬ Gerar Papo de Mulher</button>
+                    <button onClick={() => setActiveTab("traffic")} className="rounded-xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-4 text-left text-sm font-bold uppercase tracking-widest text-[var(--color-gold)] transition-colors hover:bg-[var(--color-wine-light)]">ðŸ“ˆ Ver trÃ¡fego completo</button>
                   </div>
                 </div>
 
                 {pendingCommentsCount > 0 && (
                   <button onClick={() => setActiveTab("comments")} className="w-full rounded-xl border border-[var(--color-gold)] bg-[#3a1820] p-4 text-left text-sm text-[var(--color-gold-light)]">
-                    Você tem <strong className="text-[var(--color-gold)]">{pendingCommentsCount}</strong> comentário{pendingCommentsCount === 1 ? "" : "s"} esperando moderação. Toque para revisar.
+                    VocÃª tem <strong className="text-[var(--color-gold)]">{pendingCommentsCount}</strong> comentÃ¡rio{pendingCommentsCount === 1 ? "" : "s"} esperando moderaÃ§Ã£o. Toque para revisar.
                   </button>
                 )}
 
                 {aiUsage.costBrl >= 8 && (
                   <div className={`rounded-xl border p-4 text-sm font-bold ${aiUsage.costBrl >= 10 ? "border-red-400 bg-red-950/40 text-red-200" : "border-amber-400 bg-amber-950/30 text-amber-100"}`}>
-                    {aiUsage.costBrl >= 10 ? "⚠️ A meta mensal de R$ 10 de IA foi alcançada. Confirme o custo antes de novas gerações." : "💛 O gasto de IA passou de R$ 8 neste mês e está perto da meta."}
+                    {aiUsage.costBrl >= 10 ? "âš ï¸ A meta mensal de R$ 10 de IA foi alcanÃ§ada. Confirme o custo antes de novas geraÃ§Ãµes." : "ðŸ’› O gasto de IA passou de R$ 8 neste mÃªs e estÃ¡ perto da meta."}
                   </div>
                 )}
               </div>
@@ -1455,12 +1472,12 @@ export default function AdminDashboard() {
                         <div className="relative inline-block mt-4 mb-4">
                           <img src={previewUrl} alt="Preview" className="mx-auto max-h-48 object-contain rounded" />
                           <button onClick={(e) => { e.stopPropagation(); setImageFile(null); }} className="absolute -top-3 -right-3 bg-red-800 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:bg-red-600 transition-colors shadow-lg border-2 border-[var(--color-wine-dark)]" title="Excluir Foto">
-                            ✕
+                            âœ•
                           </button>
                         </div>
                       ) : (
                         <div className="text-[var(--color-gold-light)] mb-4">
-                          <span className="text-3xl block mb-2">📸</span>
+                          <span className="text-3xl block mb-2">ðŸ“¸</span>
                           <p className="font-bold uppercase tracking-widest text-xs">Cole a Foto do Produto Aqui (Ctrl+V)</p>
                           <p className="text-xs opacity-70">A IA vai extrair o nome e os ingredientes</p>
                         </div>
@@ -1471,7 +1488,7 @@ export default function AdminDashboard() {
                     </div>
 
                     <div>
-                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Link de Compra (Shopee, etc) *Obrigatório</label>
+                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Link de Compra (Shopee, etc) *ObrigatÃ³rio</label>
                       <input type="text" value={link} onChange={(e) => setLink(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
                     </div>
                     
@@ -1481,7 +1498,7 @@ export default function AdminDashboard() {
                         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Deixe a IA descobrir" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
                       </div>
                       <div>
-                        <label className="block text-[var(--color-gold-light)] text-sm mb-1">Preço (Opcional)</label>
+                        <label className="block text-[var(--color-gold-light)] text-sm mb-1">PreÃ§o (Opcional)</label>
                         <input type="text" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
                       </div>
                       <div>
@@ -1517,20 +1534,20 @@ export default function AdminDashboard() {
 
                       <div className="grid gap-4 md:grid-cols-2">
                         <div>
-                          <label className="block text-[var(--color-gold-light)] text-sm mb-1">Minha relação com este produto</label>
+                          <label className="block text-[var(--color-gold-light)] text-sm mb-1">Minha relaÃ§Ã£o com este produto</label>
                           <select value={productExperience} onChange={(e) => setProductExperience(e.target.value as typeof productExperience)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
-                            <option value="nao_informado">Não informada</option><option value="pesquisado">Ainda não usei; estou pesquisando</option><option value="impressao_inicial">Primeiras impressões</option><option value="testado">Usei e testei</option>
+                            <option value="nao_informado">NÃ£o informada</option><option value="pesquisado">Ainda nÃ£o usei; estou pesquisando</option><option value="impressao_inicial">Primeiras impressÃµes</option><option value="testado">Usei e testei</option>
                           </select>
                         </div>
                         <div>
                           <label className="block text-[var(--color-gold-light)] text-sm mb-1">Tempo de uso, se houver</label>
-                          <input value={productTestDuration} onChange={(e) => setProductTestDuration(e.target.value)} placeholder="Ex.: três semanas" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
+                          <input value={productTestDuration} onChange={(e) => setProductTestDuration(e.target.value)} placeholder="Ex.: trÃªs semanas" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
                         </div>
                       </div>
 
                       <div className="opacity-80 hover:opacity-100 transition-opacity">
                         <label className="block text-[var(--color-gold-light)] text-sm mb-1">Suas Notas Pessoais (Opcional)</label>
-                        <textarea placeholder="Se você não digitar nada, a IA foca nos benefícios científicos." value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={2} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
+                        <textarea placeholder="Se vocÃª nÃ£o digitar nada, a IA foca nos benefÃ­cios cientÃ­ficos." value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={2} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
                       </div>
 
                       <div className="flex items-center gap-3 bg-[#1a0f12] p-4 rounded-lg border border-[var(--color-wine-light)]">
@@ -1542,13 +1559,13 @@ export default function AdminDashboard() {
                           className="w-5 h-5 accent-[var(--color-gold)]"
                         />
                         <label htmlFor="isAccessory" className="text-[var(--color-gold-light)] text-sm cursor-pointer select-none">
-                          👗 É um acessório, roupa ou item de estilo (não possui fórmula / não gera resenha científica).
+                          ðŸ‘— Ã‰ um acessÃ³rio, roupa ou item de estilo (nÃ£o possui fÃ³rmula / nÃ£o gera resenha cientÃ­fica).
                         </label>
                       </div>
 
                     
                     <button onClick={handleGenerateText} disabled={loading} className="w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform mt-4">
-                      {loading ? "A IA ESTÁ LENDO A FOTO..." : "GERAR MÁGICA TOTAL"}
+                      {loading ? "A IA ESTÃ LENDO A FOTO..." : "GERAR MÃGICA TOTAL"}
                     </button>
                   </>
                 ) : (
@@ -1556,13 +1573,13 @@ export default function AdminDashboard() {
                     <div className="space-y-6">
                       <div className="grid md:grid-cols-2 gap-6">
                         <div className={`bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)] ${isAccessory ? "md:col-span-2" : ""}`}>
-                          <h3 className="text-[var(--color-gold)] font-serif text-xl mb-4 text-center">{isAccessory ? "Vitrine (Acessório/Estilo)" : `1. Vitrine: ${generatedProductName}`}</h3>
+                          <h3 className="text-[var(--color-gold)] font-serif text-xl mb-4 text-center">{isAccessory ? "Vitrine (AcessÃ³rio/Estilo)" : `1. Vitrine: ${generatedProductName}`}</h3>
                           <textarea value={generatedReview} onChange={(e) => setGeneratedReview(e.target.value)} rows={8} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed" ></textarea>
                           {isAccessory && (
                             <div className="mt-4 rounded-xl border border-[var(--color-wine-light)] bg-black/15 p-4 text-sm text-[var(--color-gold-light)]">
                               <p className="font-bold text-[var(--color-gold)]">Como a IA construiu este texto</p>
-                              <p className="mt-2"><span className="font-bold">Detalhes das suas notas:</span> {accessoryDetailsUsed.length ? accessoryDetailsUsed.join(" • ") : "nenhuma nota pessoal foi informada"}</p>
-                              <p className="mt-1"><span className="font-bold">Humor elegante:</span> {accessoryHumorApplied ? "aplicado ✓" : "não confirmado"}</p>
+                              <p className="mt-2"><span className="font-bold">Detalhes das suas notas:</span> {accessoryDetailsUsed.length ? accessoryDetailsUsed.join(" â€¢ ") : "nenhuma nota pessoal foi informada"}</p>
+                              <p className="mt-1"><span className="font-bold">Humor elegante:</span> {accessoryHumorApplied ? "aplicado âœ“" : "nÃ£o confirmado"}</p>
                             </div>
                           )}
                         </div>
@@ -1577,7 +1594,7 @@ export default function AdminDashboard() {
 
                       <fieldset className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                         <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Temas e tags sugeridas</legend>
-                        <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">A IA já marcou o que encaixou. Ajuste antes de publicar — vale pro produto e pro artigo.</p>
+                        <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">A IA jÃ¡ marcou o que encaixou. Ajuste antes de publicar â€” vale pro produto e pro artigo.</p>
                         {(["concern", "ingredient", "life_topic", "category", "routine_phase", "routine_period", "skin_type", "origin", "body_part"] as TagType[]).map((type) => {
                           const optionsForType = tags.filter((tag) => tag.type === type);
                           if (!optionsForType.length) return null;
@@ -1615,7 +1632,7 @@ export default function AdminDashboard() {
                             {(["concern", "ingredient", "life_topic", "category", "routine_phase", "routine_period", "skin_type", "origin", "body_part"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
                           </select>
                           <button type="button" onClick={handleCreateTag} disabled={creatingTag || !newTagName.trim()} className="rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
-                            {creatingTag ? "Criando…" : "Criar tag"}
+                            {creatingTag ? "Criandoâ€¦" : "Criar tag"}
                           </button>
                         </div>
                       </fieldset>
@@ -1677,17 +1694,17 @@ export default function AdminDashboard() {
                                   type="text"
                                   value={option}
                                   onChange={(event) => updateGeneratedPollOption(index, event.target.value)}
-                                  placeholder={`Opção ${index + 1}`}
+                                  placeholder={`OpÃ§Ã£o ${index + 1}`}
                                   className="w-full px-3 py-2 text-sm normal-case tracking-normal"
                                 />
                                 {generatedPollOptions.length > 2 && (
-                                  <button type="button" onClick={() => removeGeneratedPollOption(index)} className="rounded border border-red-900 px-2 py-2 text-xs text-red-400">✕</button>
+                                  <button type="button" onClick={() => removeGeneratedPollOption(index)} className="rounded border border-red-900 px-2 py-2 text-xs text-red-400">âœ•</button>
                                 )}
                               </div>
                             ))}
                           </div>
                           {generatedPollOptions.length < 5 && (
-                            <button type="button" onClick={addGeneratedPollOption} className="mt-3 rounded border border-[var(--color-wine-light)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-gold-light)]">+ Adicionar opção</button>
+                            <button type="button" onClick={addGeneratedPollOption} className="mt-3 rounded border border-[var(--color-wine-light)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-gold-light)]">+ Adicionar opÃ§Ã£o</button>
                           )}
                         </fieldset>
                       )}
@@ -1699,12 +1716,12 @@ export default function AdminDashboard() {
                          <div className="relative inline-block mt-4 mb-4">
                           <img src={displayPreviewUrl} alt="Preview" className="mx-auto max-h-48 object-contain rounded" />
                           <button onClick={(e) => { e.stopPropagation(); setDisplayImageFile(null); }} className="absolute -top-3 -right-3 bg-red-800 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:bg-red-600 transition-colors shadow-lg border-2 border-[var(--color-wine-dark)]" title="Excluir Foto">
-                            ✕
+                            âœ•
                           </button>
                         </div>
                       ) : (
                         <div className="text-[var(--color-gold-light)] mb-4">
-                          <p className="font-bold uppercase tracking-widest text-sm text-[var(--color-gold)]">A foto inicial será usada na vitrine.</p>
+                          <p className="font-bold uppercase tracking-widest text-sm text-[var(--color-gold)]">A foto inicial serÃ¡ usada na vitrine.</p>
                           <p className="text-xs opacity-70 mt-2">Quer trocar por outra foto? (Cole com Ctrl+V)</p>
                         </div>
                       )}
@@ -1732,22 +1749,22 @@ export default function AdminDashboard() {
                 {!generatedBlogPost ? (
                   <>
                     <div className="flex justify-between items-center border-b border-[var(--color-wine-light)] pb-4">
-                        <h2 className="text-xl font-serif text-[var(--color-gold)]">Gerador de Crônicas</h2>
+                        <h2 className="text-xl font-serif text-[var(--color-gold)]">Gerador de CrÃ´nicas</h2>
                         <button onClick={handleBrainstorm} disabled={loading} className="border border-[#b5952f] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-gold)] hover:text-[var(--color-wine-dark)] transition-colors">
-                            💡 Me dê Ideias!
+                            ðŸ’¡ Me dÃª Ideias!
                         </button>
                     </div>
 
                     <div>
-                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Título / Tema da Crônica</label>
-                      <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: A libertação que é parar de tingir o cabelo" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
+                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">TÃ­tulo / Tema da CrÃ´nica</label>
+                      <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: A libertaÃ§Ã£o que Ã© parar de tingir o cabelo" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
                     </div>
 
                     <div>
-                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Categoria no Diário</label>
+                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Categoria no DiÃ¡rio</label>
                       <select value={blogCategory} onChange={(e) => setBlogCategory(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
-                        <option value="Papo de Mulher Madura">🍷 Papo de Mulher Madura</option>
-                        <option value="Estudei para te explicar">🧠 Estudei para te explicar</option>
+                        <option value="Papo de Mulher Madura">ðŸ· Papo de Mulher Madura</option>
+                        <option value="Estudei para te explicar">ðŸ§  Estudei para te explicar</option>
                       </select>
                     </div>
 
@@ -1757,7 +1774,7 @@ export default function AdminDashboard() {
                         <select value={blogPapoFilter} onChange={(e) => setBlogPapoFilter(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
                           {PAPO_FILTERS.map((filter) => <option value={filter} key={filter}>{filter}</option>)}
                         </select>
-                        <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">Esse é o filtro emocional que aparece no Papo de Mulher Madura.</p>
+                        <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">Esse Ã© o filtro emocional que aparece no Papo de Mulher Madura.</p>
                       </div>
                     )}
 
@@ -1785,8 +1802,8 @@ export default function AdminDashboard() {
                     </fieldset>
 
                     <div>
-                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Suas Impressões / Anotações (A IA vai transformar isso em texto!)</label>
-                      <textarea placeholder="O que você quer falar sobre esse tema? Ex: Na menopausa ninguém te avisa que a paciência acaba mais rápido que o colágeno..." value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={5} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
+                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Suas ImpressÃµes / AnotaÃ§Ãµes (A IA vai transformar isso em texto!)</label>
+                      <textarea placeholder="O que vocÃª quer falar sobre esse tema? Ex: Na menopausa ninguÃ©m te avisa que a paciÃªncia acaba mais rÃ¡pido que o colÃ¡geno..." value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={5} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
                     </div>
 
                      <div className="border-2 border-dashed border-[var(--color-wine-light)] rounded-xl p-6 text-center bg-[var(--color-wine-dark)] relative flex flex-col items-center justify-center">
@@ -1795,12 +1812,12 @@ export default function AdminDashboard() {
                         <div className="relative inline-block mt-4 mb-4">
                           <img src={previewUrl} alt="Preview" className="mx-auto max-h-48 object-contain rounded" />
                           <button onClick={(e) => { e.stopPropagation(); setImageFile(null); }} className="absolute -top-3 -right-3 bg-red-800 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:bg-red-600 transition-colors shadow-lg border-2 border-[var(--color-wine-dark)]" title="Excluir Foto">
-                            ✕
+                            âœ•
                           </button>
                         </div>
                       ) : (
                         <div className="text-[var(--color-gold-light)] mb-4">
-                          <span className="text-3xl block mb-2">📸</span>
+                          <span className="text-3xl block mb-2">ðŸ“¸</span>
                           <p className="font-bold uppercase tracking-widest text-xs">Foto para a Postagem (Opcional)</p>
                           <p className="text-xs opacity-70">Pode colar com Ctrl+V</p>
                         </div>
@@ -1812,7 +1829,7 @@ export default function AdminDashboard() {
 
                     
                     <button onClick={handleGenerateBlogOnly} disabled={loading} className="w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform mt-4">
-                      {loading ? "A IA ESTÁ ESCREVENDO..." : "ESCREVER CRÔNICA"}
+                      {loading ? "A IA ESTÃ ESCREVENDO..." : "ESCREVER CRÃ”NICA"}
                     </button>
                   </>
                 ) : (
@@ -1829,7 +1846,7 @@ export default function AdminDashboard() {
                          <div className="relative inline-block mt-4 mb-4">
                           <img src={displayPreviewUrl || previewUrl || ""} alt="Preview" className="mx-auto max-h-48 object-contain rounded" />
                           <button onClick={(e) => { e.stopPropagation(); setDisplayImageFile(null); setImageFile(null); }} className="absolute -top-3 -right-3 bg-red-800 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:bg-red-600 transition-colors shadow-lg border-2 border-[var(--color-wine-dark)]" title="Excluir Foto">
-                            ✕
+                            âœ•
                           </button>
                         </div>
                       ) : (
@@ -1849,7 +1866,7 @@ export default function AdminDashboard() {
                         Descartar
                       </button>
                       <button onClick={handlePublish} disabled={loading} className="flex-2 w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform">
-                        {loading ? "PUBLICANDO..." : "PUBLICAR NO DIÁRIO"}
+                        {loading ? "PUBLICANDO..." : "PUBLICAR NO DIÃRIO"}
                       </button>
                     </div>
                   </>
@@ -1860,7 +1877,7 @@ export default function AdminDashboard() {
             {activeTab === "manage" && (
               <div className="space-y-8">
                 {!editingItem && (
-                  <div className="grid gap-3 sm:grid-cols-3" role="group" aria-label="Tipo de conteúdo para gerenciar">
+                  <div className="grid gap-3 sm:grid-cols-3" role="group" aria-label="Tipo de conteÃºdo para gerenciar">
                     {([
                       ["papo", "Papo de Mulher", journals.filter(item => item.category !== "Estudei para te explicar").length],
                       ["estudei", "Estudei", journals.filter(item => item.category === "Estudei para te explicar").length],
@@ -1876,22 +1893,22 @@ export default function AdminDashboard() {
                 {!editingItem && (manageType === "vitrine" || manageType === "estudei" || manageType === "papo") && (
                   <details className="group rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]">
                     <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--color-gold-light)] opacity-70">
-                      <span>Ferramentas de manutenção (uso raro)</span>
-                      <span className="text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+                      <span>Ferramentas de manutenÃ§Ã£o (uso raro)</span>
+                      <span className="text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">âŒ„</span>
                     </summary>
                     <div className="space-y-3 border-t border-[var(--color-wine-light)] p-4">
                       {(manageType === "vitrine" || manageType === "estudei") && (
                         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] px-4 py-3">
-                          <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Faltam &quot;Em 30 segundos&quot; na Vitrine ou em Estudei? Gero de uma vez para tudo que ainda não tem, a partir do texto já publicado.</p>
+                          <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Faltam &quot;Em 30 segundos&quot; na Vitrine ou em Estudei? Gero de uma vez para tudo que ainda nÃ£o tem, a partir do texto jÃ¡ publicado.</p>
                           <button type="button" onClick={handleBulkGenerateSummaries} disabled={Boolean(bulkSummaryStatus)} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
-                            {bulkSummaryStatus || "✨ Gerar resumos que faltam"}
+                            {bulkSummaryStatus || "âœ¨ Gerar resumos que faltam"}
                           </button>
                         </div>
                       )}
                       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] px-4 py-3">
-                        <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Falta etiquetar algo? Sugiro tags a partir do texto já publicado pra tudo que ainda não tem nenhuma — grava direto, você revisa depois.</p>
+                        <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Falta etiquetar algo? Sugiro tags a partir do texto jÃ¡ publicado pra tudo que ainda nÃ£o tem nenhuma â€” grava direto, vocÃª revisa depois.</p>
                         <button type="button" onClick={handleBulkSuggestTags} disabled={Boolean(bulkTagStatus)} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
-                          {bulkTagStatus || "🏷️ Sugerir tags para tudo que falta"}
+                          {bulkTagStatus || "ðŸ·ï¸ Sugerir tags para tudo que falta"}
                         </button>
                       </div>
                     </div>
@@ -1900,7 +1917,7 @@ export default function AdminDashboard() {
                 {editingItem ? (
                   <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
                     <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif">
-                      Editando {editingItem.type === "product" ? "Produto da Vitrine" : "Artigo do Diário"}
+                      Editando {editingItem.type === "product" ? "Produto da Vitrine" : "Artigo do DiÃ¡rio"}
                     </h3>
                     <div className="mb-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem_11rem]">
                       <input type="text" value={editingItem.title} onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })} className="flex-1 bg-transparent border-b border-[var(--color-wine-light)] py-2 text-[var(--color-gold)] font-bold focus:outline-none" />
@@ -1917,14 +1934,14 @@ export default function AdminDashboard() {
                         )}
                       </select>
                       <label className="text-xs font-bold uppercase tracking-wider text-[var(--color-gold-light)]">
-                        Data da publicação
+                        Data da publicaÃ§Ã£o
                         <input type="date" required value={editingItem.created_at || ""} onChange={(event) => setEditingItem({ ...editingItem, created_at: event.target.value })} className="mt-1 w-full px-3 text-sm normal-case tracking-normal" />
                       </label>
                     </div>
                     {editingItem.type === "journal" && editingItem.category !== "Estudei para te explicar" && (
                       <div className="mb-5">
                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-gold-light)]">Gancho do Papo</label>
-                        <select value={editingItem.papo_filter || "Confissões da maturidade"} onChange={(event) => setEditingItem({ ...editingItem, papo_filter: event.target.value })} className="mt-1 w-full rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-3 text-sm text-[var(--color-gold-light)]">
+                        <select value={editingItem.papo_filter || "ConfissÃµes da maturidade"} onChange={(event) => setEditingItem({ ...editingItem, papo_filter: event.target.value })} className="mt-1 w-full rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-3 text-sm text-[var(--color-gold-light)]">
                           {PAPO_FILTERS.map((filter) => <option value={filter} key={filter}>{filter}</option>)}
                         </select>
                       </div>
@@ -1932,7 +1949,7 @@ export default function AdminDashboard() {
                     {editingItem.type === "product" ? (
                       <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                         <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Filtros especiais</legend>
-                        <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">Você pode marcar mais de uma opção. Os selos e filtros aparecem imediatamente em Achados.</p>
+                        <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">VocÃª pode marcar mais de uma opÃ§Ã£o. Os selos e filtros aparecem imediatamente em Achados.</p>
                         <div className="grid gap-3 sm:grid-cols-4">
                           {[
                             ["is_featured", "Em destaque", "Curadoria principal"],
@@ -1967,9 +1984,9 @@ export default function AdminDashboard() {
                     <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                       <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Temas e tags</legend>
                       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-xs text-[var(--color-gold-light)] opacity-65">Marque os temas ligados a este conteúdo. Elas alimentam a navegação por tema, a busca e os filtros por ativo/queixa.</p>
+                        <p className="text-xs text-[var(--color-gold-light)] opacity-65">Marque os temas ligados a este conteÃºdo. Elas alimentam a navegaÃ§Ã£o por tema, a busca e os filtros por ativo/queixa.</p>
                         <button type="button" onClick={handleSuggestTagsForEditingItem} disabled={suggestingTags} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
-                          {suggestingTags ? "Sugerindo…" : "✨ Sugerir com IA"}
+                          {suggestingTags ? "Sugerindoâ€¦" : "âœ¨ Sugerir com IA"}
                         </button>
                       </div>
                       {(["concern", "ingredient", "life_topic", "category", "routine_phase", "routine_period", "skin_type", "origin", "body_part"] as TagType[]).map((type) => {
@@ -2009,7 +2026,7 @@ export default function AdminDashboard() {
                           {(["concern", "ingredient", "life_topic", "category", "routine_phase", "routine_period", "skin_type", "origin", "body_part"] as TagType[]).map((type) => <option key={type} value={type}>{TAG_TYPE_LABELS[type]}</option>)}
                         </select>
                         <button type="button" onClick={handleCreateTag} disabled={creatingTag || !newTagName.trim()} className="rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
-                          {creatingTag ? "Criando…" : "Criar tag"}
+                          {creatingTag ? "Criandoâ€¦" : "Criar tag"}
                         </button>
                       </div>
                     </fieldset>
@@ -2017,9 +2034,9 @@ export default function AdminDashboard() {
                       <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                         <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Em 30 segundos</legend>
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                          <p className="text-xs text-[var(--color-gold-light)] opacity-65">Aparece na ficha antes do texto completo. Deixe em branco o que não fizer sentido aqui.</p>
+                          <p className="text-xs text-[var(--color-gold-light)] opacity-65">Aparece na ficha antes do texto completo. Deixe em branco o que nÃ£o fizer sentido aqui.</p>
                           <button type="button" onClick={handleGenerateSummaryForEditingItem} disabled={generatingSummary} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
-                            {generatingSummary ? "Gerando…" : "✨ Gerar com IA"}
+                            {generatingSummary ? "Gerandoâ€¦" : "âœ¨ Gerar com IA"}
                           </button>
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2">
@@ -2042,7 +2059,7 @@ export default function AdminDashboard() {
                         <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Enquete</legend>
                         {editingItemPoll.voteCount > 0 ? (
                           <div>
-                            <p className="mb-3 text-xs text-[var(--color-gold-light)] opacity-65">Já tem voto registrado, então a pergunta e as opções ficam travadas (mudar agora invalidaria os votos). Você pode encerrar ou excluir.</p>
+                            <p className="mb-3 text-xs text-[var(--color-gold-light)] opacity-65">JÃ¡ tem voto registrado, entÃ£o a pergunta e as opÃ§Ãµes ficam travadas (mudar agora invalidaria os votos). VocÃª pode encerrar ou excluir.</p>
                             <p className="mb-3 font-bold text-[var(--color-gold-light)]">{editingItemPoll.question}</p>
                             <div className="mb-4 grid gap-2">
                               {editingItemPoll.optionResults.map((option) => {
@@ -2050,7 +2067,7 @@ export default function AdminDashboard() {
                                 return (
                                   <div key={option.id} className="flex items-center justify-between rounded-lg border border-[var(--color-wine-light)] px-3 py-2 text-sm text-[var(--color-gold-light)]">
                                     <span>{option.label}</span>
-                                    <span className="opacity-70">{option.count} voto{option.count === 1 ? "" : "s"} · {percent}%</span>
+                                    <span className="opacity-70">{option.count} voto{option.count === 1 ? "" : "s"} Â· {percent}%</span>
                                   </div>
                                 );
                               })}
@@ -2066,7 +2083,7 @@ export default function AdminDashboard() {
                           </div>
                         ) : (
                           <div>
-                            <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">Pergunta curta + de 2 a 5 opções. Aparece no artigo entre o texto e {editingItem.category === "Estudei para te explicar" ? "os próximos passos" : "a roda de conversa"}. Deixe a pergunta em branco para não ter enquete.</p>
+                            <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">Pergunta curta + de 2 a 5 opÃ§Ãµes. Aparece no artigo entre o texto e {editingItem.category === "Estudei para te explicar" ? "os prÃ³ximos passos" : "a roda de conversa"}. Deixe a pergunta em branco para nÃ£o ter enquete.</p>
                             <label className="mb-3 block text-xs font-bold uppercase tracking-wider text-[var(--color-gold-light)]">
                               Pergunta
                               <input
@@ -2084,11 +2101,11 @@ export default function AdminDashboard() {
                                     type="text"
                                     value={option}
                                     onChange={(event) => updatePollOption(index, event.target.value)}
-                                    placeholder={`Opção ${index + 1}`}
+                                    placeholder={`OpÃ§Ã£o ${index + 1}`}
                                     className="w-full px-3 py-2 text-sm normal-case tracking-normal"
                                   />
                                   {editingItemPoll.options.length > 2 && (
-                                    <button type="button" onClick={() => removePollOption(index)} className="text-xs text-red-400" aria-label="Remover opção">✕</button>
+                                    <button type="button" onClick={() => removePollOption(index)} className="text-xs text-red-400" aria-label="Remover opÃ§Ã£o">âœ•</button>
                                   )}
                                 </div>
                               ))}
@@ -2096,11 +2113,11 @@ export default function AdminDashboard() {
                             <div className="mt-3 flex flex-wrap gap-2">
                               {editingItemPoll.options.length < 5 && (
                                 <button type="button" onClick={addPollOption} className="rounded border border-[var(--color-wine-light)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-gold-light)]">
-                                  + Adicionar opção
+                                  + Adicionar opÃ§Ã£o
                                 </button>
                               )}
                               <button type="button" onClick={handleSavePoll} disabled={savingPoll} className="rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
-                                {savingPoll ? "Salvando…" : "Salvar enquete"}
+                                {savingPoll ? "Salvandoâ€¦" : "Salvar enquete"}
                               </button>
                             </div>
                           </div>
@@ -2111,7 +2128,7 @@ export default function AdminDashboard() {
                       <label className="text-sm text-[var(--color-gold-light)]">Corpo do artigo</label>
                       <div className="flex gap-1 rounded-lg border border-[var(--color-wine-light)] p-1">
                         <button type="button" onClick={() => setContentPreview(false)} className={`rounded px-3 py-1 text-xs font-bold uppercase tracking-widest ${!contentPreview ? "bg-[var(--color-wine)] text-[var(--color-gold)]" : "text-[var(--color-gold-light)] opacity-60"}`}>Editar</button>
-                        <button type="button" onClick={() => setContentPreview(true)} className={`rounded px-3 py-1 text-xs font-bold uppercase tracking-widest ${contentPreview ? "bg-[var(--color-wine)] text-[var(--color-gold)]" : "text-[var(--color-gold-light)] opacity-60"}`}>Prévia</button>
+                        <button type="button" onClick={() => setContentPreview(true)} className={`rounded px-3 py-1 text-xs font-bold uppercase tracking-widest ${contentPreview ? "bg-[var(--color-wine)] text-[var(--color-gold)]" : "text-[var(--color-gold-light)] opacity-60"}`}>PrÃ©via</button>
                       </div>
                     </div>
                     {contentPreview ? (
@@ -2124,7 +2141,7 @@ export default function AdminDashboard() {
                         Cancelar
                       </button>
                       <button onClick={handleUpdateItem} disabled={loading || !editingItem.created_at} className="flex-2 w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-3 rounded font-bold uppercase disabled:opacity-50">
-                        {loading ? "Salvando..." : "Salvar Alterações"}
+                        {loading ? "Salvando..." : "Salvar AlteraÃ§Ãµes"}
                       </button>
                     </div>
                   </div>
@@ -2159,7 +2176,7 @@ export default function AdminDashboard() {
                           <div>
                             <span className="text-[var(--color-gold-light)] font-bold block">{j.title}</span>
                             <span className="text-[var(--color-gold-light)] opacity-50 text-xs uppercase">{j.category || "Sem categoria"}</span>
-                            <span className="ml-2 text-[var(--color-gold-light)] opacity-50 text-xs">• {formatPostDate(j.created_at)}</span>
+                            <span className="ml-2 text-[var(--color-gold-light)] opacity-50 text-xs">â€¢ {formatPostDate(j.created_at)}</span>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {j.papo_filter && <span className="rounded-full bg-[var(--color-gold)]/10 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">{j.papo_filter}</span>}
                               {j.is_featured && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Destaque</span>}
@@ -2168,8 +2185,9 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => startEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", papo_filter: j.papo_filter || "Confissões da maturidade", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) }, "journal")} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => startEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", papo_filter: j.papo_filter || "ConfissÃµes da maturidade", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) }, "journal")} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteJournal(j.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
+                            <button onClick={() => handleGenerateSocialProof(j.id, j.category || 'Geral', j.title, j.content)} disabled={socialProofLoading[j.id]} className={	ext-xs px-3 py-1 rounded font-bold uppercase {socialProofLoading[j.id] ? 'bg-transparent text-[var(--color-gold-light)] opacity-50' : 'bg-[#e2c1c6] text-[#2b151b] hover:bg-white'}}>{socialProofLoading[j.id] ? 'Gerando...' : '✨ Gerar Prova Social'}</button>
                           </div>
                         </div>
                       ))}
@@ -2182,7 +2200,7 @@ export default function AdminDashboard() {
                           <div>
                             <span className="text-[var(--color-gold-light)] font-bold block">{j.title}</span>
                             <span className="text-[var(--color-gold-light)] opacity-50 text-xs uppercase">{j.category || "Sem categoria"}</span>
-                            <span className="ml-2 text-[var(--color-gold-light)] opacity-50 text-xs">• {formatPostDate(j.created_at)}</span>
+                            <span className="ml-2 text-[var(--color-gold-light)] opacity-50 text-xs">â€¢ {formatPostDate(j.created_at)}</span>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {j.is_featured && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Destaque</span>}
                               {j.is_most_viewed && <span className="rounded-full bg-[var(--color-gold)]/15 px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--color-gold)]">Mais lido</span>}
@@ -2192,6 +2210,7 @@ export default function AdminDashboard() {
                           <div className="flex gap-2">
                             <button onClick={() => startEditingItem({ type: "journal", id: j.id, title: j.title, content: j.content, category: j.category || "Geral", papo_filter: j.papo_filter || "", created_at: toDateInputValue(j.created_at), is_featured: Boolean(j.is_featured), is_most_viewed: Boolean(j.is_most_viewed), is_new: Boolean(j.is_new) }, "journal")} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteJournal(j.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
+                            <button onClick={() => handleGenerateSocialProof(j.id, j.category || 'Geral', j.title, j.content)} disabled={socialProofLoading[j.id]} className={	ext-xs px-3 py-1 rounded font-bold uppercase {socialProofLoading[j.id] ? 'bg-transparent text-[var(--color-gold-light)] opacity-50' : 'bg-[#e2c1c6] text-[#2b151b] hover:bg-white'}}>{socialProofLoading[j.id] ? 'Gerando...' : '✨ Gerar Prova Social'}</button>
                           </div>
                         </div>
                       ))}
@@ -2217,7 +2236,7 @@ export default function AdminDashboard() {
                           <span className="rounded-full border border-[var(--color-wine-light)] px-2 py-0.5 text-[10px] uppercase tracking-widest text-[var(--color-gold-light)] opacity-70">{originLabel}</span>
                         </div>
                         <h3 className="mt-2 font-serif text-xl text-[var(--color-gold-light)]">{journal?.title || product?.title || "Papo de Mulher"}</h3>
-                        <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-55">{comment.email} • {new Date(comment.created_at).toLocaleString("pt-BR")}</p>
+                        <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-55">{comment.email} â€¢ {new Date(comment.created_at).toLocaleString("pt-BR")}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {comment.status !== "approved" && <button onClick={() => handleCommentStatus(comment, "approved")} disabled={loading} className="rounded border border-[var(--color-gold)] px-3 py-1 text-xs text-[var(--color-gold)]">Aprovar</button>}
@@ -2233,21 +2252,21 @@ export default function AdminDashboard() {
                 <div className="space-y-8">
                   <div className="rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-5">
                     <p className="eyebrow">O papo continuou por aqui</p>
-                    <h2 className="font-display mt-2 text-3xl text-[var(--color-gold)]">Comentários</h2>
-                    <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)] opacity-70">As leitoras enviam email e impressão. O email fica só para você; no site aparece como Amiga Entreluar.</p>
+                    <h2 className="font-display mt-2 text-3xl text-[var(--color-gold)]">ComentÃ¡rios</h2>
+                    <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)] opacity-70">As leitoras enviam email e impressÃ£o. O email fica sÃ³ para vocÃª; no site aparece como Amiga Entreluar.</p>
                   </div>
 
                   {comments.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-70">Nenhum comentário chegou por enquanto.</div>
+                    <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-70">Nenhum comentÃ¡rio chegou por enquanto.</div>
                   ) : (
                     <>
                       <section>
                         <div className="mb-3 flex items-center justify-between">
-                          <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Precisa da sua ação</h3>
+                          <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Precisa da sua aÃ§Ã£o</h3>
                           <span className={`rounded-full px-3 py-1 text-xs font-bold ${pending.length > 0 ? "bg-[var(--color-gold)] text-[var(--color-wine-dark)]" : "bg-[var(--color-wine-light)] text-[var(--color-gold-light)] opacity-60"}`}>{pending.length}</span>
                         </div>
                         {pending.length === 0 ? (
-                          <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-6 text-center text-sm text-[var(--color-gold-light)] opacity-60">Tudo em dia! Nenhum comentário esperando moderação. ✨</div>
+                          <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-6 text-center text-sm text-[var(--color-gold-light)] opacity-60">Tudo em dia! Nenhum comentÃ¡rio esperando moderaÃ§Ã£o. âœ¨</div>
                         ) : (
                           <div className="space-y-4">{pending.map(renderComment)}</div>
                         )}
@@ -2256,8 +2275,8 @@ export default function AdminDashboard() {
                       {moderated.length > 0 && (
                         <details className="group rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]">
                           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-5 py-4 text-sm font-bold uppercase tracking-widest text-[var(--color-gold-light)]">
-                            <span>Já moderados <span className="opacity-60">({moderated.length})</span></span>
-                            <span className="text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+                            <span>JÃ¡ moderados <span className="opacity-60">({moderated.length})</span></span>
+                            <span className="text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">âŒ„</span>
                           </summary>
                           <div className="space-y-4 border-t border-[var(--color-wine-light)] p-5">{moderated.map(renderComment)}</div>
                         </details>
@@ -2272,8 +2291,8 @@ export default function AdminDashboard() {
               <div className="space-y-6">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <p className="eyebrow mb-2">Tráfego do site</p>
-                    <h2 className="font-display text-3xl text-[var(--color-gold-light)]">Como estão as visitas</h2>
+                    <p className="eyebrow mb-2">TrÃ¡fego do site</p>
+                    <h2 className="font-display text-3xl text-[var(--color-gold-light)]">Como estÃ£o as visitas</h2>
                     <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Mede todos os acessos gravados no site e separa por Instagram, Facebook, Direto e Internet.</p>
                   </div>
                   <button type="button" onClick={fetchTrafficAnalytics} className="self-start border border-[var(--color-gold)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)] hover:bg-[var(--color-wine-light)]">Atualizar</button>
@@ -2286,13 +2305,13 @@ export default function AdminDashboard() {
                         <div key={period.label} className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                           <p className="text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">{period.label}</p>
                           <p className="mt-1 text-2xl font-bold text-[var(--color-gold)]">{period.visits.toLocaleString("pt-BR")}</p>
-                          <p className="mt-2 text-xs text-[var(--color-gold-light)] opacity-60">{period.uniqueSessions.toLocaleString("pt-BR")} visitantes · {period.conversions.toLocaleString("pt-BR")} cadastros</p>
+                          <p className="mt-2 text-xs text-[var(--color-gold-light)] opacity-60">{period.uniqueSessions.toLocaleString("pt-BR")} visitantes Â· {period.conversions.toLocaleString("pt-BR")} cadastros</p>
                         </div>
                       ))}
                     </div>
 
                     <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                      <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Origem nos últimos 30 dias</p>
+                      <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Origem nos Ãºltimos 30 dias</p>
                       {trafficSourceRows.map((source) => {
                         const maxVisits = Math.max(...trafficSourceRows.map((item) => item.visits), 1);
                         return (
@@ -2304,14 +2323,14 @@ export default function AdminDashboard() {
                             <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--color-wine)]">
                               <div className="h-full rounded-full bg-[var(--color-gold)]" style={{ width: `${(source.visits / maxVisits) * 100}%` }} />
                             </div>
-                            <p className="mt-1 text-xs opacity-55">{source.uniqueSessions.toLocaleString("pt-BR")} visitantes · {source.conversions.toLocaleString("pt-BR")} cadastros · {source.conversionRate.toFixed(1).replace(".", ",")}%</p>
+                            <p className="mt-1 text-xs opacity-55">{source.uniqueSessions.toLocaleString("pt-BR")} visitantes Â· {source.conversions.toLocaleString("pt-BR")} cadastros Â· {source.conversionRate.toFixed(1).replace(".", ",")}%</p>
                           </div>
                         );
                       })}
                     </div>
 
                     <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                      <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Páginas mais visitadas em 30 dias</p>
+                      <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">PÃ¡ginas mais visitadas em 30 dias</p>
                       {trafficAnalytics.periods.last30.topPages.length ? trafficAnalytics.periods.last30.topPages.map((page) => (
                         <div key={page.path} className="flex justify-between gap-4 border-t border-[var(--color-wine-light)] py-2 text-sm text-[var(--color-gold-light)] first:border-t-0">
                           <span className="truncate">{page.path}</span>
@@ -2319,7 +2338,7 @@ export default function AdminDashboard() {
                         </div>
                       )) : <p className="text-sm text-[var(--color-gold-light)] opacity-60">Sem visitas registradas ainda.</p>}
                     </div>
-                    <p className="text-xs leading-5 text-[var(--color-gold-light)] opacity-55">Direto inclui quem digitou o endereço, abriu favorito ou veio sem origem identificável. Internet agrupa Google, outros sites e navegadores externos.</p>
+                    <p className="text-xs leading-5 text-[var(--color-gold-light)] opacity-55">Direto inclui quem digitou o endereÃ§o, abriu favorito ou veio sem origem identificÃ¡vel. Internet agrupa Google, outros sites e navegadores externos.</p>
                   </>
                 ) : (
                   <p className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4 text-sm text-[var(--color-gold-light)] opacity-70">{trafficAnalyticsStatus}</p>
@@ -2341,17 +2360,17 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="space-y-4">
-                  <label className="block text-[var(--color-gold-light)] text-sm">Qual experiência você quer criar?</label>
+                  <label className="block text-[var(--color-gold-light)] text-sm">Qual experiÃªncia vocÃª quer criar?</label>
                   <select value={nlType} onChange={(e) => setNlType(e.target.value as typeof nlType)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)] focus:outline-none">
-                    <option value="site">Boas-vindas à Entreluar</option>
-                    <option value="blog">Nova conversa no Diário</option>
+                    <option value="site">Boas-vindas Ã  Entreluar</option>
+                    <option value="blog">Nova conversa no DiÃ¡rio</option>
                     <option value="produto">Novo achado na Vitrine</option>
-                    <option value="resenha">Nova resenha com ciência</option>
-                    <option value="pilula">Pílula de inspiração e autocuidado</option>
+                    <option value="resenha">Nova resenha com ciÃªncia</option>
+                    <option value="pilula">PÃ­lula de inspiraÃ§Ã£o e autocuidado</option>
                   </select>
 
                   <textarea 
-                    placeholder="Conte o tema, o sentimento que quer transmitir e, se houver, cole o link exato da página. Ex.: 'Apresentar minha resenha sobre vitamina C: https://entreluar.com.br/resenhas/...'" 
+                    placeholder="Conte o tema, o sentimento que quer transmitir e, se houver, cole o link exato da pÃ¡gina. Ex.: 'Apresentar minha resenha sobre vitamina C: https://entreluar.com.br/resenhas/...'" 
                     value={nlContext} 
                     onChange={(e) => setNlContext(e.target.value)} 
                     rows={3} 
@@ -2359,7 +2378,7 @@ export default function AdminDashboard() {
                   ></textarea>
 
                   <button onClick={handleGenerateNewsletter} disabled={loading} className="w-full bg-transparent border border-[var(--color-gold)] text-[var(--color-gold)] py-3 rounded font-bold uppercase tracking-widest hover:bg-[var(--color-wine-light)] transition-colors mt-2">
-                    {loading ? "Gerando..." : "Gerar Texto com IA ✨"}
+                    {loading ? "Gerando..." : "Gerar Texto com IA âœ¨"}
                   </button>
                 </div>
 
@@ -2385,22 +2404,22 @@ export default function AdminDashboard() {
                     </div>
 
                     <div>
-                      <div className="mb-2 flex items-center justify-between"><label className="text-sm text-[var(--color-gold-light)]">Prévia fiel do email</label><span className="eyebrow">Desktop e mobile</span></div>
-                      <iframe title="Prévia do email premium" srcDoc={nlHtml} className="h-[620px] w-full rounded-[22px] border border-[var(--line)] bg-[#12070a]" sandbox="allow-popups allow-popups-to-escape-sandbox" />
+                      <div className="mb-2 flex items-center justify-between"><label className="text-sm text-[var(--color-gold-light)]">PrÃ©via fiel do email</label><span className="eyebrow">Desktop e mobile</span></div>
+                      <iframe title="PrÃ©via do email premium" srcDoc={nlHtml} className="h-[620px] w-full rounded-[22px] border border-[var(--line)] bg-[#12070a]" sandbox="allow-popups allow-popups-to-escape-sandbox" />
                     </div>
 
                     {newsletterStatus !== "idle" && (
                       <div className={`rounded-xl border px-4 py-3 text-sm ${newsletterStatus === "complete" ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-100" : newsletterStatus === "partial" ? "border-amber-300/40 bg-amber-300/10 text-amber-100" : newsletterStatus === "failed" ? "border-red-300/40 bg-red-300/10 text-red-100" : "border-[var(--color-gold)]/30 bg-[var(--color-gold)]/10 text-[var(--color-gold-light)]"}`} role="status" aria-live="polite">
-                        {newsletterStatus === "preparing" && "Preparando o conteúdo..."}
-                        {newsletterStatus === "sending" && "Enviando os lotes com segurança. Não feche esta página..."}
-                        {newsletterStatus === "complete" && "Disparo concluído e confirmado pelo provedor."}
-                        {newsletterStatus === "partial" && "Parte da lista foi aceita. O conteúdo foi mantido para uma nova tentativa segura."}
-                        {newsletterStatus === "failed" && "O envio não foi concluído. O conteúdo foi preservado."}
+                        {newsletterStatus === "preparing" && "Preparando o conteÃºdo..."}
+                        {newsletterStatus === "sending" && "Enviando os lotes com seguranÃ§a. NÃ£o feche esta pÃ¡gina..."}
+                        {newsletterStatus === "complete" && "Disparo concluÃ­do e confirmado pelo provedor."}
+                        {newsletterStatus === "partial" && "Parte da lista foi aceita. O conteÃºdo foi mantido para uma nova tentativa segura."}
+                        {newsletterStatus === "failed" && "O envio nÃ£o foi concluÃ­do. O conteÃºdo foi preservado."}
                       </div>
                     )}
 
                     <button onClick={handleSendNewsletter} disabled={loading || subscribersCount === 0} className="w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform text-lg mt-4 shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
-                      {newsletterStatus === "sending" ? "Enviando lotes..." : `🚀 Disparar para ${subscribersCount} Assinantes`}
+                      {newsletterStatus === "sending" ? "Enviando lotes..." : `ðŸš€ Disparar para ${subscribersCount} Assinantes`}
                     </button>
                   </div>
                 )}
@@ -2408,9 +2427,9 @@ export default function AdminDashboard() {
                 <section className="mt-10 border-t border-[var(--color-wine-light)] pt-8" aria-labelledby="email-control-title">
                   <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
-                      <p className="eyebrow mb-2">Histórico individual</p>
+                      <p className="eyebrow mb-2">HistÃ³rico individual</p>
                       <h3 id="email-control-title" className="font-serif text-2xl text-[var(--color-gold)]">Controle de emails enviados</h3>
-                      <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Veja quem recebeu cada conteúdo. Mensagens idênticas não serão reenviadas para a mesma pessoa.</p>
+                      <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Veja quem recebeu cada conteÃºdo. Mensagens idÃªnticas nÃ£o serÃ£o reenviadas para a mesma pessoa.</p>
                     </div>
                     <input
                       type="search"
@@ -2452,15 +2471,15 @@ export default function AdminDashboard() {
                               <div className="min-w-0">
                                 <p className="truncate font-semibold text-[var(--color-gold-light)]">{subscriber}</p>
                                 <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-55">
-                                  {subscriberDeliveries.length === 0 ? "Nenhum envio registrado" : `${subscriberDeliveries.length} envio${subscriberDeliveries.length === 1 ? "" : "s"} · último em ${new Date(lastDelivery.sentAt || "").toLocaleString("pt-BR")}`}
+                                  {subscriberDeliveries.length === 0 ? "Nenhum envio registrado" : `${subscriberDeliveries.length} envio${subscriberDeliveries.length === 1 ? "" : "s"} Â· Ãºltimo em ${new Date(lastDelivery.sentAt || "").toLocaleString("pt-BR")}`}
                                 </p>
                               </div>
-                              <span className="shrink-0 text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+                              <span className="shrink-0 text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">âŒ„</span>
                             </summary>
 
                             <div className="mt-4 space-y-3 border-t border-[var(--color-wine-light)] pt-4">
                               {subscriberDeliveries.length === 0 ? (
-                                <p className="text-sm text-[var(--color-gold-light)] opacity-65">Esta pessoa ainda não recebeu campanhas registradas.</p>
+                                <p className="text-sm text-[var(--color-gold-light)] opacity-65">Esta pessoa ainda nÃ£o recebeu campanhas registradas.</p>
                               ) : subscriberDeliveries.map((delivery, index) => (
                                 <details key={delivery.id || `${subscriber}-${index}`} className="rounded-xl bg-[#1a0f12] p-4">
                                   <summary className="cursor-pointer list-none">
@@ -2491,52 +2510,52 @@ export default function AdminDashboard() {
               <div className="space-y-8">
                 <section className="rounded-2xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-6">
                   <p className="eyebrow mb-2">Personalidade com verdade</p>
-                  <h2 className="font-display text-3xl text-[var(--color-gold-light)]">Memória da Luana</h2>
-                  <p className="mt-3 text-sm leading-6 text-[var(--color-gold-light)] opacity-75">Guarde opiniões, experiências e jeitos de falar. A IA recupera apenas o que combina com cada assunto, economizando tokens. Memórias privadas ficam no painel e nunca entram nos prompts.</p>
-                  {aiUsage.costBrl >= 8 && <div className={`mt-4 rounded-xl border p-4 text-sm font-bold ${aiUsage.costBrl >= 10 ? "border-red-400 bg-red-950/40 text-red-200" : "border-amber-400 bg-amber-950/30 text-amber-100"}`}>{aiUsage.costBrl >= 10 ? "⚠️ A meta mensal de R$ 10 foi alcançada. Confirme o custo antes de novas gerações." : "💛 O gasto estimado passou de R$ 8 neste mês e está perto da meta."}</div>}
+                  <h2 className="font-display text-3xl text-[var(--color-gold-light)]">MemÃ³ria da Luana</h2>
+                  <p className="mt-3 text-sm leading-6 text-[var(--color-gold-light)] opacity-75">Guarde opiniÃµes, experiÃªncias e jeitos de falar. A IA recupera apenas o que combina com cada assunto, economizando tokens. MemÃ³rias privadas ficam no painel e nunca entram nos prompts.</p>
+                  {aiUsage.costBrl >= 8 && <div className={`mt-4 rounded-xl border p-4 text-sm font-bold ${aiUsage.costBrl >= 10 ? "border-red-400 bg-red-950/40 text-red-200" : "border-amber-400 bg-amber-950/30 text-amber-100"}`}>{aiUsage.costBrl >= 10 ? "âš ï¸ A meta mensal de R$ 10 foi alcanÃ§ada. Confirme o custo antes de novas geraÃ§Ãµes." : "ðŸ’› O gasto estimado passou de R$ 8 neste mÃªs e estÃ¡ perto da meta."}</div>}
                   <div className="mt-4 grid grid-cols-2 gap-3 text-center text-xs md:grid-cols-4">
-                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">R$ {aiUsage.costBrl.toFixed(2).replace(".", ",")}</strong>custo estimado no mês</div>
-                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">R$ {aiUsage.last24h.costBrl.toFixed(2).replace(".", ",")}</strong>últimas 24 horas</div>
-                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.thoughtTokens.toLocaleString("pt-BR")}</strong>tokens de raciocínio</div>
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">R$ {aiUsage.costBrl.toFixed(2).replace(".", ",")}</strong>custo estimado no mÃªs</div>
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">R$ {aiUsage.last24h.costBrl.toFixed(2).replace(".", ",")}</strong>Ãºltimas 24 horas</div>
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.thoughtTokens.toLocaleString("pt-BR")}</strong>tokens de raciocÃ­nio</div>
                     <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{(aiUsage.latency.p95 / 1000).toFixed(1).replace(".", ",")}s</strong>tempo p95</div>
                     <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.inputTokens.toLocaleString("pt-BR")}</strong>tokens de entrada</div>
                     <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.outputTokens.toLocaleString("pt-BR")}</strong>tokens de texto</div>
-                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.cacheHits}</strong>gerações em cache</div>
+                    <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.cacheHits}</strong>geraÃ§Ãµes em cache</div>
                     <div className="rounded-lg bg-[var(--color-wine)] p-3"><strong className="block text-base text-[var(--color-gold)]">{aiUsage.searches}</strong>buscas web</div>
                   </div>
-                  {aiUsage.byType.length > 0 && <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-wine-light)]"><div className="grid grid-cols-3 bg-[var(--color-wine)] px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-gold)]"><span>Conteúdo</span><span className="text-right">Tokens</span><span className="text-right">Custo</span></div>{aiUsage.byType.map((item) => <div key={item.type} className="grid grid-cols-3 border-t border-[var(--color-wine-light)] px-4 py-2 text-xs text-[var(--color-gold-light)]"><span>{item.type}</span><span className="text-right">{item.totalTokens.toLocaleString("pt-BR")}</span><span className="text-right">R$ {item.costBrl.toFixed(3).replace(".", ",")}</span></div>)}</div>}
+                  {aiUsage.byType.length > 0 && <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-wine-light)]"><div className="grid grid-cols-3 bg-[var(--color-wine)] px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-gold)]"><span>ConteÃºdo</span><span className="text-right">Tokens</span><span className="text-right">Custo</span></div>{aiUsage.byType.map((item) => <div key={item.type} className="grid grid-cols-3 border-t border-[var(--color-wine-light)] px-4 py-2 text-xs text-[var(--color-gold-light)]"><span>{item.type}</span><span className="text-right">{item.totalTokens.toLocaleString("pt-BR")}</span><span className="text-right">R$ {item.costBrl.toFixed(3).replace(".", ",")}</span></div>)}</div>}
 
                   <div className="mt-6 grid gap-4 md:grid-cols-2">
                     <div className="md:col-span-2">
-                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">O que a IA deve aprender sobre você?</label>
-                      <textarea value={memoryContent} onChange={(e) => setMemoryContent(e.target.value)} rows={4} placeholder="Ex.: Eu prefiro uma rotina de pele curta e realista. Dez passos me cansam antes do sérum." className="w-full rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-4 text-[var(--color-gold-light)] focus:outline-none" />
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">O que a IA deve aprender sobre vocÃª?</label>
+                      <textarea value={memoryContent} onChange={(e) => setMemoryContent(e.target.value)} rows={4} placeholder="Ex.: Eu prefiro uma rotina de pele curta e realista. Dez passos me cansam antes do sÃ©rum." className="w-full rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-4 text-[var(--color-gold-light)] focus:outline-none" />
                     </div>
                     <div>
                       <label className="mb-2 block text-xs uppercase tracking-widest text-[var(--color-gold-light)]">Categoria</label>
                       <select value={memoryCategory} onChange={(e) => setMemoryCategory(e.target.value as LuanaMemory["category"])} className="w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 text-[var(--color-gold-light)]">
-                        <option value="identidade">Identidade</option><option value="rotina">Rotina</option><option value="experiencia">Experiência real</option><option value="opiniao">Opinião</option><option value="linguagem">Jeito de falar</option><option value="limite">Limite editorial</option>
+                        <option value="identidade">Identidade</option><option value="rotina">Rotina</option><option value="experiencia">ExperiÃªncia real</option><option value="opiniao">OpiniÃ£o</option><option value="linguagem">Jeito de falar</option><option value="limite">Limite editorial</option>
                       </select>
                     </div>
                     <div>
                       <label className="mb-2 block text-xs uppercase tracking-widest text-[var(--color-gold-light)]">Privacidade</label>
                       <select value={memoryPrivacy} onChange={(e) => { const value = e.target.value as LuanaMemory["privacy"]; setMemoryPrivacy(value); if (value !== "publica") setMemoryAllowInContent(false); }} className="w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 text-[var(--color-gold-light)]">
-                        <option value="editorial">Editorial — orienta, mas não cita</option><option value="publica">Pública — pode aparecer no texto</option><option value="privada">Privada — nunca vai ao prompt</option>
+                        <option value="editorial">Editorial â€” orienta, mas nÃ£o cita</option><option value="publica">PÃºblica â€” pode aparecer no texto</option><option value="privada">Privada â€” nunca vai ao prompt</option>
                       </select>
                     </div>
                     <div className="md:col-span-2">
-                      <label className="mb-2 block text-xs uppercase tracking-widest text-[var(--color-gold-light)]">Assuntos relacionados, separados por vírgula</label>
-                      <input value={memoryTags} onChange={(e) => setMemoryTags(e.target.value)} placeholder="protetor solar, pele sensível, rotina" className="w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 text-[var(--color-gold-light)]" />
+                      <label className="mb-2 block text-xs uppercase tracking-widest text-[var(--color-gold-light)]">Assuntos relacionados, separados por vÃ­rgula</label>
+                      <input value={memoryTags} onChange={(e) => setMemoryTags(e.target.value)} placeholder="protetor solar, pele sensÃ­vel, rotina" className="w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 text-[var(--color-gold-light)]" />
                     </div>
-                    {memoryPrivacy === "publica" && <label className="md:col-span-2 flex items-center gap-3 text-sm text-[var(--color-gold-light)]"><input type="checkbox" checked={memoryAllowInContent} onChange={(e) => setMemoryAllowInContent(e.target.checked)} /> Autorizo citar esta informação nos textos quando for pertinente.</label>}
+                    {memoryPrivacy === "publica" && <label className="md:col-span-2 flex items-center gap-3 text-sm text-[var(--color-gold-light)]"><input type="checkbox" checked={memoryAllowInContent} onChange={(e) => setMemoryAllowInContent(e.target.checked)} /> Autorizo citar esta informaÃ§Ã£o nos textos quando for pertinente.</label>}
                   </div>
-                  <button onClick={handleSaveMemory} disabled={loading} className="mt-5 w-full rounded-lg bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] py-3 font-bold uppercase tracking-widest text-[var(--color-wine-dark)] disabled:opacity-50">Guardar memória</button>
+                  <button onClick={handleSaveMemory} disabled={loading} className="mt-5 w-full rounded-lg bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] py-3 font-bold uppercase tracking-widest text-[var(--color-wine-dark)] disabled:opacity-50">Guardar memÃ³ria</button>
                 </section>
 
                 <section>
-                  <div className="mb-4 flex items-end justify-between gap-4"><div><h3 className="font-serif text-2xl text-[var(--color-gold)]">O que a IA sabe</h3><p className="text-sm text-[var(--color-gold-light)] opacity-60">{memories.filter((item) => item.status === "aprovada").length} memórias aprovadas</p></div></div>
+                  <div className="mb-4 flex items-end justify-between gap-4"><div><h3 className="font-serif text-2xl text-[var(--color-gold)]">O que a IA sabe</h3><p className="text-sm text-[var(--color-gold-light)] opacity-60">{memories.filter((item) => item.status === "aprovada").length} memÃ³rias aprovadas</p></div></div>
                   <div className="space-y-3">
                     {memories.map((memory) => <article key={memory.id} className={`rounded-xl border p-4 ${memory.status === "sugerida" ? "border-[var(--color-gold)] bg-[#3a1820]" : "border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]"}`}>
-                      <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-widest"><span className="rounded-full bg-[var(--color-wine-light)] px-3 py-1 text-[var(--color-gold-light)]">{memory.category}</span><select value={memory.privacy} onChange={(e) => handleMemoryPrivacy(memory, e.target.value as LuanaMemory["privacy"])} className="rounded-full border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-1 text-[var(--color-gold)]"><option value="editorial">editorial</option><option value="publica">pública</option><option value="privada">privada</option></select><span className="opacity-60">{memory.status}</span></div>
+                      <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-widest"><span className="rounded-full bg-[var(--color-wine-light)] px-3 py-1 text-[var(--color-gold-light)]">{memory.category}</span><select value={memory.privacy} onChange={(e) => handleMemoryPrivacy(memory, e.target.value as LuanaMemory["privacy"])} className="rounded-full border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-1 text-[var(--color-gold)]"><option value="editorial">editorial</option><option value="publica">pÃºblica</option><option value="privada">privada</option></select><span className="opacity-60">{memory.status}</span></div>
                       <p className="my-3 leading-6 text-[var(--color-gold-light)]">{memory.content}</p>
                       {memory.tags?.length > 0 && <p className="mb-3 text-xs text-[var(--color-gold-light)] opacity-55">Assuntos: {memory.tags.join(", ")}</p>}
                       <div className="flex flex-wrap gap-2">
@@ -2547,7 +2566,7 @@ export default function AdminDashboard() {
                         <button onClick={() => handleDeleteMemory(memory.id)} className="rounded border border-red-900 px-3 py-1 text-xs text-red-300">Excluir</button>
                       </div>
                     </article>)}
-                    {memories.length === 0 && <div className="rounded-xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-60">Nenhuma memória guardada ainda.</div>}
+                    {memories.length === 0 && <div className="rounded-xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-60">Nenhuma memÃ³ria guardada ainda.</div>}
                   </div>
                 </section>
               </div>
@@ -2556,19 +2575,19 @@ export default function AdminDashboard() {
             {activeTab === "quotes" && (
               <div className="space-y-8">
                 <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
-                  <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif text-center">Gerador de Pílulas Diárias</h3>
-                  <p className="text-center text-[var(--color-gold-light)] opacity-70 mb-6 text-sm">Gere 15 frases bem-humoradas e positivas para revisar antes de publicar na rotação diária.</p>
+                  <h3 className="text-xl text-[var(--color-gold)] mb-4 font-serif text-center">Gerador de PÃ­lulas DiÃ¡rias</h3>
+                  <p className="text-center text-[var(--color-gold-light)] opacity-70 mb-6 text-sm">Gere 15 frases bem-humoradas e positivas para revisar antes de publicar na rotaÃ§Ã£o diÃ¡ria.</p>
                   
                   <div className="flex justify-center mb-6">
                     <button onClick={handleGenerateQuote} disabled={loading} className="bg-[var(--color-gold)] text-[var(--color-wine-dark)] px-8 py-3 rounded-full uppercase tracking-widest font-bold hover:scale-105 transition-transform flex items-center gap-2">
-                      ✨ {loading ? "Criando o lote..." : "Gerar 15 novas pílulas"} ✨
+                      âœ¨ {loading ? "Criando o lote..." : "Gerar 15 novas pÃ­lulas"} âœ¨
                     </button>
                   </div>
 
                   {quoteText && (
                     <div className="mt-8 border-t border-[var(--color-wine-light)] pt-6">
-                      <p className="mb-3 text-center text-xs uppercase tracking-widest text-[var(--color-gold)]">Rascunho — uma pílula por linha</p>
-                      <textarea value={quoteText} onChange={(e) => setQuoteText(e.target.value)} rows={15} className="w-full bg-[var(--color-wine)] border border-[var(--color-wine-light)] rounded p-6 text-[var(--color-gold-light)] font-serif text-base focus:outline-none resize-y leading-relaxed" placeholder="As 15 frases aparecerão aqui para sua revisão."></textarea>
+                      <p className="mb-3 text-center text-xs uppercase tracking-widest text-[var(--color-gold)]">Rascunho â€” uma pÃ­lula por linha</p>
+                      <textarea value={quoteText} onChange={(e) => setQuoteText(e.target.value)} rows={15} className="w-full bg-[var(--color-wine)] border border-[var(--color-wine-light)] rounded p-6 text-[var(--color-gold-light)] font-serif text-base focus:outline-none resize-y leading-relaxed" placeholder="As 15 frases aparecerÃ£o aqui para sua revisÃ£o."></textarea>
                       <button onClick={handlePublishQuote} disabled={loading} className="w-full mt-4 bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] text-[var(--color-wine-dark)] py-3 rounded font-bold uppercase hover:scale-105 transition-transform">
                         {loading ? "Publicando..." : "Publicar lote revisado"}
                       </button>
@@ -2576,11 +2595,11 @@ export default function AdminDashboard() {
                   )}
                 </div>
                 <div>
-                  <h3 className="mb-6 border-b border-[var(--color-wine-light)] pb-2 font-serif text-2xl text-[var(--color-gold)]">Pílulas publicadas</h3>
-                  {quotes.length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhuma pílula publicada.</p> : quotes.map(quote => (
+                  <h3 className="mb-6 border-b border-[var(--color-wine-light)] pb-2 font-serif text-2xl text-[var(--color-gold)]">PÃ­lulas publicadas</h3>
+                  {quotes.length === 0 ? <p className="text-[var(--color-gold-light)] opacity-70">Nenhuma pÃ­lula publicada.</p> : quotes.map(quote => (
                     <div key={quote.id} className="mb-4 flex items-center justify-between gap-4 rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4">
                       <div>
-                        <span className="block italic text-[var(--color-gold-light)]">“{quote.quote}”</span>
+                        <span className="block italic text-[var(--color-gold-light)]">â€œ{quote.quote}â€</span>
                         <span className="mt-1 block text-xs text-[var(--color-gold-light)] opacity-50">{formatPostDate(quote.created_at)}</span>
                       </div>
                       <button onClick={() => handleDeleteQuote(quote.id)} className="shrink-0 rounded bg-red-900 px-3 py-1 text-xs text-white">Deletar</button>
@@ -2707,3 +2726,6 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+
+
