@@ -1331,8 +1331,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.90</p>
-                <p>Atualizado em 29/09/2026 às 14:15</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.91</p>
+                <p>Atualizado em 29/09/2026 às 14:45</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1871,21 +1871,29 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 )}
-                {!editingItem && (manageType === "vitrine" || manageType === "estudei") && (
-                  <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] px-4 py-3">
-                    <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Faltam &quot;Em 30 segundos&quot; na Vitrine ou em Estudei? Gero de uma vez para tudo que ainda não tem, a partir do texto já publicado.</p>
-                    <button type="button" onClick={handleBulkGenerateSummaries} disabled={Boolean(bulkSummaryStatus)} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
-                      {bulkSummaryStatus || "✨ Gerar resumos que faltam"}
-                    </button>
-                  </div>
-                )}
                 {!editingItem && (manageType === "vitrine" || manageType === "estudei" || manageType === "papo") && (
-                  <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] px-4 py-3">
-                    <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Falta etiquetar algo? Sugiro tags a partir do texto já publicado pra tudo que ainda não tem nenhuma — grava direto, você revisa depois.</p>
-                    <button type="button" onClick={handleBulkSuggestTags} disabled={Boolean(bulkTagStatus)} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
-                      {bulkTagStatus || "🏷️ Sugerir tags para tudo que falta"}
-                    </button>
-                  </div>
+                  <details className="group rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]">
+                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--color-gold-light)] opacity-70">
+                      <span>Ferramentas de manutenção (uso raro)</span>
+                      <span className="text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+                    </summary>
+                    <div className="space-y-3 border-t border-[var(--color-wine-light)] p-4">
+                      {(manageType === "vitrine" || manageType === "estudei") && (
+                        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] px-4 py-3">
+                          <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Faltam &quot;Em 30 segundos&quot; na Vitrine ou em Estudei? Gero de uma vez para tudo que ainda não tem, a partir do texto já publicado.</p>
+                          <button type="button" onClick={handleBulkGenerateSummaries} disabled={Boolean(bulkSummaryStatus)} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
+                            {bulkSummaryStatus || "✨ Gerar resumos que faltam"}
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] px-4 py-3">
+                        <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Falta etiquetar algo? Sugiro tags a partir do texto já publicado pra tudo que ainda não tem nenhuma — grava direto, você revisa depois.</p>
+                        <button type="button" onClick={handleBulkSuggestTags} disabled={Boolean(bulkTagStatus)} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
+                          {bulkTagStatus || "🏷️ Sugerir tags para tudo que falta"}
+                        </button>
+                      </div>
+                    </div>
+                  </details>
                 )}
                 {editingItem ? (
                   <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
