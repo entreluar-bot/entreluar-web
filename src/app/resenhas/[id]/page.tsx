@@ -6,10 +6,12 @@ import { createClient } from "@/utils/supabase/server";
 import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
 import type { ContentSummary } from "@/lib/summary";
 import { getActivePollForJournal } from "@/lib/poll";
+import { getReactionsForJournal } from "@/lib/reactions";
 import ShareButton from "../../ui/ShareButton";
 import QuickSummaryCard from "../../ui/QuickSummaryCard";
 import PollWidget from "../../ui/PollWidget";
 import ConversationCircle from "../../ui/ConversationCircle";
+import ReactionBar from "../../ui/ReactionBar";
 import type { JournalComment, JournalPost } from "../../types";
 
 export const revalidate = 0;
@@ -53,7 +55,7 @@ export async function generateMetadata({ params }: ReviewPostProps): Promise<Met
 export default async function ReviewPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: summaryData }, poll, { data: commentRows }] = await Promise.all([
+  const [{ data }, { data: summaryData }, poll, { data: commentRows }, reactions] = await Promise.all([
     supabase.from("journal").select("*").eq("id", id).single(),
     supabase.from("content_summaries").select("*").eq("content_type", "journal").eq("content_id", id).maybeSingle(),
     getActivePollForJournal(supabase, id),
@@ -63,6 +65,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
       .eq("journal_id", id)
       .eq("status", "approved")
       .order("created_at", { ascending: false }),
+    getReactionsForJournal(supabase, id),
   ]);
   if (!data) notFound();
   const post = data as JournalPost;
@@ -89,7 +92,8 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
           )}
           <QuickSummaryCard summary={summary} />
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
-          <ShareButton title={post.title} url={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} className="mt-10 border-t border-[var(--line)] pt-8" />
+          <ReactionBar journalId={post.id} initialCounts={reactions} />
+          <ShareButton title={post.title} url={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} className="border-t border-[var(--line)] pt-8" />
           {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
           <ConversationCircle postId={post.id} postTitle={post.title} comments={comments} contentType="journal" variant="journal-estudei" />
           <section className="next-steps" aria-label="Continue navegando">

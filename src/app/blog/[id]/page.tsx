@@ -5,10 +5,12 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
 import { getActivePollForJournal } from "@/lib/poll";
+import { getReactionsForJournal } from "@/lib/reactions";
 import NewsletterSignup from "../../ui/NewsletterSignup";
 import ConversationCircle from "../../ui/ConversationCircle";
 import ShareButton from "../../ui/ShareButton";
 import PollWidget from "../../ui/PollWidget";
+import ReactionBar from "../../ui/ReactionBar";
 import type { JournalComment, JournalPost } from "../../types";
 
 export const revalidate = 0;
@@ -52,7 +54,7 @@ export async function generateMetadata({ params }: BlogPostProps): Promise<Metad
 export default async function BlogPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: commentRows }, poll] = await Promise.all([
+  const [{ data }, { data: commentRows }, poll, reactions] = await Promise.all([
     supabase.from("journal").select("*").eq("id", id).single(),
     supabase
       .from("journal_comments")
@@ -61,6 +63,7 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
       .eq("status", "approved")
       .order("created_at", { ascending: false }),
     getActivePollForJournal(supabase, id),
+    getReactionsForJournal(supabase, id),
   ]);
 
   if (!data) notFound();
@@ -94,7 +97,8 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
             <a href="#conversation-circle-title" className="conversation-jumplink">💬 {comments.length} comentário{comments.length === 1 ? "" : "s"} — ver e participar →</a>
           )}
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
-          <ShareButton title={post.title} url={shareUrl} shareText={`Li isso e achei tudo a ver com a gente: ${post.title}`} className="mt-10 border-t border-[var(--line)] pt-8" />
+          <ReactionBar journalId={post.id} initialCounts={reactions} />
+          <ShareButton title={post.title} url={shareUrl} shareText={`Li isso e achei tudo a ver com a gente: ${post.title}`} className="border-t border-[var(--line)] pt-8" />
 
           {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
 
