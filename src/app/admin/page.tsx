@@ -1254,6 +1254,31 @@ export default function AdminDashboard() {
         await supabase.from("content_tags").insert(editingItemTagIds.map((tagId) => ({ tag_id: tagId, content_type: contentType, content_id: editingItem.id })));
       }
 
+      // Produto e seu artigo "Estudei" companheiro têm que compartilhar exatamente
+      // as mesmas tags de queixa/ativo/vida-50+ (fase/período/tipo de pele/origem
+      // ficam de fora, só existem em produto).
+      const SYNCED_TAG_TYPES = new Set(["concern", "ingredient", "life_topic"]);
+      let companionContentType: "product" | "journal" | null = null;
+      let companionId: string | null = null;
+      if (editingItem.type === "product" && editingItem.companionJournalId) {
+        companionContentType = "journal";
+        companionId = editingItem.companionJournalId;
+      } else if (editingItem.type === "journal") {
+        const companionProduct = products.find((prod) => prod.companion_journal_id === editingItem.id);
+        if (companionProduct) {
+          companionContentType = "product";
+          companionId = companionProduct.id;
+        }
+      }
+      if (companionContentType && companionId) {
+        const syncedTypeTagIds = tags.filter((tag) => SYNCED_TAG_TYPES.has(tag.type)).map((tag) => tag.id);
+        const syncedTagIds = editingItemTagIds.filter((tagId) => syncedTypeTagIds.includes(tagId));
+        await supabase.from("content_tags").delete().eq("content_type", companionContentType).eq("content_id", companionId).in("tag_id", syncedTypeTagIds);
+        if (syncedTagIds.length) {
+          await supabase.from("content_tags").insert(syncedTagIds.map((tagId) => ({ tag_id: tagId, content_type: companionContentType, content_id: companionId })));
+        }
+      }
+
       if (resumoRapidoHasContent(editingItemSummary)) {
         await supabase.from("content_summaries").upsert(
           { content_type: contentType, content_id: editingItem.id, generated_by: "manual", ...resumoRapidoToRow(editingItemSummary) },
@@ -1653,8 +1678,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.86</p>
-                <p>Atualizado em 28/09/2026 às 21:07</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.87</p>
+                <p>Atualizado em 29/09/2026 às 05:16</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -2383,7 +2408,7 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => startEditingItem({ type: "product", id: p.id, title: p.title, content: p.description, category: p.category || "SkinCare", created_at: toDateInputValue(p.created_at), is_featured: Boolean(p.is_featured), is_most_purchased: Boolean(p.is_most_purchased), is_most_viewed: Boolean(p.is_most_viewed), is_new: Boolean(p.is_new) }, "product")} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
+                            <button onClick={() => startEditingItem({ type: "product", id: p.id, title: p.title, content: p.description, category: p.category || "SkinCare", created_at: toDateInputValue(p.created_at), is_featured: Boolean(p.is_featured), is_most_purchased: Boolean(p.is_most_purchased), is_most_viewed: Boolean(p.is_most_viewed), is_new: Boolean(p.is_new), companionJournalId: p.companion_journal_id }, "product")} className="text-xs bg-[var(--color-wine-light)] text-[var(--color-gold)] px-3 py-1 rounded">Editar</button>
                             <button onClick={() => handleDeleteProduct(p.id)} className="text-xs bg-red-900 text-white px-3 py-1 rounded">Deletar</button>
                           </div>
                         </div>
