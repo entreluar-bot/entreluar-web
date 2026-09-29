@@ -1653,8 +1653,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.85</p>
-                <p>Atualizado em 28/09/2026 às 19:10</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.86</p>
+                <p>Atualizado em 28/09/2026 às 21:07</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />

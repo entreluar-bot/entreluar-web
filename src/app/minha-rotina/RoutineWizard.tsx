@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import FilterChipBar from "../ui/FilterChipBar";
 import type { RoutineCandidate } from "../api/routine-candidates/route";
 import { generateRoutine, type RoutineCriteria } from "@/lib/routine-generator";
 import type { Routine } from "@/lib/routine";
 
 type ConcernTag = { slug: string; name: string };
 type WizardStep = "skinType" | "sensitive" | "origin" | "concern" | "complexity" | "generating" | "done";
+type WizardOption = { key: string; label: string };
 
 const SKIN_TYPE_OPTIONS: Array<{ key: RoutineCriteria["skinType"]; label: string }> = [
   { key: "oleosa", label: "Oleosa" },
@@ -31,6 +31,20 @@ const COMPLEXITY_OPTIONS: Array<{ key: RoutineCriteria["complexity"]; label: str
   { key: "essencial", label: "Quero o essencial" },
   { key: "completa", label: "Amo uma rotina completa" },
 ];
+
+function WizardSelect({ ariaLabel, options, onSelect }: { ariaLabel: string; options: WizardOption[]; onSelect: (key: string) => void }) {
+  return (
+    <select
+      aria-label={ariaLabel}
+      defaultValue=""
+      onChange={(event) => event.target.value && onSelect(event.target.value)}
+      className="mt-4 w-full px-4 py-3 text-sm"
+    >
+      <option value="" disabled>Escolher…</option>
+      {options.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
+    </select>
+  );
+}
 
 export default function RoutineWizard({ concernTags, onGenerated, onCancel }: { concernTags: ConcernTag[]; onGenerated: (routine: Routine) => void; onCancel: () => void }) {
   const [step, setStep] = useState<WizardStep>("skinType");
@@ -69,21 +83,21 @@ export default function RoutineWizard({ concernTags, onGenerated, onCancel }: { 
       {step === "skinType" && (
         <>
           <h3 className="section-title mt-4 text-2xl">Como é sua pele?</h3>
-          <FilterChipBar ariaLabel="Tipo de pele" activeKey="" onSelect={(key) => choose({ skinType: key as RoutineCriteria["skinType"] }, "sensitive")} options={SKIN_TYPE_OPTIONS.map((option) => ({ key: option.key, label: option.label }))} />
+          <WizardSelect ariaLabel="Tipo de pele" onSelect={(key) => choose({ skinType: key as RoutineCriteria["skinType"] }, "sensitive")} options={SKIN_TYPE_OPTIONS} />
         </>
       )}
 
       {step === "sensitive" && (
         <>
           <h3 className="section-title mt-4 text-2xl">Sua pele é sensível?</h3>
-          <FilterChipBar ariaLabel="Sensibilidade" activeKey="" onSelect={(key) => choose({ sensitive: key === "sim" }, "origin")} options={SENSITIVE_OPTIONS} />
+          <WizardSelect ariaLabel="Sensibilidade" onSelect={(key) => choose({ sensitive: key === "sim" }, "origin")} options={SENSITIVE_OPTIONS} />
         </>
       )}
 
       {step === "origin" && (
         <>
           <h3 className="section-title mt-4 text-2xl">Alguma preferência de origem?</h3>
-          <FilterChipBar ariaLabel="Origem preferida" activeKey="" onSelect={(key) => choose({ origin: key as RoutineCriteria["origin"] }, "concern")} options={ORIGIN_OPTIONS.map((option) => ({ key: option.key, label: option.label }))} />
+          <WizardSelect ariaLabel="Origem preferida" onSelect={(key) => choose({ origin: key as RoutineCriteria["origin"] }, "concern")} options={ORIGIN_OPTIONS} />
         </>
       )}
 
@@ -91,7 +105,7 @@ export default function RoutineWizard({ concernTags, onGenerated, onCancel }: { 
         <>
           <h3 className="section-title mt-4 text-2xl">Sua principal preocupação hoje?</h3>
           {concernTags.length ? (
-            <FilterChipBar ariaLabel="Preocupação principal" activeKey="" onSelect={(key) => choose({ concernSlug: key }, "complexity")} options={concernTags.map((tag) => ({ key: tag.slug, label: tag.name }))} />
+            <WizardSelect ariaLabel="Preocupação principal" onSelect={(key) => choose({ concernSlug: key }, "complexity")} options={concernTags.map((tag) => ({ key: tag.slug, label: tag.name }))} />
           ) : (
             <button type="button" onClick={() => choose({ concernSlug: undefined }, "complexity")} className="ghost-button mt-4">Pular esta pergunta</button>
           )}
@@ -101,7 +115,7 @@ export default function RoutineWizard({ concernTags, onGenerated, onCancel }: { 
       {step === "complexity" && (
         <>
           <h3 className="section-title mt-4 text-2xl">Como você prefere sua rotina?</h3>
-          <FilterChipBar ariaLabel="Complexidade da rotina" activeKey="" onSelect={(key) => choose({ complexity: key as RoutineCriteria["complexity"] }, "generating")} options={COMPLEXITY_OPTIONS.map((option) => ({ key: option.key, label: option.label }))} />
+          <WizardSelect ariaLabel="Complexidade da rotina" onSelect={(key) => choose({ complexity: key as RoutineCriteria["complexity"] }, "generating")} options={COMPLEXITY_OPTIONS} />
         </>
       )}
 

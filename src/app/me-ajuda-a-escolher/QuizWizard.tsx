@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import JournalCard from "../ui/JournalCard";
 import ProductCard from "../ProductCard";
-import FilterChipBar from "../ui/FilterChipBar";
 import type { JournalPost, Product } from "../types";
 
 type ConcernTag = { slug: string; name: string };
@@ -22,6 +21,20 @@ const ROUTINE_INTRO: Record<Routine, string> = {
   "alguns-passos": "Como você topa alguns passos a mais, separei um pouco de tudo:",
   completa: "Como você ama se dedicar, trouxe tudo que encontrei sobre isso:",
 };
+
+function QuizSelect({ ariaLabel, options, onSelect }: { ariaLabel: string; options: Array<{ key: string; label: string }>; onSelect: (key: string) => void }) {
+  return (
+    <select
+      aria-label={ariaLabel}
+      defaultValue=""
+      onChange={(event) => event.target.value && onSelect(event.target.value)}
+      className="mt-4 w-full px-4 py-3 text-sm"
+    >
+      <option value="" disabled>Escolher…</option>
+      {options.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
+    </select>
+  );
+}
 
 export default function QuizWizard({ concernTags }: { concernTags: ConcernTag[] }) {
   const [step, setStep] = useState<"concern" | "routine" | "result">("concern");
@@ -58,9 +71,8 @@ export default function QuizWizard({ concernTags }: { concernTags: ConcernTag[] 
       <section aria-labelledby="quiz-step1-title">
         <p className="eyebrow">Passo 1 de 2</p>
         <h2 id="quiz-step1-title" className="section-title mt-4">O que você quer<br /><em>cuidar hoje?</em></h2>
-        <FilterChipBar
+        <QuizSelect
           ariaLabel="O que você quer cuidar hoje?"
-          activeKey=""
           onSelect={chooseConcern}
           options={concernTags.map((tag) => ({ key: tag.slug, label: tag.name }))}
         />
@@ -74,7 +86,7 @@ export default function QuizWizard({ concernTags }: { concernTags: ConcernTag[] 
       <section aria-labelledby="quiz-step2-title">
         <p className="eyebrow">Passo 2 de 2</p>
         <h2 id="quiz-step2-title" className="section-title mt-4">Como você prefere<br /><em>sua rotina?</em></h2>
-        <FilterChipBar ariaLabel="Como você prefere sua rotina?" activeKey="" onSelect={chooseRoutine} options={ROUTINE_OPTIONS.map((option) => ({ key: option.key, label: option.label }))} />
+        <QuizSelect ariaLabel="Como você prefere sua rotina?" onSelect={chooseRoutine} options={ROUTINE_OPTIONS} />
         <button type="button" onClick={() => setStep("concern")} className="ghost-button mt-6">← Voltar</button>
       </section>
     );

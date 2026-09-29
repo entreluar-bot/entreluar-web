@@ -38,6 +38,22 @@ export const ROUTINE_PERIODS: Array<{ key: RoutinePeriodKey; label: string; icon
   { key: "noite", label: "Minha noite", icon: "🌙" },
 ];
 
+// Queixas (tags type=concern) que fazem sentido pra rotina de skincare facial
+// — o site tem outras queixas (cabelo, vida 50+ etc.) que não se aplicam
+// aqui. Ver supabase/migrations/20260925_add_content_tags.sql pro vocabulário
+// completo.
+export const SKINCARE_CONCERN_SLUGS = [
+  "firmeza",
+  "hidratacao",
+  "manchas",
+  "linhas-e-rugas",
+  "olheiras",
+  "sensibilidade",
+  "textura",
+  "protecao-solar",
+  "ressecamento",
+];
+
 const STORAGE_KEY = "entreluar_minha_rotina";
 
 // Rotinas salvas antes da simplificação da fase (8 passos -> 5) usavam essas
