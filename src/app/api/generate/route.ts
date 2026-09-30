@@ -185,7 +185,7 @@ PESQUISA VERIFICADA, SEM EXTRAPOLAR: ${research.summary}
 TAGS DISPONÍVEIS:
 ${formatTagsForPrompt(tags)}
 
-Crie productReview em primeira pessoa, 4 a 7 frases, com as notas como coração, explicação leve de 1 ou 2 ativos e 1 a 3 emojis. Não invente uso. Termine exatamente com: <br><br>Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário! <a href="/resenhas" class="inline-cta-chip">Clica aqui →</a>
+Crie productReview em primeira pessoa, 4 a 7 frases, com as notas como coração, explicação leve de 1 ou 2 ativos e 1 a 3 emojis. Não invente uso. Termine exatamente com: <br><br><span class="inline-cta-gold">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</span><br><a href="/resenhas" class="luxe-button">Clica aqui →</a>
 blogTitle deve ser um título criativo e único destacando o poder ou benefício principal do produto/ativo para a pele madura. NUNCA use "Estudei para te explicar:" nem comece com "A verdade sobre...". Varie o formato a cada geração. blogPost deve usar HTML, parágrafos curtos e exatamente estes títulos, nesta ordem:
 <i>[conclusão curta sem promessa milagrosa]</i>
 <h3>📣 A Promessa da Indústria</h3>
@@ -194,7 +194,7 @@ blogTitle deve ser um título criativo e único destacando o poder ou benefício
 <h3>✨ E a nossa pele madura, ganha o quê com isso?</h3>
 <h3>🪞 Manual de Sobrevivência</h3>
 <h3>⚖️ É hype ou é milagre?</h3>
-Diferencie promessa, evidência e experiência; não liste fontes ou URLs. Finalize com: <br><br><a href="${link || "#"}" target="_blank" class="text-[var(--color-gold)] font-bold underline">✨ Ver o produto indicado pela Luana</a>
+Diferencie promessa, evidência e experiência; não liste fontes ou URLs. Finalize com: <br><br><a href="${link || "#"}" target="_blank" class="luxe-button">Quer o seu? Clica aqui ↗</a>
 researchSummary deve reutilizar o resumo fornecido. evidenceLevel deve ser ${research.evidenceLevel}.
 resumoRapido deve resumir o productReview que você acabou de escrever, pra ficha do produto na Vitrine. resumoRapidoArtigo deve resumir o blogPost, pra ficha do artigo (são resumos diferentes, um do produto e outro do ativo/tema). suggestedTagSlugs e suggestedPoll seguem as regras acima.`;
 
@@ -222,7 +222,7 @@ resumoRapido deve resumir o productReview que você acabou de escrever, pra fich
       ? { question: generated.suggestedPoll.question.trim(), options: generated.suggestedPoll.options.map((o) => o.trim()).filter(Boolean) }
       : EMPTY_POLL_SUGGESTION;
     generated.researchSummary = research.summary.slice(0, 3500);
-    if (!generated.productReview.includes('href="/resenhas"')) generated.productReview += `<br><br>Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário! <a href="/resenhas" class="inline-cta-chip">Clica aqui →</a>`;
+    if (!generated.productReview.includes('href="/resenhas"')) generated.productReview += `<br><br><span class="inline-cta-gold">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</span><br><a href="/resenhas" class="luxe-button">Clica aqui →</a>`;
 
     await finalizeGeneration({ supabase, userId: user.id, requestHash, requestId, generated, context, contentType, title: productName, usages, timings, cacheHit: Boolean(cachedResearch), retryCount, searchQueries });
     await suggestMemoryFromNotes(supabase, user.id, impressions, topicTags(productName, impressions, "skincare cosmetico"));

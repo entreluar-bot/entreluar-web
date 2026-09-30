@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
 import type { ContentSummary } from "@/lib/summary";
+import { buildRoutineSentence, type Tag } from "@/lib/tags";
 import ShareButton from "../../ui/ShareButton";
 import QuickSummaryCard from "../../ui/QuickSummaryCard";
 import AddToRoutineButton from "../../ui/AddToRoutineButton";
@@ -52,7 +53,7 @@ export async function generateMetadata({ params }: ProductPostProps): Promise<Me
 export default async function ProductPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: summaryData }, { data: commentRows }] = await Promise.all([
+  const [{ data }, { data: summaryData }, { data: commentRows }, { data: tagRows }] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).single(),
     supabase.from("content_summaries").select("*").eq("content_type", "product").eq("content_id", id).maybeSingle(),
     supabase
@@ -61,11 +62,14 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
       .eq("product_id", id)
       .eq("status", "approved")
       .order("created_at", { ascending: false }),
+    supabase.from("content_tags").select("tags(id,name,slug,type)").eq("content_type", "product").eq("content_id", id),
   ]);
   if (!data) notFound();
   const product = data as Product;
   const summary = summaryData as ContentSummary | null;
   const comments = (commentRows || []) as JournalComment[];
+  const productTags = (tagRows || []).flatMap((row: { tags: Tag | Tag[] | null }) => (Array.isArray(row.tags) ? row.tags : row.tags ? [row.tags] : []));
+  const routineSentence = buildRoutineSentence(productTags);
   const shareUrl = `${siteUrl}/vitrine/${product.id}`;
 
   return (
@@ -87,6 +91,12 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
           )}
           {product.price && <p className="font-display text-3xl text-[var(--champagne)]">{product.price}</p>}
           <QuickSummaryCard summary={summary} />
+          {routineSentence && (
+            <div className="routine-card">
+              <p>Ficha rápida</p>
+              <p>{routineSentence}</p>
+            </div>
+          )}
           <div className="prose-luxe mt-8" dangerouslySetInnerHTML={{ __html: product.description }} />
           <div className="mt-10 border-t border-[var(--line)] pt-8">
             <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button w-full">Quer o seu? Clica aqui ↗</a>

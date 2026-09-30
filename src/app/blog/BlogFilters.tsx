@@ -50,7 +50,7 @@ function FeaturedJournal({ post }: { post: JournalPost }) {
         <p className="eyebrow">{post.category || "Papo de Mulher"} • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
         <h2 className="font-display mt-3 text-4xl leading-none text-[var(--champagne-pale)]">{post.title}</h2>
         <p className="muted my-4 text-sm leading-7">{copy}{post.content.length > 170 ? "…" : ""}</p>
-        <Link href={`/blog/${post.id}`} className="ghost-button">Continuar a conversa →</Link>
+        <Link href={`/blog/${post.id}`} className="ghost-button">Continuar lendo →</Link>
       </div>
     </article>
   );

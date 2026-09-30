@@ -117,10 +117,7 @@ export default function ConversationCircle({
               <article key={comment.id} className="conversation-comment">
                 <div className="conversation-comment__head">
                   <span className="conversation-avatar" aria-hidden="true">{avatarLetter}</span>
-                  <div className="flex-1">
-                    <p className="eyebrow">Comentário da roda</p>
-                  </div>
-                  <time className="text-[10px] uppercase tracking-widest text-[var(--muted)]" dateTime={comment.created_at}>
+                  <time className="ml-auto text-[10px] uppercase tracking-widest text-[var(--muted)]" dateTime={comment.created_at}>
                     {new Date(comment.created_at).toLocaleDateString("pt-BR")}
                   </time>
                 </div>
