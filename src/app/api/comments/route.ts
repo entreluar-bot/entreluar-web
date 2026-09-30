@@ -17,12 +17,14 @@ export async function POST(req: Request) {
     const contentType = payload.contentType === "product" ? "product" : "journal";
     const postTitle = clean(payload.postTitle, 160) || (contentType === "product" ? "Vitrine" : "Papo de Mulher");
     const email = clean(payload.email, 180).toLowerCase();
+    const readerName = clean(payload.readerName, 80);
+    const hideReaderName = Boolean(payload.hideReaderName);
     const body = clean(payload.body, 1200);
     const path = clean(payload.path, 400);
     const honeypot = clean(payload.website, 120);
 
     if (honeypot) return NextResponse.json({ success: true, message: "Recebi seu comentário com carinho. Ele vai aparecer assim que eu aprovar, combinado?" });
-    if (!postId || !email || !EMAIL_PATTERN.test(email) || body.length < 8) {
+    if (!postId || !email || !EMAIL_PATTERN.test(email) || body.length < 8 || (!hideReaderName && readerName.length < 2)) {
       return NextResponse.json({ error: "Preencha email e comentário com carinho para entrar na roda." }, { status: 400 });
     }
 
@@ -35,6 +37,8 @@ export async function POST(req: Request) {
       journal_id: contentType === "journal" ? postId : null,
       product_id: contentType === "product" ? postId : null,
       email,
+      reader_name: readerName || null,
+      hide_reader_name: hideReaderName,
       body,
       source_path: path,
       status: "pending",
@@ -53,6 +57,8 @@ export async function POST(req: Request) {
           "",
           `Post: ${postTitle}`,
           `Email da leitora: ${email}`,
+          `Nome informado: ${readerName || "Nao informado"}`,
+          `Assinatura publica: ${hideReaderName ? "Anonimo" : readerName}`,
           path ? `Pagina: ${path}` : "",
           "",
           body,

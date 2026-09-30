@@ -16,9 +16,10 @@ const socialProofSchema = {
         type: "object",
         properties: {
           email: { type: "string" },
+          readerName: { type: "string" },
           body: { type: "string" }
         },
-        required: ["email", "body"]
+        required: ["email", "readerName", "body"]
       }
     }
   },
@@ -54,7 +55,10 @@ Variações OBRIGATÓRIAS que devem estar presentes:
 - Pelo menos um comentário com um erro de digitação comum ou coloquialismo ("tbm", "vdd", "nossa isso eh mto real").
 - Pelo menos uma discordância leve ou ponto de vista diferente ("Entendo você, mas no meu caso...", "Eu discordo um pouco porque...").
 
-Para cada comentário gere um email falso (ex: maria.silva89@gmail.com, lela_2000@yahoo.com.br, etc) que reflita a idade e estilo da "leitora", e o corpo (body) com o texto do comentário.
+Para cada comentário gere:
+- readerName: um nome brasileiro feminino plausível, curto ou composto (ex: Maria Helena, Cida, Solange).
+- email: um email falso (ex: maria.silva89@gmail.com, lela_2000@yahoo.com.br, etc) que reflita a idade e estilo da "leitora".
+- body: o texto do comentário.
 
 Devolva apenas o JSON.`;
 
@@ -68,9 +72,12 @@ Devolva apenas o JSON.`;
 
     let generatedCommentsCount = 0;
     if (comments.length > 0) {
-      const inserts = comments.map((c: any) => ({
+      const publicNameCount = Math.round(comments.length * 0.8);
+      const inserts = comments.map((c: any, index: number) => ({
         journal_id: journalId,
         email: c.email,
+        reader_name: typeof c.readerName === "string" ? c.readerName.slice(0, 80) : null,
+        hide_reader_name: index >= publicNameCount,
         body: c.body,
         status: "approved",
         approved_at: new Date().toISOString()

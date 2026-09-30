@@ -32,7 +32,7 @@ export async function GET(req: Request) {
 
     const { data, error: queryError } = await supabase!
       .from("journal_comments")
-      .select("id,journal_id,product_id,email,body,status,source_path,created_at,approved_at,moderated_at,journal:journal_id(title,category),product:product_id(title)")
+      .select("id,journal_id,product_id,email,reader_name,hide_reader_name,body,status,source_path,created_at,approved_at,moderated_at,journal:journal_id(title,category),product:product_id(title)")
       .order("created_at", { ascending: false })
       .limit(200);
     if (queryError) throw queryError;

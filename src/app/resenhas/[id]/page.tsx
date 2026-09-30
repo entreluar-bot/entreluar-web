@@ -61,7 +61,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
     getActivePollForJournal(supabase, id),
     supabase
       .from("journal_comments")
-      .select("id,journal_id,body,status,created_at,approved_at")
+      .select("id,journal_id,reader_name,hide_reader_name,body,status,created_at,approved_at")
       .eq("journal_id", id)
       .eq("status", "approved")
       .order("created_at", { ascending: false }),

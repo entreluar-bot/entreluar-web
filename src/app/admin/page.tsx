@@ -74,6 +74,8 @@ type SiteComment = {
   journal_id?: string | null;
   product_id?: string | null;
   email: string;
+  reader_name?: string | null;
+  hide_reader_name?: boolean;
   body: string;
   status: "pending" | "approved" | "rejected";
   source_path?: string | null;
@@ -2227,6 +2229,7 @@ export default function AdminDashboard() {
                 const journal = Array.isArray(comment.journal) ? comment.journal[0] : comment.journal;
                 const product = Array.isArray(comment.product) ? comment.product[0] : comment.product;
                 const originLabel = product ? "Vitrine" : journal?.category === "Estudei para te explicar" ? "Estudei" : "Papo de Mulher";
+                const publicSignature = comment.hide_reader_name ? "Anônimo" : (comment.reader_name?.trim().split(/\s+/)[0] || "Anônimo");
                 return (
                   <article key={comment.id} className={`rounded-2xl border p-5 ${comment.status === "pending" ? "border-[var(--color-gold)] bg-[#3a1820]" : "border-[var(--color-wine-light)] bg-[var(--color-wine-dark)]"}`}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2237,6 +2240,7 @@ export default function AdminDashboard() {
                         </div>
                         <h3 className="mt-2 font-serif text-xl text-[var(--color-gold-light)]">{journal?.title || product?.title || "Papo de Mulher"}</h3>
                         <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-55">{comment.email} • {new Date(comment.created_at).toLocaleString("pt-BR")}</p>
+                        <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-70">Nome: {comment.reader_name || "não informado"} • No site: {publicSignature}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {comment.status !== "approved" && <button onClick={() => handleCommentStatus(comment, "approved")} disabled={loading} className="rounded border border-[var(--color-gold)] px-3 py-1 text-xs text-[var(--color-gold)]">Aprovar</button>}
@@ -2253,7 +2257,7 @@ export default function AdminDashboard() {
                   <div className="rounded-2xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-5">
                     <p className="eyebrow">O papo continuou por aqui</p>
                     <h2 className="font-display mt-2 text-3xl text-[var(--color-gold)]">Comentários</h2>
-                    <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)] opacity-70">As leitoras enviam email e impressão. O email fica só para você; no site aparece como Amiga Entreluar.</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)] opacity-70">As leitoras enviam nome, email e impressão. O email fica só para você; no site aparece apenas o primeiro nome, ou Anônimo quando elas pedem privacidade.</p>
                   </div>
 
                   {comments.length === 0 ? (

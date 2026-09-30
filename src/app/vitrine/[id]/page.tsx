@@ -57,7 +57,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
     supabase.from("content_summaries").select("*").eq("content_type", "product").eq("content_id", id).maybeSingle(),
     supabase
       .from("journal_comments")
-      .select("id,product_id,body,status,created_at,approved_at")
+      .select("id,product_id,reader_name,hide_reader_name,body,status,created_at,approved_at")
       .eq("product_id", id)
       .eq("status", "approved")
       .order("created_at", { ascending: false }),
