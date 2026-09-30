@@ -89,7 +89,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
           <QuickSummaryCard summary={summary} />
           <div className="prose-luxe mt-8" dangerouslySetInnerHTML={{ __html: product.description }} />
           <div className="mt-10 border-t border-[var(--line)] pt-8">
-            <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button w-full">Quero ver onde achei ↗</a>
+            <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button w-full">Quer o seu? Clica aqui ↗</a>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} />

@@ -26,7 +26,7 @@ export default function ProductCard({ produto }: { produto: Product }) {
         <h3 className="font-display text-3xl leading-none text-[var(--champagne-pale)]">{produto.title}</h3>
         {produto.price && <p className="mt-3 font-bold text-[var(--champagne)]">{produto.price}</p>}
         <p className="muted my-4 flex-1 text-sm leading-7">{excerpt}{produto.description.length > 118 ? "…" : ""}</p>
-        <div className="flex gap-2"><Link href={`/vitrine/${produto.id}`} className="ghost-button flex-1">{isStyle ? "Ver os detalhes" : "Minha opinião"}</Link><a href={produto.shopee_link} target="_blank" rel="noreferrer" className="luxe-button flex-1">Ver onde achei ↗</a></div>
+        <div className="flex gap-2"><Link href={`/vitrine/${produto.id}`} className="ghost-button flex-1">{isStyle ? "Ver os detalhes" : "Meu veredito sincero"}</Link><a href={produto.shopee_link} target="_blank" rel="noreferrer" className="luxe-button flex-1">Quer o seu? Clica aqui ↗</a></div>
       </div>
     </article>
   );

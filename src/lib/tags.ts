@@ -27,6 +27,10 @@ export function formatTagsForPrompt(tags: Tag[]) {
     .join("\n");
 }
 
+export function excludeLifeTopic(tags: Tag[]) {
+  return tags.filter((tag) => tag.type !== "life_topic");
+}
+
 export function filterValidTagSlugs(slugs: unknown, tags: Tag[]) {
   const valid = new Set(tags.map((tag) => tag.slug));
   return (Array.isArray(slugs) ? slugs : []).filter((slug): slug is string => typeof slug === "string" && valid.has(slug));

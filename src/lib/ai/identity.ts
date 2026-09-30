@@ -35,7 +35,8 @@ export const QUICK_SUMMARY_RULES_ARTIGO = `
 RESUMO "EM 30 SEGUNDOS" DO ARTIGO (campo resumoRapidoArtigo):
 - Mesmas 7 chaves de resumoRapido, mas aqui resumindo o blogPost (o artigo "Estudei para te explicar"), não o productReview — é a ficha rápida do ATIVO/TEMA, não do produto.
 - whatIs: o que é o ativo/tema, sem rodeio. usedFor: pra que ele serve. noticed: o que a ciência/pesquisa mostra sobre ele (sem prometer resultado). pro: o que mais te convenceu na pesquisa. caution: cuidado ou contraindicação real, se houver (senão vazio). repurchase: reinterprete como "vale a pena buscar esse ativo?" — sua opinião curta sobre valer a pena procurar, não sobre recompra de um produto específico. duration: tempo típico pra começar a ver resultado, só se isso estiver no texto (senão vazio).
-- Mesma regra de nunca inventar: só o que está no blogPost. Campo que não couber, devolva "".`;
+- Mesma regra de nunca inventar: só o que está no blogPost. Campo que não couber, devolva "".
+- NUNCA repita uma frase (nem quase igual) que você já usou em resumoRapido — produto e artigo são fichas diferentes. Se a informação de fundo for a mesma, reformule com foco no ativo/tema (pesquisa) em vez do produto (experiência de uso). Campo em que isso não for possível sem repetir, devolva "".`;
 
 export const TAG_SUGGESTION_RULES = `
 TAGS SUGERIDAS (campo suggestedTagSlugs):

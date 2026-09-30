@@ -11,7 +11,7 @@ import { buildAccessoryPrompt } from "@/lib/ai/prompts";
 import { accessorySchema, productSchema } from "@/lib/ai/schemas";
 import { combineUsage, generateAi, normalizeCacheSubject, type AiUsage } from "@/lib/ai/runtime";
 import { EMPTY_RESUMO_RAPIDO, type ResumoRapido } from "@/lib/summary";
-import { filterValidTagSlugs, formatTagsForPrompt, type Tag } from "@/lib/tags";
+import { excludeLifeTopic, filterValidTagSlugs, formatTagsForPrompt, type Tag } from "@/lib/tags";
 
 export const maxDuration = 60;
 
@@ -37,6 +37,18 @@ const researchSchema = {
   type: "object", properties: { summary: { type: "string" }, evidenceLevel: { type: "string", enum: ["forte", "moderada", "inicial", "nao_verificada"] } },
   required: ["summary", "evidenceLevel"], additionalProperties: false,
 };
+
+function dedupeResumoRapidoArtigo(resumoRapido: ResumoRapido, resumoRapidoArtigo: ResumoRapido): ResumoRapido {
+  const normalize = (value: string) => value.trim().toLowerCase();
+  const result = { ...resumoRapidoArtigo };
+  for (const key of Object.keys(result) as (keyof ResumoRapido)[]) {
+    const artigoValue = result[key];
+    if (artigoValue && normalize(artigoValue) === normalize(resumoRapido[key] || "")) {
+      result[key] = "";
+    }
+  }
+  return result;
+}
 
 function resolveExperienceStatus(experienceStatus: string | undefined, impressions: string | undefined) {
   if (experienceStatus && experienceStatus !== "nao_informado") return experienceStatus as ProductGeneration["experienceStatus"];
@@ -84,7 +96,7 @@ export async function POST(req: Request) {
     const resolvedStatus = resolveExperienceStatus(experienceStatus, impressions);
     if (isAccessory) {
       const [context, { data: tagRows }] = await Promise.all([contextPromise, tagsPromise]);
-      const tags = (tagRows || []) as Tag[];
+      const tags = excludeLifeTopic((tagRows || []) as Tag[]);
       const started = Date.now();
       let generated: ProductGeneration | null = null;
       let retryFeedback: string[] | undefined;
@@ -163,7 +175,7 @@ Retorne resumo factual de até 3.500 caracteres com ativos confirmados, funçõe
     }
 
     const [context, { data: tagRows }] = await Promise.all([contextPromise, tagsPromise]);
-    const tags = (tagRows || []) as Tag[];
+    const tags = excludeLifeTopic((tagRows || []) as Tag[]);
     const writingPrompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${SCIENCE_RULES}\n${QUICK_SUMMARY_RULES}\n${QUICK_SUMMARY_RULES_ARTIGO}\n${TAG_SUGGESTION_RULES}\n${POLL_SUGGESTION_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}
 
 DIREÇÃO CRIATIVA: ${getCreativeDirection()}.\n${originalityRules}
@@ -173,7 +185,7 @@ PESQUISA VERIFICADA, SEM EXTRAPOLAR: ${research.summary}
 TAGS DISPONÍVEIS:
 ${formatTagsForPrompt(tags)}
 
-Crie productReview em primeira pessoa, 4 a 7 frases, com as notas como coração, explicação leve de 1 ou 2 ativos e 1 a 3 emojis. Não invente uso. Termine exatamente com: <br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>
+Crie productReview em primeira pessoa, 4 a 7 frases, com as notas como coração, explicação leve de 1 ou 2 ativos e 1 a 3 emojis. Não invente uso. Termine exatamente com: <br><br>Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário! <a href="/resenhas" class="inline-cta-chip">Clica aqui →</a>
 blogTitle deve ser um título criativo e único destacando o poder ou benefício principal do produto/ativo para a pele madura. NUNCA use "Estudei para te explicar:" nem comece com "A verdade sobre...". Varie o formato a cada geração. blogPost deve usar HTML, parágrafos curtos e exatamente estes títulos, nesta ordem:
 <i>[conclusão curta sem promessa milagrosa]</i>
 <h3>📣 A Promessa da Indústria</h3>
@@ -204,12 +216,13 @@ resumoRapido deve resumir o productReview que você acabou de escrever, pra fich
     generated.experienceStatus = resolvedStatus;
     generated.resumoRapido ||= EMPTY_RESUMO_RAPIDO;
     generated.resumoRapidoArtigo ||= EMPTY_RESUMO_RAPIDO;
+    generated.resumoRapidoArtigo = dedupeResumoRapidoArtigo(generated.resumoRapido, generated.resumoRapidoArtigo);
     generated.suggestedTagSlugs = filterValidTagSlugs(generated.suggestedTagSlugs, tags);
     generated.suggestedPoll = generated.suggestedPoll?.question?.trim() && generated.suggestedPoll.options?.filter((o) => o.trim()).length >= 2
       ? { question: generated.suggestedPoll.question.trim(), options: generated.suggestedPoll.options.map((o) => o.trim()).filter(Boolean) }
       : EMPTY_POLL_SUGGESTION;
     generated.researchSummary = research.summary.slice(0, 3500);
-    if (!generated.productReview.includes('href="/resenhas"')) generated.productReview += `<br><br><a href="/resenhas" class="text-[var(--color-gold)] underline">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</a>`;
+    if (!generated.productReview.includes('href="/resenhas"')) generated.productReview += `<br><br>Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário! <a href="/resenhas" class="inline-cta-chip">Clica aqui →</a>`;
 
     await finalizeGeneration({ supabase, userId: user.id, requestHash, requestId, generated, context, contentType, title: productName, usages, timings, cacheHit: Boolean(cachedResearch), retryCount, searchQueries });
     await suggestMemoryFromNotes(supabase, user.id, impressions, topicTags(productName, impressions, "skincare cosmetico"));

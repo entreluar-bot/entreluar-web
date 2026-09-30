@@ -597,7 +597,7 @@ export default function AdminDashboard() {
     try {
       const data = await adminRequest("/api/generate-tags", {
         method: "POST",
-        body: JSON.stringify({ contentType: editingItem.type === "product" ? "product" : "journal", title: editingItem.title, sourceHtml: editingItem.content }),
+        body: JSON.stringify({ contentType: editingItem.type === "product" ? "product" : "journal", title: editingItem.title, sourceHtml: editingItem.content, category: editingItem.category }),
       });
       const slugs = new Set((data.suggestedTagSlugs || []) as string[]);
       const suggestedIds = tags.filter((tag) => slugs.has(tag.slug)).map((tag) => tag.id);
@@ -612,8 +612,8 @@ export default function AdminDashboard() {
   const handleBulkSuggestTags = async () => {
     if (!confirmAiSpend()) return;
     const candidates = [
-      ...products.map((p) => ({ contentType: "product" as const, id: p.id, title: p.title, sourceHtml: p.description })),
-      ...journals.map((j) => ({ contentType: "journal" as const, id: j.id, title: j.title, sourceHtml: j.content })),
+      ...products.map((p) => ({ contentType: "product" as const, id: p.id, title: p.title, sourceHtml: p.description, category: undefined as string | undefined })),
+      ...journals.map((j) => ({ contentType: "journal" as const, id: j.id, title: j.title, sourceHtml: j.content, category: j.category })),
     ];
     if (!candidates.length) return setMessage("Nada para etiquetar ainda.");
 
@@ -628,7 +628,7 @@ export default function AdminDashboard() {
     setBulkTagStatus(`Etiquetando 0 de ${pending.length}...`);
     for (const item of pending) {
       try {
-        const data = await adminRequest("/api/generate-tags", { method: "POST", body: JSON.stringify({ contentType: item.contentType, title: item.title, sourceHtml: item.sourceHtml }) });
+        const data = await adminRequest("/api/generate-tags", { method: "POST", body: JSON.stringify({ contentType: item.contentType, title: item.title, sourceHtml: item.sourceHtml, category: item.category }) });
         const slugs = new Set((data.suggestedTagSlugs || []) as string[]);
         const tagIds = tags.filter((tag) => slugs.has(tag.slug)).map((tag) => tag.id);
         if (tagIds.length) {
@@ -1352,8 +1352,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 1.95</p>
-                <p>Atualizado em 29/09/2026 às 21:55</p>
+                <p className="font-bold tracking-widest uppercase">Versão 1.96</p>
+                <p>Atualizado em 29/09/2026 às 22:23</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />

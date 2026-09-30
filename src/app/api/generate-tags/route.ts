@@ -6,7 +6,8 @@ import { LUANA_VOICE, TAG_SUGGESTION_RULES, TRUTH_RULES } from "@/lib/ai/identit
 import { tagSuggestionSchema } from "@/lib/ai/schemas";
 import { generateAi } from "@/lib/ai/runtime";
 import { plainTextFromHtml } from "@/lib/share-metadata";
-import { filterValidTagSlugs, formatTagsForPrompt, type Tag } from "@/lib/tags";
+import { excludeLifeTopic, filterValidTagSlugs, formatTagsForPrompt, type Tag } from "@/lib/tags";
+import { PAPO_DE_MULHER_CATEGORIES } from "@/lib/theme-groups";
 
 export const maxDuration = 30;
 
@@ -14,13 +15,14 @@ export async function POST(req: Request) {
   try {
     const { supabase, user } = await authenticateAiRequest(req);
     const body = await req.json();
-    const { contentType, title, sourceHtml } = body as { contentType?: "journal" | "product"; title?: string; sourceHtml?: string };
+    const { contentType, title, sourceHtml, category } = body as { contentType?: "journal" | "product"; title?: string; sourceHtml?: string; category?: string };
 
     const sourceText = plainTextFromHtml(sourceHtml, 4000);
     if (!sourceText) return NextResponse.json({ error: "Não há texto publicado para sugerir tags." }, { status: 400 });
 
     const { data: tagRows } = await supabase.from("tags").select("id,name,slug,type");
-    const tags = (tagRows || []) as Tag[];
+    const isPapoDeMulher = contentType === "journal" && Boolean(category) && PAPO_DE_MULHER_CATEGORIES.includes(category!);
+    const tags = (isPapoDeMulher ? (tagRows || []) : excludeLifeTopic(tagRows || [])) as Tag[];
     if (!tags.length) return NextResponse.json({ suggestedTagSlugs: [] });
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });

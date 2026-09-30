@@ -33,8 +33,8 @@ function FeaturedProduct({ product }: { product: FilterableProduct }) {
         {product.price && <p className="mt-3 font-bold text-[var(--champagne)]">{product.price}</p>}
         <p className="muted my-4 text-sm leading-7">{excerpt}{product.description.length > 170 ? "…" : ""}</p>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Link href={`/vitrine/${product.id}`} className="ghost-button flex-1">{isStyle ? "Ver os detalhes" : "Minha opinião"}</Link>
-          <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button flex-1">Ver onde achei ↗</a>
+          <Link href={`/vitrine/${product.id}`} className="ghost-button flex-1">{isStyle ? "Ver os detalhes" : "Meu veredito sincero"}</Link>
+          <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button flex-1">Quer o seu? Clica aqui ↗</a>
         </div>
       </div>
     </article>
