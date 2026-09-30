@@ -46,7 +46,7 @@ O post se chama "${title || 'Sem título'}" e o conteúdo é:
 
 A categoria do post é "${category || 'Geral'}".
 
-Sua tarefa é gerar de 5 a 13 comentários BEM diversos, criativos e diferentes, simulando leitoras reais do blog.
+Sua tarefa é gerar de 5 a 8 comentários BEM diversos, criativos e diferentes, simulando leitoras reais do blog.
 Crie personagens com todo tipo de pensamento.
 Variações OBRIGATÓRIAS que devem estar presentes:
 - Pelo menos um comentário apenas com emojis (ex: "😍😍👏👏").
@@ -83,9 +83,7 @@ Devolva apenas o JSON.`;
         approved_at: new Date().toISOString()
       }));
       const { error } = await supabase.from("journal_comments").insert(inserts);
-      if (error) {
-        console.error("Error inserting comments:", error);
-      } else {
+      if (error) { console.error("Error inserting comments:", error); throw new Error("Erro DB Comentários: " + error.message); } else {
         generatedCommentsCount = inserts.length;
       }
     }
@@ -108,9 +106,7 @@ Devolva apenas o JSON.`;
           });
         }
         const { error: voteError } = await supabase.from("poll_votes").insert(votes);
-        if (voteError) {
-          console.error("Error inserting votes:", voteError);
-        } else {
+        if (voteError) { console.error("Error inserting votes:", voteError); throw new Error("Erro DB Votos: " + voteError.message); } else {
           generatedVotesCount = votes.length;
         }
       }
