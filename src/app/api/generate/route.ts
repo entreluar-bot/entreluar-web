@@ -185,7 +185,7 @@ PESQUISA VERIFICADA, SEM EXTRAPOLAR: ${research.summary}
 TAGS DISPONÍVEIS:
 ${formatTagsForPrompt(tags)}
 
-Crie productReview em primeira pessoa, 4 a 7 frases, com as notas como coração, explicação leve de 1 ou 2 ativos e 1 a 3 emojis. Não invente uso. Termine exatamente com: <br><br><span class="inline-cta-gold">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</span><br><a href="/resenhas" class="luxe-button">Clica aqui →</a>
+Crie productReview em primeira pessoa, 4 a 7 frases, com as notas como coração, explicação leve de 1 ou 2 ativos e 1 a 3 emojis. Não invente uso. Termine exatamente com: <br><br><span class="inline-cta-gold">Quer entender a mágica por trás desses ativos?</span><div class="inline-cta-center"><a href="/resenhas" class="ghost-button">Estudei para te explicar</a></div>
 blogTitle deve ser um título criativo e único destacando o poder ou benefício principal do produto/ativo para a pele madura. NUNCA use "Estudei para te explicar:" nem comece com "A verdade sobre...". Varie o formato a cada geração. blogPost deve usar HTML, parágrafos curtos e exatamente estes títulos, nesta ordem:
 <i>[conclusão curta sem promessa milagrosa]</i>
 <h3>📣 A Promessa da Indústria</h3>
@@ -222,7 +222,7 @@ resumoRapido deve resumir o productReview que você acabou de escrever, pra fich
       ? { question: generated.suggestedPoll.question.trim(), options: generated.suggestedPoll.options.map((o) => o.trim()).filter(Boolean) }
       : EMPTY_POLL_SUGGESTION;
     generated.researchSummary = research.summary.slice(0, 3500);
-    if (!generated.productReview.includes('href="/resenhas"')) generated.productReview += `<br><br><span class="inline-cta-gold">Quer entender a mágica por trás desses ativos? Vem ler a minha coluna "Estudei para te explicar" no Diário!</span><br><a href="/resenhas" class="luxe-button">Clica aqui →</a>`;
+    if (!generated.productReview.includes('href="/resenhas"')) generated.productReview += `<br><br><span class="inline-cta-gold">Quer entender a mágica por trás desses ativos?</span><div class="inline-cta-center"><a href="/resenhas" class="ghost-button">Estudei para te explicar</a></div>`;
 
     await finalizeGeneration({ supabase, userId: user.id, requestHash, requestId, generated, context, contentType, title: productName, usages, timings, cacheHit: Boolean(cachedResearch), retryCount, searchQueries });
     await suggestMemoryFromNotes(supabase, user.id, impressions, topicTags(productName, impressions, "skincare cosmetico"));

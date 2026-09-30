@@ -31,7 +31,7 @@ function FeaturedReview({ post }: { post: ReviewPost }) {
         <p className="eyebrow">Estudei para te explicar • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
         <h2 className="font-display mt-3 text-4xl leading-none text-[var(--champagne-pale)]">{post.title}</h2>
         <p className="muted my-4 text-sm leading-7">{copy}{post.content.length > 170 ? "…" : ""}</p>
-        <Link href={`/resenhas/${post.id}`} className="ghost-button">Ler explicação →</Link>
+        <Link href={`/resenhas/${post.id}`} className="ghost-button">Mais detalhes do que estudei →</Link>
       </div>
     </article>
   );
@@ -86,7 +86,7 @@ export default function ReviewFilters({ posts, tagGroups = [] }: { posts: Review
             <FeaturedReview post={featuredPost} />
             {remainingPosts.length > 0 && (
               <div className="editorial-grid">
-                {remainingPosts.map((post) => <JournalCard key={post.id} post={post} href={`/resenhas/${post.id}`} />)}
+                {remainingPosts.map((post) => <JournalCard key={post.id} post={post} href={`/resenhas/${post.id}`} ctaLabel="Mais detalhes do que estudei →" />)}
               </div>
             )}
           </>

@@ -27,6 +27,12 @@ const socialProofSchema = {
   additionalProperties: false,
 };
 
+function getRandomDateBetween(start: string | Date, end: string | Date) {
+  const startTime = new Date(start).getTime();
+  const endTime = new Date(end).getTime();
+  return new Date(startTime + Math.random() * (endTime - startTime)).toISOString();
+}
+
 export async function POST(req: Request) {
   try {
     const { supabase, user } = await authenticateAiRequest(req);
@@ -36,6 +42,9 @@ export async function POST(req: Request) {
     if (!journalId) {
       return NextResponse.json({ error: "journalId é obrigatório" }, { status: 400 });
     }
+
+    const { data: journalRow } = await supabase.from("journal").select("created_at").eq("id", journalId).single();
+    const journalCreatedAt = journalRow?.created_at || new Date().toISOString();
 
     const sourceText = plainTextFromHtml(content, 3000);
 
@@ -73,15 +82,20 @@ Devolva apenas o JSON.`;
     let generatedCommentsCount = 0;
     if (comments.length > 0) {
       const publicNameCount = Math.round(comments.length * 0.8);
-      const inserts = comments.map((c: any, index: number) => ({
-        journal_id: journalId,
-        email: c.email,
-        reader_name: typeof c.readerName === "string" ? c.readerName.slice(0, 80) : null,
-        hide_reader_name: index >= publicNameCount,
-        body: c.body,
-        status: "approved",
-        approved_at: new Date().toISOString()
-      }));
+      const now = new Date().toISOString();
+      const inserts = comments.map((c: any, index: number) => {
+        const commentDate = getRandomDateBetween(journalCreatedAt, now);
+        return {
+          journal_id: journalId,
+          email: c.email,
+          reader_name: typeof c.readerName === "string" ? c.readerName.slice(0, 80) : null,
+          hide_reader_name: index >= publicNameCount,
+          body: c.body,
+          status: "approved",
+          created_at: commentDate,
+          approved_at: commentDate,
+        };
+      });
       const { error } = await supabase.from("journal_comments").insert(inserts);
       if (error) { console.error("Error inserting comments:", error); throw new Error("Erro DB Comentários: " + error.message); } else {
         generatedCommentsCount = inserts.length;
