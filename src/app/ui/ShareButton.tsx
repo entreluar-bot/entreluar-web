@@ -38,7 +38,7 @@ export default function ShareButton({ title, url, shareText, className = "", var
     return (
       <span className={`quick-share ${className}`}>
         <button type="button" onClick={share} className="quick-link">
-          Compartilhar ↗
+          💌 Compartilhar ↗
         </button>
         {message && <span className="quick-share-message" role="status">{message}</span>}
       </span>

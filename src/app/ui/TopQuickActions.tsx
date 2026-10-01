@@ -13,7 +13,7 @@ export default function TopQuickActions({ buyHref, title, shareUrl, shareText, c
     <div className={`quick-actions ${className}`}>
       {buyHref && (
         <a href={buyHref} target="_blank" rel="noreferrer" className="quick-link">
-          Quer o seu? ↗
+          🛍️ Quer o seu? ↗
         </a>
       )}
       <ShareButton title={title} url={shareUrl} shareText={shareText} variant="inline" />
