@@ -9,6 +9,7 @@ import { getReactionsForJournal } from "@/lib/reactions";
 import NewsletterSignup from "../../ui/NewsletterSignup";
 import ConversationCircle from "../../ui/ConversationCircle";
 import ShareButton from "../../ui/ShareButton";
+import TopQuickActions from "../../ui/TopQuickActions";
 import PollWidget from "../../ui/PollWidget";
 import ReactionBar from "../../ui/ReactionBar";
 import type { JournalComment, JournalPost } from "../../types";
@@ -54,7 +55,7 @@ export async function generateMetadata({ params }: BlogPostProps): Promise<Metad
 export default async function BlogPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: commentRows }, poll, reactions] = await Promise.all([
+  const [{ data }, { data: commentRows }, poll, reactions, { data: companionProduct }] = await Promise.all([
     supabase.from("journal").select("*").eq("id", id).single(),
     supabase
       .from("journal_comments")
@@ -64,6 +65,7 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
       .order("created_at", { ascending: false }),
     getActivePollForJournal(supabase, id),
     getReactionsForJournal(supabase, id),
+    supabase.from("products").select("shopee_link").eq("companion_journal_id", id).maybeSingle(),
   ]);
 
   if (!data) notFound();
@@ -93,6 +95,7 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
         <header className="p-6 md:p-12">
           <p className="eyebrow">{post.category || "Papo de Mulher"} • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
           <h1 className="section-title my-6">{post.title}</h1>
+          <TopQuickActions buyHref={companionProduct?.shopee_link} title={post.title} shareUrl={shareUrl} shareText={`Li isso e achei tudo a ver com a gente: ${post.title}`} />
           {comments.length > 0 && (
             <a href="#conversation-circle-title" className="conversation-jumplink">💬 {comments.length} comentário{comments.length === 1 ? "" : "s"} — ver e participar →</a>
           )}
