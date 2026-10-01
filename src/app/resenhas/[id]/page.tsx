@@ -8,6 +8,7 @@ import type { ContentSummary } from "@/lib/summary";
 import { getActivePollForJournal } from "@/lib/poll";
 import { getReactionsForJournal } from "@/lib/reactions";
 import ShareButton from "../../ui/ShareButton";
+import TopQuickActions from "../../ui/TopQuickActions";
 import QuickSummaryCard from "../../ui/QuickSummaryCard";
 import PollWidget from "../../ui/PollWidget";
 import ConversationCircle from "../../ui/ConversationCircle";
@@ -55,7 +56,7 @@ export async function generateMetadata({ params }: ReviewPostProps): Promise<Met
 export default async function ReviewPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: summaryData }, poll, { data: commentRows }, reactions] = await Promise.all([
+  const [{ data }, { data: summaryData }, poll, { data: commentRows }, reactions, { data: companionProduct }] = await Promise.all([
     supabase.from("journal").select("*").eq("id", id).single(),
     supabase.from("content_summaries").select("*").eq("content_type", "journal").eq("content_id", id).maybeSingle(),
     getActivePollForJournal(supabase, id),
@@ -66,6 +67,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
       .eq("status", "approved")
       .order("created_at", { ascending: false }),
     getReactionsForJournal(supabase, id),
+    supabase.from("products").select("shopee_link").eq("companion_journal_id", id).maybeSingle(),
   ]);
   if (!data) notFound();
   const post = data as JournalPost;
@@ -87,6 +89,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
         <header className="p-6 md:p-12">
           <p className="eyebrow">Estudei para te explicar • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
           <h1 className="section-title my-6">{post.title}</h1>
+          <TopQuickActions buyHref={companionProduct?.shopee_link} title={post.title} shareUrl={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} />
           {comments.length > 0 && (
             <a href="#conversation-circle-title" className="conversation-jumplink">💬 {comments.length} comentário{comments.length === 1 ? "" : "s"} — ver e participar →</a>
           )}

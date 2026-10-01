@@ -7,9 +7,10 @@ type ShareButtonProps = {
   url: string;
   shareText: string;
   className?: string;
+  variant?: "button" | "inline";
 };
 
-export default function ShareButton({ title, url, shareText, className = "" }: ShareButtonProps) {
+export default function ShareButton({ title, url, shareText, className = "", variant = "button" }: ShareButtonProps) {
   const [message, setMessage] = useState("");
 
   const share = async () => {
@@ -32,6 +33,17 @@ export default function ShareButton({ title, url, shareText, className = "" }: S
       }
     }
   };
+
+  if (variant === "inline") {
+    return (
+      <span className={`inline-flex flex-col shrink-0 ${className}`}>
+        <button type="button" onClick={share} className="quick-link shrink-0">
+          <span className="quick-link__star" aria-hidden="true">✦</span> Compartilhar ↗
+        </button>
+        {message && <span className="quick-share-message" role="status">{message}</span>}
+      </span>
+    );
+  }
 
   return (
     <div className={`share-action ${className}`}>
