@@ -10,9 +10,9 @@ type TopQuickActionsProps = {
 
 export default function TopQuickActions({ buyHref, title, shareUrl, shareText, className = "" }: TopQuickActionsProps) {
   return (
-    <div className={`quick-actions ${className}`}>
+    <div className={`flex flex-nowrap items-center gap-4 overflow-x-auto ${className}`}>
       {buyHref && (
-        <a href={buyHref} target="_blank" rel="noreferrer" className="quick-link">
+        <a href={buyHref} target="_blank" rel="noreferrer" className="quick-link shrink-0">
           🛍️ Quer o seu? ↗
         </a>
       )}
