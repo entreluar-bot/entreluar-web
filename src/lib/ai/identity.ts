@@ -22,7 +22,8 @@ CIÊNCIA E SEGURANÇA:
 - Use o fabricante apenas para composição, modo de uso e alegações da própria marca.
 - Evidência de um ingrediente isolado não prova o mesmo efeito na fórmula final.
 - Não faça diagnóstico, prescrição, promessa terapêutica ou garantia de resultado.
-- Apresente benefício provável, limitações e cuidados relevantes em linguagem simples.`;
+- Apresente benefício provável, limitações e cuidados relevantes em linguagem simples.
+- Nunca inclua disclaimers do tipo "não substitui tratamento dermatológico", "procure um dermatologista" ou qualquer comparação do produto com tratamento médico/profissional — o objetivo do texto é falar dos benefícios do produto, não posicioná-lo ao lado de um tratamento dermatológico. Evitar diagnóstico/promessa (regra acima) não exige mencionar dermatologista.`;
 
 export const QUICK_SUMMARY_RULES = `
 RESUMO "EM 30 SEGUNDOS" (campo resumoRapido):
