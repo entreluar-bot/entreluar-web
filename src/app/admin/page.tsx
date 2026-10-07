@@ -703,7 +703,7 @@ export default function AdminDashboard() {
         method: "POST",
         body: JSON.stringify({ journalId, category, title, content }),
       });
-      setMessage(`Sucesso! Foram gerados ${data.comments} comentários e ${data.votes} votos na enquete para essa postagem. 🎉`);
+      setMessage(`Sucesso! Foram gerados ${data.comments} comentários, ${data.likes} curtidas, ${data.dislikes} não curtidas e ${data.votes} votos na enquete para essa postagem. 🎉`);
     } catch (err: any) {
       setMessage(`Ops, erro ao gerar prova social: ${err.message}`);
     } finally {
@@ -1352,8 +1352,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.01</p>
-                <p>Atualizado em 02/10/2026 às 00:00</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.02</p>
+                <p>Atualizado em 06/10/2026 às 12:00</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />

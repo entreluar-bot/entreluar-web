@@ -48,6 +48,9 @@ export async function POST(req: Request) {
 
     const sourceText = plainTextFromHtml(content, 3000);
 
+    // Entre 3 e 8 comentários por geração
+    const numComments = Math.floor(Math.random() * 6) + 3;
+
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
     const prompt = `Você é um gerador de interações (prova social) para um blog focado em mulheres maduras (menopausa, skincare, reflexões de vida, humor).
 O post se chama "${title || 'Sem título'}" e o conteúdo é:
@@ -55,14 +58,15 @@ O post se chama "${title || 'Sem título'}" e o conteúdo é:
 
 A categoria do post é "${category || 'Geral'}".
 
-Sua tarefa é gerar de 5 a 8 comentários BEM diversos, criativos e diferentes, simulando leitoras reais do blog.
+Sua tarefa é gerar EXATAMENTE ${numComments} comentários BEM diversos, criativos e diferentes, simulando leitoras reais do blog.
 Crie personagens com todo tipo de pensamento.
 Variações OBRIGATÓRIAS que devem estar presentes:
 - Pelo menos um comentário apenas com emojis (ex: "😍😍👏👏").
 - Pelo menos um comentário curtíssimo e direto (ex: "Amei!", "Verdade Lu", "Eu toda").
 - Pelo menos um comentário "papo cabeça", reflexivo e um pouco mais longo, dividindo uma experiência pessoal com a menopausa ou envelhecimento.
 - Pelo menos um comentário com um erro de digitação comum ou coloquialismo ("tbm", "vdd", "nossa isso eh mto real").
-- Pelo menos uma discordância leve ou ponto de vista diferente ("Entendo você, mas no meu caso...", "Eu discordo um pouco porque...").
+- Uma discordância leve ou ponto de vista diferente, educada e sem agressividade. Escreva com uma construção ORIGINAL e única, com palavras diferentes a cada vez. É PROIBIDO usar "discordo um pouco" ou "discordo em parte" ou variações dessa expressão. Exemplos do espírito (não copie): "Hmm, no meu caso foi bem diferente...", "Será? Comigo não funcionou assim.", "Admiro o texto, mas fiquei com um pé atrás nessa parte.", "Pra mim a história é outra, sabe?".
+- Se o número de comentários for pequeno (3 ou 4), priorize os mais variados e inclua só o que couber.
 
 Para cada comentário gere:
 - readerName: um nome brasileiro feminino plausível, curto ou composto (ex: Maria Helena, Cida, Solange).
@@ -77,7 +81,7 @@ Devolva apenas o JSON.`;
     });
 
     const parsed = JSON.parse(response.text || "{}");
-    const comments = parsed.comments || [];
+    const comments = (parsed.comments || []).slice(0, numComments);
 
     let generatedCommentsCount = 0;
     if (comments.length > 0) {
@@ -100,6 +104,27 @@ Devolva apenas o JSON.`;
       if (error) { console.error("Error inserting comments:", error); throw new Error("Erro DB Comentários: " + error.message); } else {
         generatedCommentsCount = inserts.length;
       }
+    }
+
+    // Reações: 3x o número de comentários, sendo de 5% a 10% "não curti"
+    let generatedLikesCount = 0;
+    let generatedDislikesCount = 0;
+    if (generatedCommentsCount > 0) {
+      const totalReactions = generatedCommentsCount * 3;
+      const dislikeRatio = 0.05 + Math.random() * 0.05;
+      const dislikes = Math.max(1, Math.round(totalReactions * dislikeRatio));
+      const likes = totalReactions - dislikes;
+      const reactionRows = [
+        ...Array.from({ length: likes }, () => "like" as const),
+        ...Array.from({ length: dislikes }, () => "dislike" as const),
+      ].map((reaction) => {
+        const date = getRandomDateBetween(journalCreatedAt, new Date().toISOString());
+        return { journal_id: journalId, voter_id: crypto.randomUUID(), reaction, created_at: date, updated_at: date };
+      });
+      const { error: reactionError } = await supabase.from("journal_reactions").insert(reactionRows);
+      if (reactionError) { console.error("Error inserting reactions:", reactionError); throw new Error("Erro DB Reações: " + reactionError.message); }
+      generatedLikesCount = likes;
+      generatedDislikesCount = dislikes;
     }
 
     let generatedVotesCount = 0;
@@ -128,7 +153,7 @@ Devolva apenas o JSON.`;
 
     await recordGeneration(supabase, user.id, { contentType: "accessory", topic: `Prova Social: ${title}`, usage });
 
-    return NextResponse.json({ comments: generatedCommentsCount, votes: generatedVotesCount });
+    return NextResponse.json({ comments: generatedCommentsCount, votes: generatedVotesCount, likes: generatedLikesCount, dislikes: generatedDislikesCount });
   } catch (error: any) {
     console.error("Erro na prova social:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
