@@ -62,6 +62,22 @@ const GENERIC_OPENING_PATTERNS = [
   /^quando o assunto [eé]/i,
 ];
 
+const PERSONAL_CLAIM_PATTERNS = [
+  /\beu usei\b/i,
+  /\bna minha pele\b/i,
+  /\btestei\b/i,
+  /\bmeu favorito\b/i,
+  /\bvirou meu\b/i,
+  /\bpercebi na minha\b/i,
+  /\bna minha rotina\b/i,
+];
+
+const SENSORY_PATTERNS = [
+  /textura (leve|densa|gel|cremosa|fluida)/i,
+  /absorve|absorveu|seca r[aá]pido|deixa a pele|toque seco|pegajos/i,
+  /cheiro|fragr[aâ]ncia|aroma/i,
+];
+
 const LEGACY_ESTUDEI_HEADINGS = [
   "a promessa da industria",
   "afinal o que tem na formula",
@@ -149,7 +165,13 @@ function firstSentence(value: string) {
   return plainText(value).split(/[.!?]/)[0]?.trim() || "";
 }
 
-export function validateReviewCopy(text: string, options: { evidenceText?: string; isEstudei?: boolean; enforceEditorialDiversity?: boolean } = {}) {
+export function validateReviewCopy(text: string, options: {
+  evidenceText?: string;
+  notesText?: string;
+  sensoryEvidenceText?: string;
+  isEstudei?: boolean;
+  enforceEditorialDiversity?: boolean;
+} = {}) {
   const errors: string[] = [];
   for (const pattern of BANNED_REVIEW_DISCLAIMER_PATTERNS) {
     const match = text.match(pattern)?.[0];
@@ -169,9 +191,15 @@ export function validateReviewCopy(text: string, options: { evidenceText?: strin
     const evidenceWords = meaningfulWords(options.evidenceText);
     const textWords = meaningfulWords(text);
     const overlap = [...evidenceWords].filter((word) => textWords.has(word));
-    if (evidenceWords.size && overlap.length < 1) {
+    if (evidenceWords.size && overlap.length < 2) {
       errors.push("O texto não trouxe nenhum dado concreto rastreável do produto, ativo ou pesquisa.");
     }
+  }
+  if (!options.notesText?.trim() && PERSONAL_CLAIM_PATTERNS.some((pattern) => pattern.test(text))) {
+    errors.push("O texto afirmou experiência pessoal sem notas autorizadas.");
+  }
+  if (Object.prototype.hasOwnProperty.call(options, "sensoryEvidenceText") && !options.sensoryEvidenceText?.trim() && SENSORY_PATTERNS.some((pattern) => pattern.test(text))) {
+    errors.push("O texto descreveu sensorial sem informação confirmada.");
   }
   if (options.isEstudei) {
     const normalized = normalizeCopy(text);

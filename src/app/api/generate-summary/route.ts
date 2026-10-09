@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { authenticateAiRequest } from "@/lib/ai/auth";
 import { parseJson, recordGeneration } from "@/lib/ai/context";
-import { LUANA_VOICE, QUICK_SUMMARY_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
+import { LUANA_VOICE, QUICK_SUMMARY_RULES, QUICK_SUMMARY_RULES_ARTIGO, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 import { resumoRapidoSchema } from "@/lib/ai/schemas";
 import { generateAi } from "@/lib/ai/runtime";
 import { plainTextFromHtml } from "@/lib/share-metadata";
@@ -21,13 +21,13 @@ export async function POST(req: Request) {
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
     const kind = contentType === "journal" ? "artigo de \"Estudei para te explicar\"" : "produto da Vitrine";
-    const prompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${QUICK_SUMMARY_RULES}
+    const prompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${contentType === "journal" ? QUICK_SUMMARY_RULES_ARTIGO : QUICK_SUMMARY_RULES}
 
 Este é um ${kind} JÁ PUBLICADO da Luana. Título: "${title || "sem título"}".
 TEXTO JÁ PUBLICADO (única fonte permitida, não pesquise nem acrescente nada de fora dele):
 """${sourceText}"""
 
-Preencha resumoRapido resumindo só o que está no texto acima.`;
+Preencha resumoRapido resumindo só o que está no texto acima. ${contentType === "journal" ? "Este artigo pode ser pesquisa ou reflexão; não transforme pesquisa em experiência pessoal e não invente uso." : "Preserve a diferença entre experiência confirmada e informação da marca."}`;
 
     const { response, usage } = await generateAi(ai, "summary", {
       contents: prompt,

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { friendlyAiError, type QuoteCandidate, validateAccessoryTrace, validateQuoteBatch, validateReviewCopy } from "../src/lib/ai/copy-quality";
 import { PRODUCT_REVIEW_STYLE_RULES, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES } from "../src/lib/ai/identity";
 import { buildAccessoryPrompt, buildQuotePrompt } from "../src/lib/ai/prompts";
-import { getProductCreativeDirection, originalityRules } from "../src/lib/creative-direction";
+import { getEditorialDirection, getProductCreativeDirection, originalityRules } from "../src/lib/creative-direction";
 import { getAiPolicy } from "../src/lib/ai/runtime";
 
 const themes = ["humor_cotidiano", "liberdade", "corpo", "menopausa", "motivacao"] as const;
@@ -27,10 +27,10 @@ test("lote válido contém 15 frases sem cotas temáticas", () => {
   expect(validateQuoteBatch(validQuoteBatch().map(({ text }) => ({ text })), []).valid).toBe(true);
 });
 
-test("prompt recupera motivação e deboche sem bloquear café ou colágeno", () => {
+test("prompt recupera humor e autonomia sem molde de café obrigatório", () => {
   const prompt = buildQuotePrompt({ existingQuotes: [] });
-  expect(prompt).toContain("acolhedoras ou debochadas");
-  expect(prompt).toContain("se sentir poderosa");
+  expect(prompt).toContain("autonomia");
+  expect(prompt).toContain("bem humoradas");
   expect(prompt).not.toContain("PROIBIDO");
   const candidates = validQuoteBatch();
   candidates[0].text = "Meu café está forte, meu colágeno nem tanto, mas minha vontade de viver continua de pé.";
@@ -97,6 +97,38 @@ test("direção criativa de produto força variedade editorial", () => {
   expect(direction).toContain("Abertura:");
   expect(direction).toContain("Humor:");
   expect(originalityRules).toContain("mágica dos ativos");
+});
+
+test("direção editorial respeita o material disponível", () => {
+  const researchOnly = getEditorialDirection({ hasResearch: true, hasPersonalNotes: false, hasOfficialProductInfo: false });
+  expect(researchOnly).toContain("Sem confirmação, não invente");
+  expect(researchOnly).not.toContain("confissão breve sustentada pelas notas pessoais");
+
+  const withNotes = getEditorialDirection({ hasResearch: true, hasPersonalNotes: true, hasOfficialProductInfo: true });
+  expect(withNotes).toContain("não copie estruturas recentes");
+});
+
+test("copy bloqueia experiência e sensorial sem confirmação", () => {
+  const quality = validateReviewCopy("Eu usei e na minha pele a textura leve absorveu rapidinho.", {
+    evidenceText: "retinal renovação",
+    sensoryEvidenceText: "",
+    enforceEditorialDiversity: true,
+  });
+  expect(quality.valid).toBe(false);
+  expect(quality.errors.join(" ")).toContain("experiência pessoal");
+  expect(quality.errors.join(" ")).toContain("sensorial");
+
+  expect(validateReviewCopy("Ao estudar o retinal, encontrei uma função ligada à renovação da pele.", {
+    evidenceText: "retinal renovação da pele",
+    enforceEditorialDiversity: true,
+  }).valid).toBe(true);
+});
+
+test("pílulas recebem direção autoral sem fórmula de café obrigatório", () => {
+  const prompt = buildQuotePrompt({ existingQuotes: [] });
+  expect(prompt).toContain("autonomia");
+  expect(prompt).toContain("experiência e a autonomia");
+  expect(prompt).not.toContain("tomando um café");
 });
 
 test("resenha editorial rejeita clichês, abertura genérica e falta de dado concreto", () => {

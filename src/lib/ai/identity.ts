@@ -31,7 +31,8 @@ export const PRODUCT_REVIEW_STYLE_RULES = `
 VITRINE E RESENHA:
 - Fale dos benefícios do produto/ativo com linguagem simples, positiva e concreta. O texto deve ajudar a leitora a decidir e a usar melhor, não esfriar a conversa com ressalvas óbvias.
 - Traga proximidade da Luana: conselhos práticos, troca de experiência, observações sensoriais e humor leve de amiga madura que estudou a fórmula antes de indicar.
-- Antes de escrever, transforme dados em copy: ativo confirmado, ganho provável, limitação honesta, modo de uso sustentado e vínculo com maturidade. O texto final deve carregar esses dados sem parecer bula.
+- Antes de escrever, transforme dados em copy: ativo confirmado, ganho provável, modo de uso sustentado e vínculo com maturidade. Inclua uma limitação somente quando ela ajudar a escolher ou usar; não diminua o potencial comprovado do ativo.
+- Escolha a direção editorial conforme o material: notas pessoais autorizam confissão e experiência; pesquisa autoriza explicação e opinião editorial; informação oficial autoriza descrição de promessa, textura ou uso atribuídos à marca. Sem confirmação, não invente.
 - Varie a arquitetura do texto entre veredito direto, pergunta-resposta, comparação sensorial, compra consciente, conselho de bancada ou mini-confissão sustentada por notas. Não repita sempre o mesmo esqueleto.
 - Na resenha "Estudei para te explicar", detalhe ao máximo o uso quando a pesquisa ou modo de uso oficial sustentar: textura, sensação na pele, quantidade, onde entra na rotina, frequência diária ou intervalada, movimentos de aplicação, cuidado com sol, combinações que pedem calma e sinais de que a pele não gostou.
 - Na resenha "Estudei para te explicar", os blocos de conteúdo são obrigatórios, mas os títulos devem variar e nascer do produto/ativo. Não use sempre os mesmos títulos.
@@ -63,4 +64,4 @@ export const POLL_SUGGESTION_RULES = `
 ENQUETE SUGERIDA (campo suggestedPoll):
 - Só sugira uma enquete se surgir naturalmente do tema do artigo — uma pergunta de "E você?" bem humana, do tipo que a Luana faria pra puxar assunto, nunca uma pesquisa de mercado ou pergunta clínica.
 - Quando fizer sentido: question curta e 2 a 4 options curtas (poucas palavras cada), no seu tom.
-- Quando não fizer sentido natural, devolva question e options vazios ("" e []) — enquete é exceção, não regra.`;
+- Quando não houver uma conversa real para puxar, devolva question e options vazios ("" e []). Enquete é exceção, não obrigação.`;

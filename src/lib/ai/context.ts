@@ -37,6 +37,12 @@ function recentContentPromise(supabase: SupabaseClient, contentType: string) {
   if (contentType === "blog") {
     return supabase.from("journal").select("title,content,category,created_at").order("created_at", { ascending: false }).limit(4);
   }
+  if (contentType.startsWith("newsletter_")) {
+    return supabase.from("journal").select("title,content,category,created_at").order("created_at", { ascending: false }).limit(3);
+  }
+  if (contentType === "quote") {
+    return supabase.from("quotes").select("quote,created_at").order("created_at", { ascending: false }).limit(40);
+  }
   return Promise.resolve({ data: [] });
 }
 
@@ -70,9 +76,9 @@ export async function loadAiContext(supabase: SupabaseClient, userId: string, co
   const recent = (history || []) as HistoryItem[];
   const historyText = compact(recent.map((item) => [item.title, item.opening_style, item.structure_style, item.closing_style, ...(item.notable_phrases || [])]
     .filter(Boolean).join(" | ")).join("\n"), MAX_HISTORY_CHARS);
-  const recentSnippets = compact(((recentContent || []) as Array<{ title?: string | null; description?: string | null; content?: string | null; category?: string | null }>)
+  const recentSnippets = compact(((recentContent || []) as Array<{ title?: string | null; quote?: string | null; description?: string | null; content?: string | null; category?: string | null }>)
     .map((item) => {
-      const text = plainTextFromHtml(item.description || item.content);
+      const text = plainTextFromHtml(item.quote || item.description || item.content);
       return [item.title, item.category, text.slice(0, 260)].filter(Boolean).join(" | ");
     })
     .filter(Boolean)

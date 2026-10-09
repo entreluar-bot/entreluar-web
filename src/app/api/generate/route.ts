@@ -205,7 +205,13 @@ resumoRapido deve resumir o productReview que você acabou de escrever, pra fich
       const result = await generateAi(ai, "product", { contents: `${writingPrompt}\nA resposta anterior falhou na formatação. Gere o objeto completo, conciso e válido, sem nova pesquisa.`, config: { responseMimeType: "application/json", responseJsonSchema: productSchema, temperature: 0.35 } });
       usages.push(result.usage); generated = parseJson<ProductGeneration>(result.response.text);
     }
-    const reviewQuality = validateReviewCopy(`${generated.productReview}\n${generated.blogPost}`, { evidenceText: `${productName} ${research.summary}`, isEstudei: true, enforceEditorialDiversity: true });
+    const reviewQuality = validateReviewCopy(`${generated.productReview}\n${generated.blogPost}`, {
+      evidenceText: `${productName} ${research.summary}`,
+      notesText: impressions,
+      sensoryEvidenceText: research.summary,
+      isEstudei: true,
+      enforceEditorialDiversity: true,
+    });
     if (!reviewQuality.valid) {
       retryCount += 1;
       const result = await generateAi(ai, "product", {
@@ -214,6 +220,14 @@ resumoRapido deve resumir o productReview que você acabou de escrever, pra fich
       });
       usages.push(result.usage);
       generated = parseJson<ProductGeneration>(result.response.text);
+      const retryQuality = validateReviewCopy(`${generated.productReview}\n${generated.blogPost}`, {
+        evidenceText: `${productName} ${research.summary}`,
+        notesText: impressions,
+        sensoryEvidenceText: research.summary,
+        isEstudei: true,
+        enforceEditorialDiversity: true,
+      });
+      if (!retryQuality.valid) throw new Error(`A resposta da IA veio incompleta: ${retryQuality.errors.join(" ")}`);
     }
     timings.writing = Date.now() - writingStartedAt;
     generated.productName ||= productName;

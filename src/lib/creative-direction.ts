@@ -36,7 +36,7 @@ const productOpenings = [
   "abra com uma frase de compra honesta: para quem faz sentido e para quem talvez não faça",
   "abra pelo ativo mais decisivo e traduza o ganho em linguagem de nécessaire",
   "abra com uma observação sobre pele madura conectada ao produto, sem frase feita",
-  "abra pelo limite do produto e transforme isso em confiança editorial",
+  "abra por uma pergunta de uso ou escolha que os dados do produto consigam responder",
 ];
 
 const productHumor = [
@@ -71,6 +71,38 @@ export function getProductCreativeDirection() {
   ].join("; ");
 }
 
+export type EditorialMaterial = {
+  hasPersonalNotes?: boolean;
+  hasResearch?: boolean;
+  hasOfficialProductInfo?: boolean;
+  recentOpeningStyles?: string[];
+};
+
+export function getEditorialDirection(material: EditorialMaterial = {}) {
+  const eligibleOpenings = [
+    "comece pelo benefício ou pela pergunta central que os dados conseguem sustentar",
+    "comece por uma opinião editorial da Luana sobre o tema, sem inventar experiência",
+    ...(material.hasPersonalNotes ? ["comece por uma confissão breve sustentada pelas notas pessoais"] : []),
+    ...(material.hasOfficialProductInfo ? ["comece por uma observação de uso ou textura atribuída à informação oficial"] : []),
+    ...(material.hasResearch ? ["comece pelo ativo ou mecanismo mais interessante e traduza o ganho em linguagem cotidiana"] : []),
+  ];
+  const recent = (material.recentOpeningStyles || []).join(" ").toLowerCase();
+  const filteredOpenings = eligibleOpenings.filter((item) => !recent.includes(item.slice(0, 18)));
+  const opening = pick(filteredOpenings.length ? filteredOpenings : eligibleOpenings);
+  const closing = pick(material.hasPersonalNotes
+    ? [
+      "termine com uma conclusão prática ligada à experiência registrada",
+      "termine com uma reflexão íntima, sem transformar autocuidado em obrigação",
+      "termine com humor leve e uma decisão clara para a leitora",
+    ]
+    : [
+      "termine com um veredito editorial baseado nos dados apresentados",
+      "termine com um conselho prático de rotina, sem inventar uso pessoal",
+      "termine retomando o benefício principal com uma frase autoral e leve",
+    ]);
+  return `Abertura editorial: ${opening}; Fechamento: ${closing}; alterne o ritmo e não copie estruturas recentes. Sem confirmação, não invente experiência, sensorial ou uso.`;
+}
+
 export const originalityRules = `
 REGRAS DE ORIGINALIDADE:
 - Não comece com vinho, café, namorado, amiga, sofá, espelho, rotina da manhã/noite nem com fórmulas como "outro dia eu estava...".
@@ -78,5 +110,6 @@ REGRAS DE ORIGINALIDADE:
 - Não use sempre a sequência historinha pessoal → explicação → conselho → pergunta final. Varie a composição, o tamanho dos parágrafos e a progressão das ideias.
 - Evite muletas como "amiga, senta que lá vem história", "preciso te contar" e "quem nunca?".
 - Evite repetir muletas de beleza como "mágica dos ativos", "pele madura agradece", "sem milagre", "segredinho" e "glow poderoso".
+- Não use "segredo irresistível", "descoberta que vai transformar sua rotina" ou promessa semelhante como molde de título.
 - A voz continua íntima, bem-humorada e em primeira pessoa, mas intimidade não exige começar com uma cena doméstica.
 - Faça a abertura nascer do assunto específico desta geração; ela deve funcionar somente para este texto, não para qualquer postagem.`;
