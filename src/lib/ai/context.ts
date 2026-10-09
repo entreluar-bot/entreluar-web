@@ -19,11 +19,25 @@ type HistoryItem = {
 };
 
 const MAX_MEMORY_CHARS = 1800;
-const MAX_HISTORY_CHARS = 900;
+const MAX_HISTORY_CHARS = 1400;
 const stopWords = new Set(["para", "como", "sobre", "uma", "com", "sem", "que", "por", "dos", "das", "nas", "nos", "produto", "texto"]);
 
 function compact(value: string, maxChars: number) {
   return value.replace(/\s+/g, " ").trim().slice(0, maxChars);
+}
+
+function plainTextFromHtml(value: string | null | undefined) {
+  return String(value || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ");
+}
+
+function recentContentPromise(supabase: SupabaseClient, contentType: string) {
+  if (contentType === "review") {
+    return supabase.from("products").select("title,description,created_at").order("created_at", { ascending: false }).limit(4);
+  }
+  if (contentType === "blog") {
+    return supabase.from("journal").select("title,content,category,created_at").order("created_at", { ascending: false }).limit(4);
+  }
+  return Promise.resolve({ data: [] });
 }
 
 export function topicTags(...values: Array<string | undefined>) {
@@ -33,7 +47,7 @@ export function topicTags(...values: Array<string | undefined>) {
 
 export async function loadAiContext(supabase: SupabaseClient, userId: string, contentType: string, tags: string[]) {
   const now = new Date().toISOString();
-  const [{ data: tagged }, { data: identity }, { data: history }] = await Promise.all([
+  const [{ data: tagged }, { data: identity }, { data: history }, { data: recentContent }] = await Promise.all([
     tags.length ? supabase.from("luana_memories").select("id,category,content,tags,privacy,allow_in_content")
       .eq("user_id", userId).eq("status", "aprovada").neq("privacy", "privada")
       .or(`valid_until.is.null,valid_until.gt.${now}`).overlaps("tags", tags).limit(8) : Promise.resolve({ data: [] }),
@@ -42,6 +56,7 @@ export async function loadAiContext(supabase: SupabaseClient, userId: string, co
       .in("category", ["identidade", "linguagem", "limite"]).or(`valid_until.is.null,valid_until.gt.${now}`).limit(8),
     supabase.from("ai_generation_history").select("opening_style,structure_style,closing_style,title,notable_phrases")
       .eq("user_id", userId).eq("content_type", contentType).order("created_at", { ascending: false }).limit(6),
+    recentContentPromise(supabase, contentType),
   ]);
 
   const byId = new Map<string, AiMemory>();
@@ -55,11 +70,18 @@ export async function loadAiContext(supabase: SupabaseClient, userId: string, co
   const recent = (history || []) as HistoryItem[];
   const historyText = compact(recent.map((item) => [item.title, item.opening_style, item.structure_style, item.closing_style, ...(item.notable_phrases || [])]
     .filter(Boolean).join(" | ")).join("\n"), MAX_HISTORY_CHARS);
+  const recentSnippets = compact(((recentContent || []) as Array<{ title?: string | null; description?: string | null; content?: string | null; category?: string | null }>)
+    .map((item) => {
+      const text = plainTextFromHtml(item.description || item.content);
+      return [item.title, item.category, text.slice(0, 260)].filter(Boolean).join(" | ");
+    })
+    .filter(Boolean)
+    .join("\n"), MAX_HISTORY_CHARS);
 
   return {
     memoryIds: memories.map((item) => item.id),
     memoryPrompt: memoryText ? `MEMÓRIAS SELETIVAS DA LUANA:\n${memoryText}` : "Não há memória pessoal aprovada pertinente. Não invente fatos para preencher essa ausência.",
-    antiRepetitionPrompt: historyText ? `EVITE REPETIR ESCOLHAS DOS CONTEÚDOS RECENTES:\n${historyText}` : "Não há histórico recente disponível; ainda assim, evite fórmulas prontas.",
+    antiRepetitionPrompt: [historyText ? `EVITE REPETIR ESCOLHAS DOS CONTEÚDOS RECENTES:\n${historyText}` : "Não há histórico recente disponível; ainda assim, evite fórmulas prontas.", recentSnippets ? `TRECHOS RECENTES PARA NÃO ECOAR NEM PARAFRASEAR:\n${recentSnippets}` : ""].filter(Boolean).join("\n\n"),
   };
 }
 

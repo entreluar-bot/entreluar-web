@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { friendlyAiError, type QuoteCandidate, validateAccessoryTrace, validateQuoteBatch } from "../src/lib/ai/copy-quality";
+import { friendlyAiError, type QuoteCandidate, validateAccessoryTrace, validateQuoteBatch, validateReviewCopy } from "../src/lib/ai/copy-quality";
+import { PRODUCT_REVIEW_STYLE_RULES, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES } from "../src/lib/ai/identity";
 import { buildAccessoryPrompt, buildQuotePrompt } from "../src/lib/ai/prompts";
+import { getProductCreativeDirection, originalityRules } from "../src/lib/creative-direction";
 import { getAiPolicy } from "../src/lib/ai/runtime";
 
 const themes = ["humor_cotidiano", "liberdade", "corpo", "menopausa", "motivacao"] as const;
@@ -67,6 +69,64 @@ test("prompt de acessório exige notas reais e humor elegante", () => {
   });
   expect(promptWithoutNotes).toContain("não invente experiência");
   expect(promptWithoutNotes).toContain("inputDetailsUsed deve ser um array vazio");
+});
+
+test("regras de resenha priorizam conversa simples e uso prático", () => {
+  expect(SIMPLE_LANGUAGE_RULES).toContain("energia positiva");
+  expect(SIMPLE_LANGUAGE_RULES).toContain("trocando experiência com uma amiga");
+  expect(PRODUCT_REVIEW_STYLE_RULES).toContain("benefícios do produto");
+  expect(PRODUCT_REVIEW_STYLE_RULES).toContain("textura");
+  expect(PRODUCT_REVIEW_STYLE_RULES).toContain("quantidade");
+  expect(PRODUCT_REVIEW_STYLE_RULES).toContain("movimentos de aplicação");
+  expect(PRODUCT_REVIEW_STYLE_RULES).toContain("frequência diária ou intervalada");
+  expect(PRODUCT_REVIEW_STYLE_RULES).toContain("cuidado com sol");
+  expect(PRODUCT_REVIEW_STYLE_RULES).toContain("Varie a arquitetura");
+  expect(PRODUCT_REVIEW_STYLE_RULES).toContain("títulos devem variar");
+  expect(SCIENCE_RULES).toContain("não substitui procedimentos estéticos");
+});
+
+test("resenha bloqueia disclaimers genéricos sobre procedimentos", () => {
+  expect(validateReviewCopy("Esse creme hidrata bem, mas não substitui procedimentos estéticos.").valid).toBe(false);
+  expect(validateReviewCopy("Vale usar com calma e procurar um dermatologista.").valid).toBe(false);
+  expect(validateReviewCopy("Eu aplicaria uma ervilha, em movimentos circulares, e capricharia no protetor de manhã.").valid).toBe(true);
+});
+
+test("direção criativa de produto força variedade editorial", () => {
+  const direction = getProductCreativeDirection();
+  expect(direction).toContain("Ângulo:");
+  expect(direction).toContain("Abertura:");
+  expect(direction).toContain("Humor:");
+  expect(originalityRules).toContain("mágica dos ativos");
+});
+
+test("resenha editorial rejeita clichês, abertura genérica e falta de dado concreto", () => {
+  const generic = validateReviewCopy("Amiga, esse produto é um segredinho. A pele madura agradece.", {
+    evidenceText: "retinal peptideos hidratação",
+    enforceEditorialDiversity: true,
+  });
+  expect(generic.valid).toBe(false);
+  expect(generic.errors.join(" ")).toContain("Muleta editorial");
+  expect(generic.errors.join(" ")).toContain("Abertura genérica");
+  expect(generic.errors.join(" ")).toContain("dado concreto");
+
+  const concrete = validateReviewCopy("O retinal entra aqui como aquele ativo de renovação que pede noite, calma e protetor no dia seguinte.", {
+    evidenceText: "retinal renovação uso noturno",
+    enforceEditorialDiversity: true,
+  });
+  expect(concrete.valid).toBe(true);
+});
+
+test("Estudei rejeita o molde antigo de headings fixos", () => {
+  const oldTemplate = `
+    <h3>📣 A Promessa da Indústria</h3>
+    <h3>🧴 Afinal, o que tem na fórmula?</h3>
+    <h3>🔬 O que a ciência diz sobre esses ativos?</h3>
+    <h3>✨ E a nossa pele madura, ganha o quê com isso?</h3>
+    <h3>🪞 Manual de Sobrevivência</h3>
+  `;
+  const quality = validateReviewCopy(oldTemplate, { isEstudei: true });
+  expect(quality.valid).toBe(false);
+  expect(quality.errors.join(" ")).toContain("molde antigo");
 });
 
 test("rastreabilidade de acessório confirma detalhe das notas", () => {

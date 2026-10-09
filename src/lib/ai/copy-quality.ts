@@ -35,7 +35,43 @@ const AGE_DEPRECATING_PATTERNS = [
   /velha demais/i,
 ];
 
-const STOP_WORDS = new Set(["aquela", "aquele", "assim", "ainda", "comigo", "como", "dessa", "desse", "entre", "essa", "esse", "mais", "menos", "mesma", "mesmo", "minha", "muito", "nossa", "para", "pela", "pelas", "pelo", "pelos", "porque", "quando", "quem", "sobre", "tambem", "toda", "todo", "voce"]);
+const BANNED_REVIEW_DISCLAIMER_PATTERNS = [
+  /n[aã]o substitui (procedimentos?|tratamentos?|consultas?|acompanhamento)/i,
+  /n[aã]o (substitui|dispensa) (um |uma |o |a )?(dermatologista|m[eé]dico|profissional)/i,
+  /procur(ar|e) (um |uma )?(dermatologista|m[eé]dico|profissional)/i,
+  /consult(ar|e) (um |uma )?(dermatologista|m[eé]dico|profissional)/i,
+  /procedimento est[eé]tico/i,
+];
+
+const REVIEW_CLICHE_PATTERNS = [
+  /m[aá]gica dos ativos/i,
+  /pele madura agradece/i,
+  /sem milagre/i,
+  /segredinho/i,
+  /glow poderoso/i,
+  /queridinho/i,
+  /produto dos sonhos/i,
+];
+
+const GENERIC_OPENING_PATTERNS = [
+  /^hoje eu vim falar/i,
+  /^vamos falar/i,
+  /^amiga[,!]?/i,
+  /^preciso te contar/i,
+  /^se tem uma coisa que/i,
+  /^quando o assunto [eé]/i,
+];
+
+const LEGACY_ESTUDEI_HEADINGS = [
+  "a promessa da industria",
+  "afinal o que tem na formula",
+  "o que a ciencia diz sobre esses ativos",
+  "e a nossa pele madura ganha o que com isso",
+  "manual de sobrevivencia",
+  "e hype ou e milagre",
+];
+
+const STOP_WORDS = new Set(["aquela", "aquele", "assim", "ainda", "ativos", "beleza", "coisa", "comigo", "como", "creme", "dessa", "desse", "entre", "essa", "esse", "formula", "marca", "muito", "nossa", "outros", "outro", "pele", "produto", "rosto", "sobre", "tambem", "texto", "toda", "todo", "tratamento", "voce"]);
 
 export function normalizeCopy(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
@@ -102,6 +138,48 @@ export function validateAccessoryTrace(notes: string, detailsUsed: string[], hum
     errors.push("Foram declarados detalhes pessoais sem notas fornecidas.");
   }
 
+  return { valid: errors.length === 0, errors };
+}
+
+function plainText(value: string) {
+  return value.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function firstSentence(value: string) {
+  return plainText(value).split(/[.!?]/)[0]?.trim() || "";
+}
+
+export function validateReviewCopy(text: string, options: { evidenceText?: string; isEstudei?: boolean; enforceEditorialDiversity?: boolean } = {}) {
+  const errors: string[] = [];
+  for (const pattern of BANNED_REVIEW_DISCLAIMER_PATTERNS) {
+    const match = text.match(pattern)?.[0];
+    if (match) errors.push(`Disclaimer genérico bloqueado: "${match}".`);
+  }
+  if (options.enforceEditorialDiversity) {
+    for (const pattern of REVIEW_CLICHE_PATTERNS) {
+      const match = text.match(pattern)?.[0];
+      if (match) errors.push(`Muleta editorial repetitiva: "${match}".`);
+    }
+    const opening = firstSentence(text);
+    if (GENERIC_OPENING_PATTERNS.some((pattern) => pattern.test(opening))) {
+      errors.push(`Abertura genérica demais: "${opening.slice(0, 80)}".`);
+    }
+  }
+  if (options.evidenceText) {
+    const evidenceWords = meaningfulWords(options.evidenceText);
+    const textWords = meaningfulWords(text);
+    const overlap = [...evidenceWords].filter((word) => textWords.has(word));
+    if (evidenceWords.size && overlap.length < 1) {
+      errors.push("O texto não trouxe nenhum dado concreto rastreável do produto, ativo ou pesquisa.");
+    }
+  }
+  if (options.isEstudei) {
+    const normalized = normalizeCopy(text);
+    const repeatedHeadings = LEGACY_ESTUDEI_HEADINGS.filter((heading) => normalized.includes(heading));
+    if (repeatedHeadings.length >= 4) {
+      errors.push("O artigo repetiu o molde antigo de títulos fixos do Estudei.");
+    }
+  }
   return { valid: errors.length === 0, errors };
 }
 
