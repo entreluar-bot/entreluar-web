@@ -24,6 +24,16 @@
 # misc
 .DS_Store
 *.pem
+.claude/
+.codex-remote-attachments/
+scratch/
+db_dump.json
+proposed_tags.json
+check-api*.js
+check-col.js
+fix-*.mjs
+generate-comments.mjs
+src/app/api/temp-tags/
 
 # debug
 npm-debug.log*
