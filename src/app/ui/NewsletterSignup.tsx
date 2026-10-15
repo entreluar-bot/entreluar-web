@@ -6,9 +6,10 @@ import { getCampaignContext } from "./CampaignTracker";
 type NewsletterSignupProps = {
   source: string;
   compact?: boolean;
+  buttonLabel?: string;
 };
 
-export default function NewsletterSignup({ source, compact = false }: NewsletterSignupProps) {
+export default function NewsletterSignup({ source, compact = false, buttonLabel = "Quero ficar por dentro" }: NewsletterSignupProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -49,7 +50,7 @@ export default function NewsletterSignup({ source, compact = false }: Newsletter
         required
         className="min-w-0 flex-1 px-4"
       />
-      <button type="submit" disabled={loading} className="newsletter-submit">{loading ? "…" : "Quero ficar por dentro"}</button>
+      <button type="submit" disabled={loading} className="newsletter-submit">{loading ? "…" : buttonLabel}</button>
     </form>
   );
 }

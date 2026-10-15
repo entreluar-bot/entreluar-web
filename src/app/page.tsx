@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import ProductCard from "./ProductCard";
 import QuoteShareButton from "./ui/QuoteShareButton";
+import NewsletterSignup from "./ui/NewsletterSignup";
 import { THEME_GROUPS } from "@/lib/theme-groups";
 import type { JournalPost, Product, Quote } from "./types";
 
@@ -106,6 +107,13 @@ export default async function Home() {
             <Link href="/pilulas" className="inline-flex min-h-11 items-center text-xs font-bold uppercase tracking-[.18em] text-[var(--champagne)]">Quero outra dose →</Link>
             <QuoteShareButton quote={dailyQuoteText} className="home-quote-share" />
           </div>
+        </section>
+
+        <section className="glass-panel section-space rounded-[34px] px-6 py-12 text-center md:px-14" aria-label="Guia gratuito por email">
+          <p className="eyebrow">Um presente para você</p>
+          <h2 className="section-title my-5">Guia de rotina<br /><em>para pele madura</em></h2>
+          <p className="muted mx-auto mb-7 max-w-xl leading-7">Cinco passos simples, em uma página, sem susto e sem promessa milagrosa. Deixe seu melhor email que eu mando agora, e depois te escrevo só quando valer a pena.</p>
+          <div className="mx-auto max-w-md"><NewsletterSignup source="home-guia" buttonLabel="Quero meu guia grátis" /></div>
         </section>
 
         <section className="section-space">

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendWelcomeEmail } from "@/lib/welcome-email";
 
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -49,7 +50,13 @@ export async function POST(req: Request) {
     if (error) throw error;
 
     await supabase.from("newsletter_conversions").insert([conversionRow]);
-    return NextResponse.json({ success: true, message: "Inscrição confirmada!" });
+    const welcomeSent = await sendWelcomeEmail(email);
+    return NextResponse.json({
+      success: true,
+      message: welcomeSent
+        ? "Pronto, amiga! Te mandei o guia por email. Se não aparecer, dá uma olhadinha no spam. ✨"
+        : "Inscrição confirmada! Em breve eu te escrevo. ✨",
+    });
   } catch (error: unknown) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Falha ao confirmar inscrição." }, { status: 500 });
   }
