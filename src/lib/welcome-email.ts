@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { renderPremiumEmail } from "./email-template";
+import { applyUnsubscribe, unsubscribeHeaders } from "./unsubscribe";
 
 const FROM = "Luana <luana@entreluar.com.br>";
 
@@ -33,7 +34,7 @@ export async function sendWelcomeEmail(email: string): Promise<boolean> {
     const { subject, html } = buildWelcomeEmail();
     const resend = new Resend(apiKey);
     const response = await resend.emails.send(
-      { from: FROM, to: [email], replyTo: "luana@entreluar.com.br", subject, html },
+      { from: FROM, to: [email], replyTo: "luana@entreluar.com.br", subject, html: applyUnsubscribe(html, email), headers: unsubscribeHeaders(email) },
       { idempotencyKey: `welcome-${email}` },
     );
     return !response.error;

@@ -411,7 +411,9 @@ export default function AdminDashboard() {
       setEmailSubscribers(data.subscribers || []);
       setEmailDeliveries(data.deliveries || []);
       const ignored = (data.invalid || 0) + (data.duplicates || 0);
-      setSubscriberNotes(ignored > 0 ? `${ignored} cadastro${ignored === 1 ? " foi ignorado" : "s foram ignorados"} por estar inválido ou repetido.` : "Base validada e pronta para envio.");
+      const left = data.unsubscribed || 0;
+      const leftNote = left > 0 ? ` ${left} pessoa${left === 1 ? " saiu" : "s saíram"} da lista e não recebe${left === 1 ? "" : "m"} mais emails.` : "";
+      setSubscriberNotes((ignored > 0 ? `${ignored} cadastro${ignored === 1 ? " foi ignorado" : "s foram ignorados"} por estar inválido ou repetido.` : "Base validada e pronta para envio.") + leftNote);
     } catch (error) {
       setSubscribersCount(0);
       setEmailSubscribers([]);
@@ -1370,8 +1372,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.07</p>
-                <p>Atualizado em 15/10/2026 às 21:01</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.08</p>
+                <p>Atualizado em 15/10/2026 às 21:41</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />

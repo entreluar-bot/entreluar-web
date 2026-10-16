@@ -43,6 +43,8 @@ export async function POST(req: Request) {
     // 23505 is unique violation code in Postgres
     if (error && error.code === "23505") {
       await supabase.from("subscribers").update(subscriberRow).eq("email", email);
+      // Quem voltou a se cadastrar volta para a lista (ignora erro se a coluna ainda não existir).
+      await supabase.from("subscribers").update({ unsubscribed_at: null }).eq("email", email).not("unsubscribed_at", "is", null);
       await supabase.from("newsletter_conversions").insert([conversionRow]);
       return NextResponse.json({ message: "Esse email já estava na nossa roda. Atualizei a origem por aqui. ✨" });
     }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
+import { applyUnsubscribe, unsubscribeHeaders } from "@/lib/unsubscribe";
 
 export const maxDuration = 60;
 
@@ -74,12 +75,22 @@ async function getAuthenticatedContext(req: Request) {
 async function getRecipients(req: Request) {
   const supabase = await getAuthenticatedContext(req);
   if (!supabase) return { unauthorized: true as const };
-  const { data, error } = await supabase.from("subscribers").select("email");
-  if (error) throw new Error("Não foi possível acessar a base de assinantes.");
+  let rows: Array<{ email: unknown; unsubscribed_at?: string | null }> = [];
+  const withFlag = await supabase.from("subscribers").select("email,unsubscribed_at");
+  if (!withFlag.error) {
+    rows = (withFlag.data ?? []) as typeof rows;
+  } else {
+    // Coluna unsubscribed_at ainda não existe (migração pendente): segue sem filtrar.
+    const plain = await supabase.from("subscribers").select("email");
+    if (plain.error) throw new Error("Não foi possível acessar a base de assinantes.");
+    rows = (plain.data ?? []) as typeof rows;
+  }
+  const active = rows.filter((row) => !row.unsubscribed_at);
   return {
     unauthorized: false as const,
     supabase,
-    recipients: normalizeEmails((data ?? []) as Array<{ email: unknown }>),
+    unsubscribedCount: rows.length - active.length,
+    recipients: normalizeEmails(active),
   };
 }
 
@@ -138,6 +149,7 @@ export async function GET(req: Request) {
       invalid: result.recipients.invalid,
       duplicates: result.recipients.duplicates,
       subscribers: result.recipients.emails,
+      unsubscribed: result.unsubscribedCount,
       deliveries,
     });
   } catch (error) {
@@ -204,7 +216,7 @@ export async function POST(req: Request) {
       const batchNumber = Math.floor(start / 100) + 1;
       try {
         const response = await resend.batch.send(
-          chunk.map((email) => ({ from: FROM, to: [email], subject, html })),
+          chunk.map((email) => ({ from: FROM, to: [email], subject, html: applyUnsubscribe(html, email), headers: unsubscribeHeaders(email) })),
           { batchValidation: "permissive", idempotencyKey: `${dispatchId}-batch-${batchNumber}` },
         );
 
