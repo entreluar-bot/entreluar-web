@@ -101,7 +101,7 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
 
           {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
 
-          <ConversationCircle postId={post.id} postTitle={post.title} comments={comments} question={post.reader_question} contentType="journal" variant="journal" />
+          <ConversationCircle postId={post.id} postTitle={post.title} postCreatedAt={post.created_at} comments={comments} question={post.reader_question} contentType="journal" variant="journal" />
 
           <section className="newsletter-cta newsletter-cta--article" aria-labelledby="post-newsletter-title">
             <div>

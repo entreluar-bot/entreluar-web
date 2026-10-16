@@ -30,6 +30,7 @@ const COPY = {
 export default function ConversationCircle({
   postId,
   postTitle,
+  postCreatedAt,
   comments,
   question,
   contentType = "journal",
@@ -37,6 +38,7 @@ export default function ConversationCircle({
 }: {
   postId: string;
   postTitle: string;
+  postCreatedAt?: string | null;
   comments: JournalComment[];
   question?: string | null;
   contentType?: "journal" | "product";
@@ -117,12 +119,17 @@ export default function ConversationCircle({
           comments.map((comment) => {
             const signature = comment.hide_reader_name ? "Anônimo" : getFirstName(comment.reader_name) || "Anônimo";
             const avatarLetter = signature === "Anônimo" ? "A" : signature.charAt(0).toUpperCase();
+            const commentMs = new Date(comment.created_at).getTime();
+            const postMs = postCreatedAt ? new Date(postCreatedAt).getTime() : NaN;
+            const safeDateIso = !Number.isNaN(commentMs) && !Number.isNaN(postMs) && commentMs < postMs
+              ? postCreatedAt!
+              : comment.created_at;
             return (
               <article key={comment.id} className="conversation-comment">
                 <div className="conversation-comment__head">
                   <span className="conversation-avatar" aria-hidden="true">{avatarLetter}</span>
-                  <time className="ml-auto text-[10px] uppercase tracking-widest text-[var(--muted)]" dateTime={comment.created_at}>
-                    {new Date(comment.created_at).toLocaleDateString("pt-BR")}
+                  <time className="ml-auto text-[10px] uppercase tracking-widest text-[var(--muted)]" dateTime={safeDateIso}>
+                    {new Date(safeDateIso).toLocaleDateString("pt-BR")}
                   </time>
                 </div>
                 <p>{comment.body}</p>

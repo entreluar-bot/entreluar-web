@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { authenticateAiRequest } from "@/lib/ai/auth";
-import { generateAi } from "@/lib/ai/runtime";
+import { combineUsage, generateAi, type AiUsage } from "@/lib/ai/runtime";
 import { plainTextFromHtml } from "@/lib/share-metadata";
 import { recordGeneration } from "@/lib/ai/context";
+import { chooseCommentCount, drawPersonaBatch } from "@/lib/social-proof/personas";
+import { loadSocialProofMemory } from "@/lib/social-proof/memory";
+import { buildRetrySocialProofPrompt, buildSocialProofPrompt } from "@/lib/social-proof/prompt";
+import { validateCommentBatch } from "@/lib/social-proof/validate";
+import { generateReaderIdentity } from "@/lib/social-proof/names";
+import { generateReactionCounts, generateSafeCommentDate, isFuturePostDate } from "@/lib/social-proof/timing";
 
 export const maxDuration = 60;
 
@@ -15,147 +21,268 @@ const socialProofSchema = {
       items: {
         type: "object",
         properties: {
-          email: { type: "string" },
-          readerName: { type: "string" },
-          body: { type: "string" }
+          index: { type: "number" },
+          body: { type: "string" },
         },
-        required: ["email", "readerName", "body"]
-      }
-    }
+        required: ["index", "body"],
+      },
+    },
   },
   required: ["comments"],
   additionalProperties: false,
 };
 
-function getRandomDateBetween(start: string | Date, end: string | Date) {
-  const startTime = new Date(start).getTime();
-  const endTime = new Date(end).getTime();
-  return new Date(startTime + Math.random() * (endTime - startTime)).toISOString();
-}
-
 export async function POST(req: Request) {
   try {
     const { supabase, user } = await authenticateAiRequest(req);
     const body = await req.json();
-    const { journalId, category, title, content } = body;
+    const { journalId, productId, contentType, category, title, content, dryRun } = body;
+
+    // Trava inegociável: Vitrine (produtos) nunca pode ter prova social
+    if (productId || contentType === "product") {
+      return NextResponse.json(
+        { error: "Prova social não é permitida na Vitrine de produtos." },
+        { status: 400 },
+      );
+    }
 
     if (!journalId) {
       return NextResponse.json({ error: "journalId é obrigatório" }, { status: 400 });
     }
 
-    const { data: journalRow } = await supabase.from("journal").select("created_at").eq("id", journalId).single();
-    const journalCreatedAt = journalRow?.created_at || new Date().toISOString();
+    const { data: journalRow, error: journalError } = await supabase
+      .from("journal")
+      .select("id,created_at,title,category,content")
+      .eq("id", journalId)
+      .single();
 
-    const sourceText = plainTextFromHtml(content, 3000);
+    if (journalError || !journalRow) {
+      return NextResponse.json({ error: "Postagem do Diário não encontrada." }, { status: 404 });
+    }
 
-    // Entre 3 e 8 comentários por geração
-    const numComments = Math.floor(Math.random() * 6) + 3;
+    const journalCreatedAt = journalRow.created_at || new Date().toISOString();
+    const now = new Date();
 
+    // Trava de data: impede gerar prova social para post agendado no futuro
+    if (isFuturePostDate(journalCreatedAt, now)) {
+      return NextResponse.json(
+        { error: "Esse post está com data futura. Publique ou ajuste a data antes de gerar a prova social 🌙" },
+        { status: 400 },
+      );
+    }
+
+    const effectiveTitle = title || journalRow.title || "Sem título";
+    const effectiveCategory = category || journalRow.category || "Geral";
+    const sourceText = plainTextFromHtml(content || journalRow.content || "", 2000);
+
+    // 1. Carrega memória anti-repetição (comentários do post + últimos do blog)
+    const memory = await loadSocialProofMemory(supabase, journalId);
+
+    // 2. Sorteia quantidade contextual e fichas de persona independentes
+    const numComments = chooseCommentCount(memory.existingPostCount);
+    const cards = drawPersonaBatch(numComments, sourceText);
+
+    // 3. Chama o modelo apenas para dar voz às fichas (sem gerar nome/email/data)
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-    const prompt = `Você é um gerador de interações (prova social) para um blog focado em mulheres maduras (menopausa, skincare, reflexões de vida, humor).
-O post se chama "${title || 'Sem título'}" e o conteúdo é:
-"""${sourceText}"""
-
-A categoria do post é "${category || 'Geral'}".
-
-Sua tarefa é gerar EXATAMENTE ${numComments} comentários BEM diversos, criativos e diferentes, simulando leitoras reais do blog.
-Crie personagens com todo tipo de pensamento.
-Variações OBRIGATÓRIAS que devem estar presentes:
-- Pelo menos um comentário apenas com emojis (ex: "😍😍👏👏").
-- Pelo menos um comentário curtíssimo e direto (ex: "Amei!", "Verdade Lu", "Eu toda").
-- Pelo menos um comentário "papo cabeça", reflexivo e um pouco mais longo, dividindo uma experiência pessoal com a menopausa ou envelhecimento.
-- Pelo menos um comentário com um erro de digitação comum ou coloquialismo ("tbm", "vdd", "nossa isso eh mto real").
-- Uma discordância leve ou ponto de vista diferente, educada e sem agressividade. Escreva com uma construção ORIGINAL e única, com palavras diferentes a cada vez. É PROIBIDO usar "discordo um pouco" ou "discordo em parte" ou variações dessa expressão. Exemplos do espírito (não copie): "Hmm, no meu caso foi bem diferente...", "Será? Comigo não funcionou assim.", "Admiro o texto, mas fiquei com um pé atrás nessa parte.", "Pra mim a história é outra, sabe?".
-- Se o número de comentários for pequeno (3 ou 4), priorize os mais variados e inclua só o que couber.
-
-Para cada comentário gere:
-- readerName: um nome brasileiro feminino plausível, curto ou composto (ex: Maria Helena, Cida, Solange).
-- email: um email falso (ex: maria.silva89@gmail.com, lela_2000@yahoo.com.br, etc) que reflita a idade e estilo da "leitora".
-- body: o texto do comentário.
-
-Devolva apenas o JSON.`;
-
-    const { response, usage } = await generateAi(ai, "accessory", {
-      contents: prompt,
-      config: { responseMimeType: "application/json", responseJsonSchema: socialProofSchema as any, temperature: 0.9 },
+    const prompt = buildSocialProofPrompt({
+      title: effectiveTitle,
+      category: effectiveCategory,
+      sourceText,
+      cards,
+      memory,
     });
 
-    const parsed = JSON.parse(response.text || "{}");
-    const comments = (parsed.comments || []).slice(0, numComments);
+    const usages: AiUsage[] = [];
+    const { response, usage } = await generateAi(ai, "socialProof", {
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseJsonSchema: socialProofSchema as never,
+        temperature: 1.0,
+        topP: 0.95,
+      },
+    });
+    usages.push(usage);
 
-    let generatedCommentsCount = 0;
-    if (comments.length > 0) {
-      const publicNameCount = Math.round(comments.length * 0.8);
-      const now = new Date().toISOString();
-      const inserts = comments.map((c: any, index: number) => {
-        const commentDate = getRandomDateBetween(journalCreatedAt, now);
-        return {
-          journal_id: journalId,
-          email: c.email,
-          reader_name: typeof c.readerName === "string" ? c.readerName.slice(0, 80) : null,
-          hide_reader_name: index >= publicNameCount,
-          body: c.body,
-          status: "approved",
-          created_at: commentDate,
-          approved_at: commentDate,
-        };
+    const parsed = JSON.parse(response.text || "{}");
+    const rawItems: Array<{ index: number; body: string }> = Array.isArray(parsed.comments)
+      ? parsed.comments.map((c: { index?: number; body?: string }, idx: number) => ({
+          index: typeof c.index === "number" ? c.index : idx + 1,
+          body: String(c.body || ""),
+        }))
+      : [];
+
+    // 4. Valida lote contra clichês, aberturas repetidas e similaridade
+    const { approved, rejected } = validateCommentBatch(rawItems, cards, memory);
+
+    // 5. No máximo 1 rodada de regeração agrupada para os reprovados
+    let retryCount = 0;
+    if (rejected.length > 0) {
+      retryCount = 1;
+      const rejectedCards = cards.filter((c) => !approved.has(c.index));
+      const retryPrompt = buildRetrySocialProofPrompt({
+        title: effectiveTitle,
+        sourceText,
+        rejectedCards,
+        issues: rejected,
+        alreadyApprovedBodies: Array.from(approved.values()),
+        memory,
       });
-      const { error } = await supabase.from("journal_comments").insert(inserts);
-      if (error) { console.error("Error inserting comments:", error); throw new Error("Erro DB Comentários: " + error.message); } else {
-        generatedCommentsCount = inserts.length;
+
+      try {
+        const retryResult = await generateAi(ai, "socialProof", {
+          contents: retryPrompt,
+          config: {
+            responseMimeType: "application/json",
+            responseJsonSchema: socialProofSchema as never,
+            temperature: 1.05,
+            topP: 0.95,
+          },
+        });
+        usages.push(retryResult.usage);
+        const retryParsed = JSON.parse(retryResult.response.text || "{}");
+        const retryItems: Array<{ index: number; body: string }> = Array.isArray(retryParsed.comments)
+          ? retryParsed.comments.map((c: { index?: number; body?: string }, idx: number) => ({
+              index: typeof c.index === "number" ? c.index : rejectedCards[idx]?.index || idx + 1,
+              body: String(c.body || ""),
+            }))
+          : [];
+
+        const retryValidation = validateCommentBatch(retryItems, rejectedCards, {
+          existingPostBodies: [...memory.existingPostBodies, ...Array.from(approved.values())],
+          recentOpenings: memory.recentOpenings,
+          repeatedTrigrams: memory.repeatedTrigrams,
+        });
+        for (const [idx, text] of retryValidation.approved.entries()) {
+          approved.set(idx, text);
+        }
+      } catch (retryErr) {
+        console.warn("Aviso na regeração pontual da prova social:", retryErr);
       }
     }
 
-    // Reações: 3x o número de comentários, sendo de 5% a 10% "não curti"
+    // 6. Monta registros finais com nomes, e-mails e datas seguras gerados em código
+    const usedNames = new Set(memory.usedNames);
+    const preparedComments = cards
+      .filter((card) => approved.has(card.index))
+      .map((card) => {
+        const identity = generateReaderIdentity(card.ageBracket, usedNames);
+        const commentDate = generateSafeCommentDate(journalCreatedAt, card.intent, now);
+        return {
+          journal_id: journalId,
+          email: identity.email,
+          reader_name: identity.readerName,
+          hide_reader_name: identity.hideReaderName,
+          body: approved.get(card.index)!,
+          status: "approved" as const,
+          origin: "social_proof" as const,
+          created_at: commentDate,
+          approved_at: commentDate,
+          _persona: {
+            ageBracket: card.ageBracket,
+            fluency: card.fluency,
+            intent: card.intent,
+            lengthTier: card.lengthTier,
+            opening: card.opening.id,
+          },
+        };
+      });
+
+    const totalUsage = combineUsage(usages);
+
+    if (dryRun) {
+      return NextResponse.json({
+        dryRun: true,
+        comments: preparedComments.length,
+        preview: preparedComments,
+        usage: totalUsage,
+        retryCount,
+      });
+    }
+
+    let generatedCommentsCount = 0;
+    if (preparedComments.length > 0) {
+      const dbRowsWithOrigin = preparedComments.map(({ _persona: _, ...row }) => row);
+      let { error } = await supabase.from("journal_comments").insert(dbRowsWithOrigin);
+      // Fallback caso a migration da coluna origin ainda não tenha rodado no banco
+      if (error && /origin/i.test(error.message)) {
+        const dbRowsLegacy = dbRowsWithOrigin.map(({ origin: _, ...rest }) => rest);
+        ({ error } = await supabase.from("journal_comments").insert(dbRowsLegacy));
+      }
+      if (error) {
+        console.error("Error inserting comments:", error);
+        throw new Error("Erro DB Comentários: " + error.message);
+      }
+      generatedCommentsCount = preparedComments.length;
+    }
+
+    // 7. Reações com proporção variável e datas sempre posteriores ao post
     let generatedLikesCount = 0;
     let generatedDislikesCount = 0;
     if (generatedCommentsCount > 0) {
-      const totalReactions = generatedCommentsCount * 3;
-      const dislikeRatio = 0.05 + Math.random() * 0.05;
-      const dislikes = Math.max(1, Math.round(totalReactions * dislikeRatio));
-      const likes = totalReactions - dislikes;
+      const { likes, dislikes } = generateReactionCounts(generatedCommentsCount);
       const reactionRows = [
         ...Array.from({ length: likes }, () => "like" as const),
         ...Array.from({ length: dislikes }, () => "dislike" as const),
       ].map((reaction) => {
-        const date = getRandomDateBetween(journalCreatedAt, new Date().toISOString());
-        return { journal_id: journalId, voter_id: crypto.randomUUID(), reaction, created_at: date, updated_at: date };
+        const date = generateSafeCommentDate(journalCreatedAt, undefined, now);
+        return {
+          journal_id: journalId,
+          voter_id: crypto.randomUUID(),
+          reaction,
+          created_at: date,
+          updated_at: date,
+        };
       });
       const { error: reactionError } = await supabase.from("journal_reactions").insert(reactionRows);
-      if (reactionError) { console.error("Error inserting reactions:", reactionError); throw new Error("Erro DB Reações: " + reactionError.message); }
+      if (reactionError) {
+        console.error("Error inserting reactions:", reactionError);
+        throw new Error("Erro DB Reações: " + reactionError.message);
+      }
       generatedLikesCount = likes;
       generatedDislikesCount = dislikes;
     }
 
+    // 8. Votos na enquete (se existir)
     let generatedVotesCount = 0;
-    // Check if there is a poll
-    const { data: poll } = await supabase.from("polls").select("id").eq("journal_id", journalId).single();
+    const { data: poll } = await supabase.from("polls").select("id").eq("journal_id", journalId).maybeSingle();
     if (poll) {
       const { data: options } = await supabase.from("poll_options").select("id").eq("poll_id", poll.id);
       if (options && options.length > 0) {
-        // Generate 8 to 15 random votes
         const numVotes = Math.floor(Math.random() * (15 - 8 + 1)) + 8;
-        const votes = [];
-        for (let i = 0; i < numVotes; i++) {
+        const votes = Array.from({ length: numVotes }, () => {
           const randomOption = options[Math.floor(Math.random() * options.length)];
-          votes.push({
+          return {
             poll_id: poll.id,
             option_id: randomOption.id,
-            voter_id: crypto.randomUUID()
-          });
-        }
+            voter_id: crypto.randomUUID(),
+          };
+        });
         const { error: voteError } = await supabase.from("poll_votes").insert(votes);
-        if (voteError) { console.error("Error inserting votes:", voteError); throw new Error("Erro DB Votos: " + voteError.message); } else {
-          generatedVotesCount = votes.length;
+        if (voteError) {
+          console.error("Error inserting votes:", voteError);
+          throw new Error("Erro DB Votos: " + voteError.message);
         }
+        generatedVotesCount = votes.length;
       }
     }
 
-    await recordGeneration(supabase, user.id, { contentType: "accessory", topic: `Prova Social: ${title}`, usage });
+    await recordGeneration(supabase, user.id, {
+      contentType: "socialProof",
+      topic: `Prova Social: ${effectiveTitle}`,
+      usage: totalUsage,
+      retryCount,
+    });
 
-    return NextResponse.json({ comments: generatedCommentsCount, votes: generatedVotesCount, likes: generatedLikesCount, dislikes: generatedDislikesCount });
-  } catch (error: any) {
+    return NextResponse.json({
+      comments: generatedCommentsCount,
+      votes: generatedVotesCount,
+      likes: generatedLikesCount,
+      dislikes: generatedDislikesCount,
+    });
+  } catch (error: unknown) {
     console.error("Erro na prova social:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Erro ao gerar prova social";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

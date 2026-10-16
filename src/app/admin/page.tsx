@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 import { TAG_TYPE_LABELS, slugify, type Tag, type TagType } from "@/lib/tags";
 import { EMPTY_RESUMO_RAPIDO, resumoRapidoFields, resumoRapidoHasContent, resumoRapidoToRow, rowToResumoRapido, type ResumoRapido } from "@/lib/summary";
+import { shiftSocialProofDatesOnPostEdit } from "@/lib/social-proof/timing";
 import InstallAppButton from "../ui/InstallAppButton";
 import VoiceInputButton from "./VoiceInputButton";
 
@@ -1312,6 +1313,7 @@ export default function AdminDashboard() {
           created_at: createdAt,
         }).eq("id", editingItem.id);
         if (error) throw error;
+        await shiftSocialProofDatesOnPostEdit(supabase, editingItem.id, createdAt);
         if (editingItem.is_new) {
           const previousNew = supabase.from("journal").update({ is_new: false }).neq("id", editingItem.id);
           if (editingItem.category === "Estudei para te explicar") {
@@ -1399,8 +1401,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.10</p>
-                <p>Atualizado em 16/10/2026 às 06:30</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.11</p>
+                <p>Atualizado em 16/10/2026 às 07:23</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />

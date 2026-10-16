@@ -4,6 +4,12 @@ import { PRODUCT_REVIEW_STYLE_RULES, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES } from
 import { buildAccessoryPrompt, buildQuotePrompt } from "../src/lib/ai/prompts";
 import { getEditorialDirection, getProductCreativeDirection, originalityRules } from "../src/lib/creative-direction";
 import { getAiPolicy } from "../src/lib/ai/runtime";
+import { findBlockedCliches } from "../src/lib/social-proof/blocklist";
+import { drawPersonaBatch } from "../src/lib/social-proof/personas";
+import { validateCommentBatch } from "../src/lib/social-proof/validate";
+import { clampCommentDisplayDate, generateSafeCommentDate, isFuturePostDate } from "../src/lib/social-proof/timing";
+import { buildSocialProofPrompt } from "../src/lib/social-proof/prompt";
+import { buildMemoryFromTexts } from "../src/lib/social-proof/memory";
 
 const themes = ["humor_cotidiano", "liberdade", "corpo", "menopausa", "motivacao"] as const;
 
@@ -175,3 +181,69 @@ test("erros técnicos viram mensagens compreensíveis", () => {
   expect(friendlyAiError(new Error("Request timed out"))).toContain("demorou");
   expect(friendlyAiError(new Error("Invalid JSON"))).toContain("incompletas");
 });
+
+test("prova social: blocklist detecta clichês como 'eu toda' e 'mto real' e prompt não entrega frases copiáveis", () => {
+  expect(findBlockedCliches("Menina, eu toda nessa fase!")).toContain("eu toda");
+  expect(findBlockedCliches("nossa isso eh mto real amiga")).toContain("mto real");
+  expect(findBlockedCliches("Passei calor ontem na fila do mercado e lembrei disso.")).toEqual([]);
+
+  const cards = drawPersonaBatch(5, "O calor da menopausa chega sem avisar no meio da noite. Dormir de janela aberta virou regra.");
+  expect(cards).toHaveLength(5);
+  // Todas as aberturas do lote devem ser distintas
+  const uniqueOpenings = new Set(cards.map((c) => c.opening.id));
+  expect(uniqueOpenings.size).toBe(5);
+
+  const memory = buildMemoryFromTexts([{ body: "Acordei às três da manhã suando frio", reader_name: "Vera" }], []);
+  const prompt = buildSocialProofPrompt({
+    title: "Calor da madrugada",
+    category: "Papo de Mulher",
+    sourceText: "O calor da menopausa chega sem avisar.",
+    cards,
+    memory,
+  });
+  expect(prompt).toContain("COMENTÁRIO #1");
+  expect(prompt).toContain("PROIBIDO usar");
+});
+
+test("prova social: validador reprova clichês e aberturas repetidas e aprova comentários autênticos", () => {
+  const cards = drawPersonaBatch(3, "Cuidar da pele depois dos cinquenta pede paciência e poucos produtos bons.");
+  cards[0].lengthTier = "curto_1_frase";
+  cards[0].fluency = "informal_correta";
+  cards[1].lengthTier = "curto_1_frase";
+  cards[1].fluency = "internetes";
+  cards[2].lengthTier = "curto_1_frase";
+  cards[2].fluency = "informal_correta";
+
+  const { approved, rejected } = validateCommentBatch(
+    [
+      { index: 1, body: "Lá em casa meu marido já sabe que o ventilador é só meu." },
+      { index: 2, body: "Nossa isso eh mto real, eu toda!" },
+      { index: 3, body: "Lá em casa meu cachorro tambem dorme perto do ventilador." },
+    ],
+    cards,
+    { existingPostBodies: [], recentOpenings: [], repeatedTrigrams: [] },
+  );
+
+  expect(approved.has(1)).toBe(true);
+  expect(approved.has(2)).toBe(false);
+  expect(approved.has(3)).toBe(false); // mesma abertura "la em casa"
+  expect(rejected.length).toBe(2);
+});
+
+test("prova social: datas geradas ficam sempre depois do post e nunca no futuro", () => {
+  const now = new Date("2026-10-16T10:00:00.000Z");
+  const postDate = "2026-10-10T12:00:00.000Z";
+
+  expect(isFuturePostDate("2026-10-20T12:00:00.000Z", now)).toBe(true);
+  expect(isFuturePostDate(postDate, now)).toBe(false);
+
+  for (let i = 0; i < 30; i++) {
+    const generated = generateSafeCommentDate(postDate, "desabafo_pessoal", now);
+    expect(new Date(generated).getTime()).toBeGreaterThan(new Date(postDate).getTime());
+    expect(new Date(generated).getTime()).toBeLessThanOrEqual(now.getTime());
+  }
+
+  expect(clampCommentDisplayDate("2024-01-01T00:00:00.000Z", postDate)).toBe(postDate);
+  expect(clampCommentDisplayDate("2026-10-12T00:00:00.000Z", postDate)).toBe("2026-10-12T00:00:00.000Z");
+});
+

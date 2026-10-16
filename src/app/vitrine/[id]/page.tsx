@@ -103,7 +103,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
             <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} />
             <AddToRoutineButton id={product.id} title={product.title} image_url={product.image_url} className="sm:mt-0" />
           </div>
-          <ConversationCircle postId={product.id} postTitle={product.title} comments={comments} contentType="product" variant="product" />
+          <ConversationCircle postId={product.id} postTitle={product.title} postCreatedAt={product.created_at} comments={comments} contentType="product" variant="product" />
           <section className="next-steps" aria-label="Continue navegando">
             <Link href={product.companion_journal_id ? `/resenhas/${product.companion_journal_id}` : "/resenhas"} className="ghost-button">Entender ativos →</Link>
             <Link href="/blog" className="ghost-button">Entrar num papo →</Link>

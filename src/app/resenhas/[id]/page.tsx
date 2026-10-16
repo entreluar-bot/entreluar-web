@@ -94,7 +94,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
           <ReactionBar journalId={post.id} initialCounts={reactions} />
           <ShareButton title={post.title} url={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} className="border-t border-[var(--line)] pt-8" />
           {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
-          <ConversationCircle postId={post.id} postTitle={post.title} comments={comments} question={post.reader_question} contentType="journal" variant="journal-estudei" />
+          <ConversationCircle postId={post.id} postTitle={post.title} postCreatedAt={post.created_at} comments={comments} question={post.reader_question} contentType="journal" variant="journal-estudei" />
           <section className="next-steps" aria-label="Continue navegando">
             <Link href="/vitrine" className="ghost-button">Ver achados relacionados →</Link>
             <Link href="/blog" className="ghost-button">Conversar sobre vida real →</Link>
