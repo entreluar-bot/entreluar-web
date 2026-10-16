@@ -55,7 +55,10 @@ export default function RootLayout({children}:LayoutProps<"/">){
   };
 
   return (
-    <html lang="pt-BR" className={`${display.variable} ${body.variable}`}>
+    <html lang="pt-BR" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `try{var s=localStorage.getItem("entreluar-text-size");if(s==="large"||s==="xlarge")document.documentElement.dataset.textSize=s}catch(e){}` }} />
+      </head>
       <body>
         <JsonLd data={jsonLdData} />
         <CampaignTracker/>

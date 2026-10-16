@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import TextSizeControl from "./TextSizeControl";
 
 const MORE_LINKS = [
   { href: "/temas", label: "Temas", hint: "Descubra por assunto" },
@@ -52,6 +53,7 @@ export default function MoreMenu({ variant }: { variant: "desktop" | "mobile" })
               <span>{link.hint}</span>
             </Link>
           ))}
+          <TextSizeControl />
         </div>
       )}
     </div>
