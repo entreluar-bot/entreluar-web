@@ -83,6 +83,8 @@ type SiteComment = {
   created_at: string;
   approved_at?: string | null;
   moderated_at?: string | null;
+  author_reply?: string | null;
+  author_reply_at?: string | null;
   journal?: { title?: string | null; category?: string | null } | { title?: string | null; category?: string | null }[] | null;
   product?: { title?: string | null } | { title?: string | null }[] | null;
 };
@@ -239,6 +241,7 @@ export default function AdminDashboard() {
 
   const [generatedTagIds, setGeneratedTagIds] = useState<string[]>([]);
   const [generatedPollQuestion, setGeneratedPollQuestion] = useState("");
+  const [generatedReaderQuestion, setGeneratedReaderQuestion] = useState("");
   const [generatedPollOptions, setGeneratedPollOptions] = useState<string[]>([]);
 
   const [editingItemPoll, setEditingItemPoll] = useState<EditingPoll>(EMPTY_POLL);
@@ -267,6 +270,7 @@ export default function AdminDashboard() {
 
   const [memories, setMemories] = useState<LuanaMemory[]>([]);
   const [comments, setComments] = useState<SiteComment[]>([]);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [memoryContent, setMemoryContent] = useState("");
   const [memoryTags, setMemoryTags] = useState("");
   const [memoryCategory, setMemoryCategory] = useState<LuanaMemory["category"]>("opiniao");
@@ -361,6 +365,21 @@ export default function AdminDashboard() {
       await memoryRequest("", { method: "PATCH", body: JSON.stringify({ id: memory.id, status }) });
       await fetchMemories();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível atualizar a memória."); }
+  };
+
+  const handleCommentReply = async (comment: SiteComment) => {
+    const reply = (replyDrafts[comment.id] ?? comment.author_reply ?? "").trim();
+    try {
+      setLoading(true);
+      const data = await adminRequest("/api/comments/admin", { method: "PATCH", body: JSON.stringify({ id: comment.id, reply }) });
+      await fetchComments();
+      setReplyDrafts((drafts) => { const { [comment.id]: _removed, ...rest } = drafts; return rest; });
+      setMessage(data?.notified ? "Resposta publicada e avisei a leitora por email. 💛" : "Resposta publicada na roda. ✨");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível salvar a resposta.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCommentStatus = async (comment: SiteComment, status: SiteComment["status"]) => {
@@ -915,6 +934,7 @@ export default function AdminDashboard() {
         setGeneratedPollQuestion(data.suggestedPoll.question || "");
         setGeneratedPollOptions(data.suggestedPoll.options || []);
       }
+      setGeneratedReaderQuestion(typeof data.readerQuestion === "string" ? data.readerQuestion : "");
 
       if (data.imagePrompt) {
         setMessage("Buscando inspiração de imagem fotográfica...");
@@ -1104,7 +1124,7 @@ export default function AdminDashboard() {
 
       let journalId: string | null = null;
       if (generatedBlogPost && !isAccessory) {
-        const { data: journalData, error: blogError } = await supabase.from("journal").insert([{
+        const journalRow = {
           title: generatedBlogTitle,
           content: generatedBlogPost,
           image_url: finalPublicUrl,
@@ -1114,8 +1134,14 @@ export default function AdminDashboard() {
           is_most_viewed: isMostViewed,
           is_new: isNew,
           ...insertPayload
-        }]).select("id").single();
-        
+        };
+        const readerQuestion = generatedReaderQuestion.trim();
+        let { data: journalData, error: blogError } = await supabase.from("journal").insert([readerQuestion ? { ...journalRow, reader_question: readerQuestion } : journalRow]).select("id").single();
+        // Se a coluna da pergunta ainda não existe no banco, publica sem ela.
+        if (blogError && readerQuestion && /reader_question/.test(blogError.message)) {
+          ({ data: journalData, error: blogError } = await supabase.from("journal").insert([journalRow]).select("id").single());
+        }
+
         if (blogError) throw blogError;
         journalId = journalData?.id;
 
@@ -1192,7 +1218,7 @@ export default function AdminDashboard() {
       setBlogPapoFilter("Confissões da maturidade");
       setPostDate(""); setGeneratedResumoRapido(EMPTY_RESUMO_RAPIDO);
       setGeneratedResumoRapidoArtigo(EMPTY_RESUMO_RAPIDO);
-      setGeneratedTagIds([]); setGeneratedPollQuestion(""); setGeneratedPollOptions([]);
+      setGeneratedTagIds([]); setGeneratedPollQuestion(""); setGeneratedPollOptions([]); setGeneratedReaderQuestion("");
 
     } catch (error: any) {
       setMessage("Erro: " + error.message);
@@ -1373,8 +1399,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.09</p>
-                <p>Atualizado em 15/10/2026 às 21:54</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.10</p>
+                <p>Atualizado em 16/10/2026 às 06:30</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1698,6 +1724,14 @@ export default function AdminDashboard() {
                       )}
 
                       {!isAccessory && (
+                        <label className="block rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">
+                          Pergunta para as leitoras comentarem
+                          <input type="text" value={generatedReaderQuestion} onChange={(event) => setGeneratedReaderQuestion(event.target.value)} placeholder="Ex.: E você, qual foi o primeiro sinal que sua pele deu depois dos 50?" className="mt-2 w-full px-3 py-2 text-sm normal-case tracking-normal font-normal" />
+                          <span className="mt-1 block text-xs normal-case tracking-normal font-normal opacity-65">Aparece no formulário de comentário deste post. Deixe em branco para usar a pergunta padrão.</span>
+                        </label>
+                      )}
+
+                      {!isAccessory && (
                         <fieldset className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                           <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Enquete sugerida</legend>
                           <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">Deixe a pergunta em branco para publicar sem enquete.</p>
@@ -1756,7 +1790,7 @@ export default function AdminDashboard() {
 
 
                     <div className="flex gap-4 mt-6">
-                       <button onClick={() => { setGeneratedReview(""); setGeneratedProductName(""); setGeneratedBlogTitle(""); setGeneratedBlogPost(""); setAccessoryDetailsUsed([]); setAccessoryHumorApplied(false); setGeneratedResumoRapido(EMPTY_RESUMO_RAPIDO); setGeneratedResumoRapidoArtigo(EMPTY_RESUMO_RAPIDO); setGeneratedTagIds([]); setGeneratedPollQuestion(""); setGeneratedPollOptions([]); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-4 rounded font-bold uppercase hover:bg-[var(--color-wine-dark)] transition-colors">
+                       <button onClick={() => { setGeneratedReview(""); setGeneratedProductName(""); setGeneratedBlogTitle(""); setGeneratedBlogPost(""); setAccessoryDetailsUsed([]); setAccessoryHumorApplied(false); setGeneratedResumoRapido(EMPTY_RESUMO_RAPIDO); setGeneratedResumoRapidoArtigo(EMPTY_RESUMO_RAPIDO); setGeneratedTagIds([]); setGeneratedPollQuestion(""); setGeneratedPollOptions([]); setGeneratedReaderQuestion(""); }} className="flex-1 border border-[var(--color-wine-light)] text-[var(--color-gold-light)] py-4 rounded font-bold uppercase hover:bg-[var(--color-wine-dark)] transition-colors">
                         Refazer Tudo
                       </button>
                       <button onClick={handlePublish} disabled={loading} className="flex-2 w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform">
@@ -2272,6 +2306,14 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <p className="mt-4 whitespace-pre-wrap leading-7 text-[var(--color-gold-light)]">{comment.body}</p>
+                    {comment.status === "approved" && (
+                      <div className="mt-4 border-t border-[var(--color-wine-light)] pt-4">
+                        <label className="block text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Minha resposta (aparece no site{comment.author_reply ? "" : " e vai por email se ela estiver na lista"})</label>
+                        <textarea rows={3} value={replyDrafts[comment.id] ?? comment.author_reply ?? ""} onChange={(e) => setReplyDrafts((drafts) => ({ ...drafts, [comment.id]: e.target.value }))} placeholder="Responda com carinho, como numa conversa de amigas..." className="mt-2 w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
+                        <VoiceInputButton onText={(t) => setReplyDrafts((drafts) => { const current = drafts[comment.id] ?? comment.author_reply ?? ""; return { ...drafts, [comment.id]: (current.trim() ? current.replace(/\s*$/, " ") : "") + t }; })} />
+                        <button type="button" onClick={() => handleCommentReply(comment)} disabled={loading} className="mt-3 rounded border border-[var(--color-gold)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Salvar resposta</button>
+                      </div>
+                    )}
                   </article>
                 );
               };

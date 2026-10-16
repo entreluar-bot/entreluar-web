@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import type { JournalComment } from "../types";
 import { getSessionId } from "./CampaignTracker";
+import CommentLikeButton from "./CommentLikeButton";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -30,16 +31,19 @@ export default function ConversationCircle({
   postId,
   postTitle,
   comments,
+  question,
   contentType = "journal",
   variant = "journal",
 }: {
   postId: string;
   postTitle: string;
   comments: JournalComment[];
+  question?: string | null;
   contentType?: "journal" | "product";
   variant?: keyof typeof COPY;
 }) {
-  const copy = COPY[variant] || COPY.journal;
+  const baseCopy = COPY[variant] || COPY.journal;
+  const copy = { ...baseCopy, prompt: question?.trim() || baseCopy.prompt };
   const [readerName, setReaderName] = useState("");
   const [hideReaderName, setHideReaderName] = useState(false);
   const [email, setEmail] = useState("");
@@ -123,6 +127,13 @@ export default function ConversationCircle({
                 </div>
                 <p>{comment.body}</p>
                 <p className="conversation-signature">— {signature}</p>
+                {comment.author_reply && (
+                  <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[rgba(230,189,120,.08)] p-4">
+                    <p className="eyebrow">Luana respondeu 💛</p>
+                    <p className="mt-2 whitespace-pre-wrap">{comment.author_reply}</p>
+                  </div>
+                )}
+                <CommentLikeButton commentId={comment.id} initialCount={comment.likes || 0} />
               </article>
             );
           })
@@ -138,6 +149,7 @@ export default function ConversationCircle({
         <div>
           <p className="eyebrow">Agora quero te ouvir</p>
           <p className="muted mt-3 text-sm leading-6">
+            {question?.trim() ? <strong className="block text-base text-[var(--champagne-pale)]">{question.trim()}</strong> : null}
             Escreve do seu jeito, até uma frase já vale. Seu email nunca aparece para ninguém.
           </p>
         </div>

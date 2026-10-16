@@ -13,6 +13,7 @@ import QuickSummaryCard from "../../ui/QuickSummaryCard";
 import PollWidget from "../../ui/PollWidget";
 import ConversationCircle from "../../ui/ConversationCircle";
 import ReactionBar from "../../ui/ReactionBar";
+import { getApprovedComments } from "@/lib/comments";
 import type { JournalComment, JournalPost } from "../../types";
 
 export const revalidate = 0;
@@ -56,16 +57,11 @@ export async function generateMetadata({ params }: ReviewPostProps): Promise<Met
 export default async function ReviewPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: summaryData }, poll, { data: commentRows }, reactions, { data: companionProduct }] = await Promise.all([
+  const [{ data }, { data: summaryData }, poll, commentRows, reactions, { data: companionProduct }] = await Promise.all([
     supabase.from("journal").select("*").eq("id", id).single(),
     supabase.from("content_summaries").select("*").eq("content_type", "journal").eq("content_id", id).maybeSingle(),
     getActivePollForJournal(supabase, id),
-    supabase
-      .from("journal_comments")
-      .select("id,journal_id,reader_name,hide_reader_name,body,status,created_at,approved_at")
-      .eq("journal_id", id)
-      .eq("status", "approved")
-      .order("created_at", { ascending: false }),
+    getApprovedComments(supabase, "journal_id", id),
     getReactionsForJournal(supabase, id),
     supabase.from("products").select("shopee_link").eq("companion_journal_id", id).maybeSingle(),
   ]);
@@ -98,7 +94,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
           <ReactionBar journalId={post.id} initialCounts={reactions} />
           <ShareButton title={post.title} url={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} className="border-t border-[var(--line)] pt-8" />
           {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
-          <ConversationCircle postId={post.id} postTitle={post.title} comments={comments} contentType="journal" variant="journal-estudei" />
+          <ConversationCircle postId={post.id} postTitle={post.title} comments={comments} question={post.reader_question} contentType="journal" variant="journal-estudei" />
           <section className="next-steps" aria-label="Continue navegando">
             <Link href="/vitrine" className="ghost-button">Ver achados relacionados →</Link>
             <Link href="/blog" className="ghost-button">Conversar sobre vida real →</Link>

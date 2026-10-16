@@ -45,8 +45,9 @@ export const postSchema = {
     resumoRapido: resumoRapidoSchema,
     suggestedTagSlugs: { type: "array", items: { type: "string" }, maxItems: 8 },
     suggestedPoll: pollSuggestionSchema,
+    readerQuestion: { type: "string" },
   },
-  required: ["title", "text", "imagePrompt", "openingStyle", "structureStyle", "closingStyle", "notablePhrases", "resumoRapido", "suggestedTagSlugs", "suggestedPoll"],
+  required: ["title", "text", "imagePrompt", "openingStyle", "structureStyle", "closingStyle", "notablePhrases", "resumoRapido", "suggestedTagSlugs", "suggestedPoll", "readerQuestion"],
   additionalProperties: false,
 };
 

@@ -12,6 +12,7 @@ import ShareButton from "../../ui/ShareButton";
 import TopQuickActions from "../../ui/TopQuickActions";
 import PollWidget from "../../ui/PollWidget";
 import ReactionBar from "../../ui/ReactionBar";
+import { getApprovedComments } from "@/lib/comments";
 import type { JournalComment, JournalPost } from "../../types";
 
 export const revalidate = 0;
@@ -55,14 +56,9 @@ export async function generateMetadata({ params }: BlogPostProps): Promise<Metad
 export default async function BlogPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: commentRows }, poll, reactions, { data: companionProduct }] = await Promise.all([
+  const [{ data }, commentRows, poll, reactions, { data: companionProduct }] = await Promise.all([
     supabase.from("journal").select("*").eq("id", id).single(),
-    supabase
-      .from("journal_comments")
-      .select("id,journal_id,reader_name,hide_reader_name,body,status,created_at,approved_at")
-      .eq("journal_id", id)
-      .eq("status", "approved")
-      .order("created_at", { ascending: false }),
+    getApprovedComments(supabase, "journal_id", id),
     getActivePollForJournal(supabase, id),
     getReactionsForJournal(supabase, id),
     supabase.from("products").select("shopee_link").eq("companion_journal_id", id).maybeSingle(),
@@ -105,7 +101,7 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
 
           {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
 
-          <ConversationCircle postId={post.id} postTitle={post.title} comments={comments} contentType="journal" variant="journal" />
+          <ConversationCircle postId={post.id} postTitle={post.title} comments={comments} question={post.reader_question} contentType="journal" variant="journal" />
 
           <section className="newsletter-cta newsletter-cta--article" aria-labelledby="post-newsletter-title">
             <div>

@@ -11,6 +11,7 @@ import TopQuickActions from "../../ui/TopQuickActions";
 import QuickSummaryCard from "../../ui/QuickSummaryCard";
 import AddToRoutineButton from "../../ui/AddToRoutineButton";
 import ConversationCircle from "../../ui/ConversationCircle";
+import { getApprovedComments } from "@/lib/comments";
 import type { JournalComment, Product } from "../../types";
 
 export const revalidate = 0;
@@ -54,15 +55,10 @@ export async function generateMetadata({ params }: ProductPostProps): Promise<Me
 export default async function ProductPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: summaryData }, { data: commentRows }, { data: tagRows }] = await Promise.all([
+  const [{ data }, { data: summaryData }, commentRows, { data: tagRows }] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).single(),
     supabase.from("content_summaries").select("*").eq("content_type", "product").eq("content_id", id).maybeSingle(),
-    supabase
-      .from("journal_comments")
-      .select("id,product_id,reader_name,hide_reader_name,body,status,created_at,approved_at")
-      .eq("product_id", id)
-      .eq("status", "approved")
-      .order("created_at", { ascending: false }),
+    getApprovedComments(supabase, "product_id", id),
     supabase.from("content_tags").select("tags(id,name,slug,type)").eq("content_type", "product").eq("content_id", id),
   ]);
   if (!data) notFound();
