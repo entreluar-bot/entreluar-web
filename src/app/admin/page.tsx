@@ -420,6 +420,24 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteSubscriber = async (email: string) => {
+    if (!confirm(`Excluir ${email} da lista de cadastrados? Essa pessoa deixa de receber seus emails.`)) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch("/api/send-newsletter", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Não foi possível excluir o cadastro.");
+      setMessage(`${email} foi excluído da lista. ✨`);
+      await fetchSubscribers();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível excluir o cadastro.");
+    }
+  };
+
   const fetchTrafficAnalytics = async () => {
     try {
       setTrafficAnalyticsStatus("Carregando tráfego...");
@@ -1352,8 +1370,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.06</p>
-                <p>Atualizado em 15/10/2026 às 20:36</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.07</p>
+                <p>Atualizado em 15/10/2026 às 21:01</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -2482,6 +2500,7 @@ export default function AdminDashboard() {
                             </summary>
 
                             <div className="mt-4 space-y-3 border-t border-[var(--color-wine-light)] pt-4">
+                              <button type="button" onClick={() => handleDeleteSubscriber(subscriber)} className="min-h-11 rounded-xl border border-red-400/40 px-4 text-xs font-bold uppercase tracking-widest text-red-300 transition hover:bg-red-500/10">🗑 Excluir este cadastro</button>
                               {subscriberDeliveries.length === 0 ? (
                                 <p className="text-sm text-[var(--color-gold-light)] opacity-65">Esta pessoa ainda não recebeu campanhas registradas.</p>
                               ) : subscriberDeliveries.map((delivery, index) => (

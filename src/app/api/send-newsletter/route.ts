@@ -83,6 +83,29 @@ async function getRecipients(req: Request) {
   };
 }
 
+export async function DELETE(req: Request) {
+  try {
+    const supabase = await getAuthenticatedContext(req);
+    if (!supabase) return NextResponse.json({ error: "Sessão inválida ou expirada." }, { status: 401 });
+
+    const payload = await req.json().catch(() => ({})) as { email?: unknown };
+    const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
+    if (!EMAIL_PATTERN.test(email)) return NextResponse.json({ error: "Email inválido." }, { status: 400 });
+
+    // ilike ignora maiúsculas/minúsculas; escapa curingas para casar o email literalmente.
+    const literal = email.replace(/[\\%_]/g, (char) => `\\${char}`);
+    const { data, error } = await supabase.from("subscribers").delete().ilike("email", literal).select("email");
+    if (error) throw new Error("Não foi possível excluir o cadastro.");
+    if (!data?.length) {
+      return NextResponse.json({ error: "Nenhum cadastro foi excluído. Confira se a permissão de exclusão foi liberada no Supabase." }, { status: 404 });
+    }
+    return NextResponse.json({ success: true, deleted: data.length });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Falha ao excluir cadastro.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 export async function GET(req: Request) {
   try {
     const result = await getRecipients(req);
