@@ -5,6 +5,7 @@ import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 import { TAG_TYPE_LABELS, slugify, type Tag, type TagType } from "@/lib/tags";
 import { EMPTY_RESUMO_RAPIDO, resumoRapidoFields, resumoRapidoHasContent, resumoRapidoToRow, rowToResumoRapido, type ResumoRapido } from "@/lib/summary";
 import InstallAppButton from "../ui/InstallAppButton";
+import VoiceInputButton from "./VoiceInputButton";
 
 type NewsletterStatus = "idle" | "preparing" | "sending" | "complete" | "partial" | "failed";
 
@@ -1570,6 +1571,7 @@ export default function AdminDashboard() {
                       <div className="opacity-80 hover:opacity-100 transition-opacity">
                         <label className="block text-[var(--color-gold-light)] text-sm mb-1">Suas Notas Pessoais (Opcional)</label>
                         <textarea placeholder="Se você não digitar nada, a IA foca nos benefícios científicos." value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={2} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
+<VoiceInputButton onText={(t) => setImpressions((prev) => (prev.trim() ? prev.replace(/\s*$/, " ") : "") + t)} />
                       </div>
 
                       <div className="flex items-center gap-3 bg-[#1a0f12] p-4 rounded-lg border border-[var(--color-wine-light)]">
@@ -1826,6 +1828,7 @@ export default function AdminDashboard() {
                     <div>
                       <label className="block text-[var(--color-gold-light)] text-sm mb-1">Suas Impressões / Anotações (A IA vai transformar isso em texto!)</label>
                       <textarea placeholder="O que você quer falar sobre esse tema? Ex: Na menopausa ninguém te avisa que a paciência acaba mais rápido que o colágeno..." value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={5} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
+<VoiceInputButton onText={(t) => setImpressions((prev) => (prev.trim() ? prev.replace(/\s*$/, " ") : "") + t)} />
                     </div>
 
                      <div className="border-2 border-dashed border-[var(--color-wine-light)] rounded-xl p-6 text-center bg-[var(--color-wine-dark)] relative flex flex-col items-center justify-center">

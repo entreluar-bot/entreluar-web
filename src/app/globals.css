@@ -65,3 +65,6 @@ html[data-text-size="large"]{font-size:110%}html[data-text-size="xlarge"]{font-s
 .site-shell .text-xs{font-size:.84rem;line-height:1.55}
 .site-shell [class*="text-[10px]"],.site-shell [class*="text-[11px]"]{font-size:.76rem}
 .text-size-control{display:grid;gap:8px;margin-top:6px;padding:12px 12px 4px;border-top:1px solid var(--line)}.text-size-control__label{color:var(--muted);font-size:.8rem}.text-size-control__buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.text-size-control__buttons button{min-height:44px;border:1px solid var(--line);border-radius:12px;color:var(--champagne-pale);background:rgba(255,255,255,.03);font-family:var(--font-display),Georgia,serif;font-size:1.15rem;font-weight:600}.text-size-control__buttons button[aria-pressed="true"]{border-color:var(--champagne);background:rgba(230,189,120,.16);color:var(--champagne)}
+.more-menu__panel{max-height:calc(100dvh - 140px);overflow-y:auto}
+.text-size-toggle{min-height:44px;min-width:44px;padding:0 12px;border:1px solid var(--line);border-radius:999px;color:var(--champagne-pale);background:rgba(255,255,255,.03);font-family:var(--font-display),Georgia,serif;font-size:1.05rem;font-weight:600;cursor:pointer}
+.text-size-toggle:hover{border-color:var(--champagne);color:var(--champagne)}

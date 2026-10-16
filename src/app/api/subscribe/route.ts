@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { sendWelcomeEmail } from "@/lib/welcome-email";
+import { rateLimited, clientIp } from "@/lib/rate-limit";
+import { subscribeEmail, UTM_KEYS } from "@/lib/subscribe";
 
-const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function clean(value: unknown, max = 240) {
@@ -10,6 +10,9 @@ function clean(value: unknown, max = 240) {
 }
 
 export async function POST(req: Request) {
+  if (rateLimited(`subscribe:${clientIp(req)}`, 8, 10 * 60 * 1000)) {
+    return NextResponse.json({ error: "Muitas tentativas. Espere alguns minutinhos e tente de novo." }, { status: 429 });
+  }
   try {
     const payload = await req.json();
     const email = clean(payload.email, 180)?.toLowerCase();
@@ -24,35 +27,17 @@ export async function POST(req: Request) {
     );
 
     const attribution = Object.fromEntries(UTM_KEYS.map((key) => [key, clean(payload[key], 120)]));
-    const subscriberRow = {
+    const { created, welcomeSent } = await subscribeEmail(supabase, {
       email,
       source: clean(payload.source, 80) || "site",
-      signup_path: clean(payload.path, 400),
-      ...attribution,
-    };
-    const conversionRow = {
-      email,
-      session_id: clean(payload.sessionId, 80),
       path: clean(payload.path, 400),
-      source: clean(payload.source, 80) || "site",
-      ...attribution,
-    };
+      sessionId: clean(payload.sessionId, 80),
+      attribution,
+    });
 
-    const { error } = await supabase.from("subscribers").insert([subscriberRow]);
-
-    // 23505 is unique violation code in Postgres
-    if (error && error.code === "23505") {
-      await supabase.from("subscribers").update(subscriberRow).eq("email", email);
-      // Quem voltou a se cadastrar volta para a lista (ignora erro se a coluna ainda não existir).
-      await supabase.from("subscribers").update({ unsubscribed_at: null }).eq("email", email).not("unsubscribed_at", "is", null);
-      await supabase.from("newsletter_conversions").insert([conversionRow]);
+    if (!created) {
       return NextResponse.json({ message: "Esse email já estava na nossa roda. Atualizei a origem por aqui. ✨" });
     }
-    
-    if (error) throw error;
-
-    await supabase.from("newsletter_conversions").insert([conversionRow]);
-    const welcomeSent = await sendWelcomeEmail(email);
     return NextResponse.json({
       success: true,
       message: welcomeSent

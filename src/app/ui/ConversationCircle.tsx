@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import type { JournalComment } from "../types";
+import { getSessionId } from "./CampaignTracker";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -44,6 +45,7 @@ export default function ConversationCircle({
   const [email, setEmail] = useState("");
   const [body, setBody] = useState("");
   const [website, setWebsite] = useState("");
+  const [wantsNews, setWantsNews] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -54,16 +56,12 @@ export default function ConversationCircle({
     const cleanEmail = email.trim().toLowerCase();
     const cleanReaderName = readerName.trim().replace(/\s+/g, " ");
     const cleanBody = body.trim();
-    if (!hideReaderName && cleanReaderName.length < 2) {
-      setMessage("Me conta seu nome para eu assinar seu comentário só com o primeiro nome. Se preferir, marque para publicar como anônimo.");
-      return;
-    }
     if (!EMAIL_PATTERN.test(cleanEmail)) {
       setMessage("Me passa um email válido para eu saber que tem uma mulher real do outro lado. ✨");
       return;
     }
-    if (cleanBody.length < 8) {
-      setMessage("Conta um pouquinho mais, amiga. Uma frase já abre a roda.");
+    if (cleanBody.length < 4) {
+      setMessage("Conta um pouquinho mais, amiga. Uma frasezinha já abre a roda.");
       return;
     }
 
@@ -81,6 +79,8 @@ export default function ConversationCircle({
           hideReaderName,
           body: cleanBody,
           website,
+          subscribe: wantsNews,
+          sessionId: getSessionId(),
           path: window.location.pathname,
         }),
       });
@@ -138,12 +138,12 @@ export default function ConversationCircle({
         <div>
           <p className="eyebrow">Agora quero te ouvir</p>
           <p className="muted mt-3 text-sm leading-6">
-            Escreve do seu jeito. Seu email fica protegido e não aparece para ninguém.
+            Escreve do seu jeito, até uma frase já vale. Seu email nunca aparece para ninguém.
           </p>
         </div>
         <label>
-          <span>Seu nome</span>
-          <input type="text" value={readerName} onChange={(event) => setReaderName(event.target.value)} placeholder="Como você quer aparecer por aqui?" autoComplete="name" maxLength={80} required={!hideReaderName} />
+          <span>Seu nome (opcional)</span>
+          <input type="text" value={readerName} onChange={(event) => setReaderName(event.target.value)} placeholder="Como você quer aparecer por aqui?" autoComplete="name" maxLength={80} />
         </label>
         <label className="conversation-checkbox">
           <input type="checkbox" checked={hideReaderName} onChange={(event) => setHideReaderName(event.target.checked)} />
@@ -152,6 +152,10 @@ export default function ConversationCircle({
         <label>
           <span>Email</span>
           <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seuemail@exemplo.com" autoComplete="email" required />
+        </label>
+        <label className="conversation-checkbox">
+          <input type="checkbox" checked={wantsNews} onChange={(event) => setWantsNews(event.target.checked)} />
+          <span>Quero receber por email as respostas da Luana e as novidades da Entreluar. Você sai quando quiser, com um clique.</span>
         </label>
         <label className="hidden" style={{ display: "none" }} aria-hidden="true">
           Site

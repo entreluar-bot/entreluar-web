@@ -6,6 +6,7 @@ import InstallAppButton from "./InstallAppButton";
 import NewsletterPopover from "./NewsletterPopover";
 import SearchBar from "./SearchBar";
 import MoreMenu from "./MoreMenu";
+import TextSizeToggle from "./TextSizeToggle";
 
 const items = [
   { href: "/", label: "Início", icon: "⌂" },
@@ -27,7 +28,7 @@ export default function SiteChrome() {
           {items.map(item => <Link key={item.href} href={item.href} data-active={active(item.href)}>{item.label}</Link>)}
           <MoreMenu variant="desktop" />
         </nav>
-        <div className="header-actions"><SearchBar/><InstallAppButton/><NewsletterPopover/><a className="luxe-button header-cta" href="https://instagram.com/entreluarBeauty" target="_blank" rel="noreferrer">Instagram ↗</a></div>
+        <div className="header-actions"><TextSizeToggle/><SearchBar/><InstallAppButton/><NewsletterPopover/><a className="luxe-button header-cta" href="https://instagram.com/entreluarBeauty" target="_blank" rel="noreferrer">Instagram ↗</a></div>
       </div>
     </header>
     <nav className="bottom-nav" aria-label="Navegação rápida">{items.map(item => <Link key={item.href} href={item.href} data-active={active(item.href)}><span className="nav-icon" aria-hidden="true">{item.icon}</span>{"mobileLabel" in item ? item.mobileLabel : item.label}</Link>)}<MoreMenu variant="mobile" /></nav>
