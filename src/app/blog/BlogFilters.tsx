@@ -7,6 +7,9 @@ import type { JournalPost } from "../types";
 import JournalCard from "../ui/JournalCard";
 import FilterChipBar from "../ui/FilterChipBar";
 import NewsletterSignup from "../ui/NewsletterSignup";
+import HighlightStrip from "../ui/HighlightStrip";
+import LoadMoreGrid from "../ui/LoadMoreGrid";
+import { pickHighlights } from "@/lib/highlights";
 
 export const PAPO_FILTERS = [
   "Me escolhendo de novo",
@@ -70,8 +73,28 @@ export default function BlogFilters({ posts }: { posts: JournalPost[] }) {
     return posts;
   }, [activeFilter, posts]);
   const activeLabel = activeFilter === "all" ? "Todas as conversas" : activeFilter.slice("papo:".length);
-  const featuredPost = filteredPosts[0];
-  const remainingPosts = filteredPosts.slice(1);
+  const isDefaultView = activeFilter === "all";
+  const picks = useMemo(
+    () => isDefaultView
+      ? pickHighlights(posts).map(({ kind, item }) => ({
+          kind,
+          item: {
+            id: item.id,
+            title: item.title,
+            image_url: item.image_url,
+            excerpt: `${item.content.replace(/<[^>]+>/g, "").slice(0, 170)}${item.content.length > 170 ? "…" : ""}`,
+            href: `/blog/${item.id}`,
+            eyebrow: item.category || "Papo de Mulher",
+            cta: "Continuar lendo →",
+          },
+        }))
+      : [],
+    [isDefaultView, posts],
+  );
+  const pickedIds = new Set(picks.map((pick) => pick.item.id));
+  const listPosts = picks.length ? filteredPosts.filter((post) => !pickedIds.has(post.id)) : filteredPosts;
+  const featuredPost = picks.length ? undefined : listPosts[0];
+  const remainingPosts = picks.length ? listPosts : listPosts.slice(1);
 
   return (
     <section className="listing-flow" aria-label="Conversas filtradas">
@@ -93,9 +116,11 @@ export default function BlogFilters({ posts }: { posts: JournalPost[] }) {
           {filteredPosts.length} {filteredPosts.length === 1 ? "papo nesta seleção" : "papos nesta seleção"}
           {activeFilter !== "all" && ` · ${filterCopy[activeLabel as PapoFilter]}`}
         </p>
-        {featuredPost ? (
+        {filteredPosts.length ? (
           <>
-            <FeaturedJournal post={featuredPost} />
+            <HighlightStrip picks={picks} />
+            {picks.length > 0 && remainingPosts.length > 0 && <h2 className="rest-title font-display">Mais para você ler</h2>}
+            {featuredPost && <FeaturedJournal post={featuredPost} />}
             <section className="newsletter-cta newsletter-cta--between-list" aria-labelledby="blog-newsletter-title">
               <div>
                 <p className="eyebrow">Emails para mulheres 50+</p>
@@ -104,11 +129,7 @@ export default function BlogFilters({ posts }: { posts: JournalPost[] }) {
               </div>
               <NewsletterSignup source="blog-lista" />
             </section>
-            {remainingPosts.length > 0 && (
-              <div className="editorial-grid">
-                {remainingPosts.map((post) => <JournalCard key={post.id} post={post} href={`/blog/${post.id}`} />)}
-              </div>
-            )}
+            <LoadMoreGrid noun="papos" items={remainingPosts.map((post) => <JournalCard key={post.id} post={post} href={`/blog/${post.id}`} />)} />
           </>
         ) : (
           <div className="empty-state">

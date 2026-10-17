@@ -6,8 +6,11 @@ import { useMemo, useState } from "react";
 import type { JournalPost } from "../types";
 import JournalCard from "../ui/JournalCard";
 import FilterChipBar from "../ui/FilterChipBar";
+import HighlightStrip from "../ui/HighlightStrip";
+import LoadMoreGrid from "../ui/LoadMoreGrid";
+import { pickHighlights } from "@/lib/highlights";
 
-type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | `tag:${string}`;
+type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | "new" | `tag:${string}`;
 type ReviewPost = JournalPost & { tagSlugs?: string[] };
 type TagGroup = { label: string; options: Array<{ slug: string; name: string }> };
 
@@ -16,6 +19,7 @@ const specialFilters: Array<{ key: FilterKey; label: string }> = [
   { key: "featured", label: "Meus destaques" },
   { key: "most-purchased", label: "Os mais queridos" },
   { key: "most-viewed", label: "Mais espiados" },
+  { key: "new", label: "Novo" },
 ];
 
 function FeaturedReview({ post }: { post: ReviewPost }) {
@@ -43,14 +47,35 @@ export default function ReviewFilters({ posts, tagGroups = [] }: { posts: Review
     if (activeFilter === "featured") return posts.filter((post) => post.is_featured);
     if (activeFilter === "most-purchased") return posts.filter((post) => post.is_most_purchased);
     if (activeFilter === "most-viewed") return posts.filter((post) => post.is_most_viewed);
+    if (activeFilter === "new") return posts.filter((post) => post.is_new);
     if (activeFilter.startsWith("tag:")) {
       const tagSlug = activeFilter.slice("tag:".length);
       return posts.filter((post) => post.tagSlugs?.includes(tagSlug));
     }
     return posts;
   }, [activeFilter, posts]);
-  const featuredPost = filteredPosts[0];
-  const remainingPosts = filteredPosts.slice(1);
+  const isDefaultView = activeFilter === "all";
+  const picks = useMemo(
+    () => isDefaultView
+      ? pickHighlights(posts).map(({ kind, item }) => ({
+          kind,
+          item: {
+            id: item.id,
+            title: item.title,
+            image_url: item.image_url,
+            excerpt: `${item.content.replace(/<[^>]+>/g, "").slice(0, 170)}${item.content.length > 170 ? "…" : ""}`,
+            href: `/resenhas/${item.id}`,
+            eyebrow: "Estudei para te explicar",
+            cta: "Mais detalhes do que estudei →",
+          },
+        }))
+      : [],
+    [isDefaultView, posts],
+  );
+  const pickedIds = new Set(picks.map((pick) => pick.item.id));
+  const listPosts = picks.length ? filteredPosts.filter((post) => !pickedIds.has(post.id)) : filteredPosts;
+  const featuredPost = picks.length ? undefined : listPosts[0];
+  const remainingPosts = picks.length ? listPosts : listPosts.slice(1);
   const activeTagGroups = tagGroups.filter((group) => group.options.length > 0);
 
   return (
@@ -81,14 +106,12 @@ export default function ReviewFilters({ posts, tagGroups = [] }: { posts: Review
 
       <div className="mt-4" aria-live="polite">
         <p className="mb-3 text-sm text-[var(--muted)]">{filteredPosts.length} {filteredPosts.length === 1 ? "explicação nesta seleção" : "explicações nesta seleção"}</p>
-        {featuredPost ? (
+        {filteredPosts.length ? (
           <>
-            <FeaturedReview post={featuredPost} />
-            {remainingPosts.length > 0 && (
-              <div className="editorial-grid">
-                {remainingPosts.map((post) => <JournalCard key={post.id} post={post} href={`/resenhas/${post.id}`} ctaLabel="Mais detalhes do que estudei →" />)}
-              </div>
-            )}
+            <HighlightStrip picks={picks} />
+            {picks.length > 0 && remainingPosts.length > 0 && <h2 className="rest-title font-display">Mais para você entender</h2>}
+            {featuredPost && <FeaturedReview post={featuredPost} />}
+            <LoadMoreGrid noun="explicações" items={remainingPosts.map((post) => <JournalCard key={post.id} post={post} href={`/resenhas/${post.id}`} ctaLabel="Mais detalhes do que estudei →" />)} />
           </>
         ) : (
           <div className="empty-state">

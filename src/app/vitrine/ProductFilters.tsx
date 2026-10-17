@@ -6,8 +6,11 @@ import { useMemo, useState } from "react";
 import ProductCard from "../ProductCard";
 import type { Product } from "../types";
 import FilterChipBar from "../ui/FilterChipBar";
+import HighlightStrip from "../ui/HighlightStrip";
+import LoadMoreGrid from "../ui/LoadMoreGrid";
+import { pickHighlights } from "@/lib/highlights";
 
-type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | `category:${string}` | `tag:${string}`;
+type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | "new" | `category:${string}` | `tag:${string}`;
 type FilterableProduct = Product & { tagSlugs?: string[] };
 type TagGroup = { label: string; options: Array<{ slug: string; name: string }> };
 
@@ -16,6 +19,7 @@ const specialFilters: Array<{ key: FilterKey; label: string }> = [
   { key: "featured", label: "Meus destaques" },
   { key: "most-purchased", label: "Os mais queridos" },
   { key: "most-viewed", label: "Mais espiados" },
+  { key: "new", label: "Novo" },
 ];
 
 function FeaturedProduct({ product }: { product: FilterableProduct }) {
@@ -51,6 +55,7 @@ export default function ProductFilters({ products, tagGroups = [] }: { products:
     if (activeFilter === "featured") return products.filter((product) => product.is_featured);
     if (activeFilter === "most-purchased") return products.filter((product) => product.is_most_purchased);
     if (activeFilter === "most-viewed") return products.filter((product) => product.is_most_viewed);
+    if (activeFilter === "new") return products.filter((product) => product.is_new);
     if (activeFilter.startsWith("category:")) {
       const category = activeFilter.slice("category:".length);
       return products.filter((product) => (product.category?.trim() || "Geral") === category);
@@ -66,8 +71,31 @@ export default function ProductFilters({ products, tagGroups = [] }: { products:
     ...specialFilters,
     ...categories.map((category) => ({ key: `category:${category}` as FilterKey, label: category })),
   ];
-  const featuredProduct = filteredProducts[0];
-  const remainingProducts = filteredProducts.slice(1);
+  const isDefaultView = activeFilter === "all";
+  const picks = useMemo(
+    () => isDefaultView
+      ? pickHighlights(products).map(({ kind, item }) => {
+          const text = item.description.replace(/<[^>]*>?/gm, "");
+          return {
+            kind,
+            item: {
+              id: item.id,
+              title: item.title,
+              image_url: item.image_url,
+              excerpt: `${text.slice(0, 170)}${text.length > 170 ? "…" : ""}`,
+              href: `/vitrine/${item.id}`,
+              eyebrow: item.category || "Escolha da Luana",
+              cta: "Quero ver →",
+            },
+          };
+        })
+      : [],
+    [isDefaultView, products],
+  );
+  const pickedIds = new Set(picks.map((pick) => pick.item.id));
+  const listProducts = picks.length ? filteredProducts.filter((product) => !pickedIds.has(product.id)) : filteredProducts;
+  const featuredProduct = picks.length ? undefined : listProducts[0];
+  const remainingProducts = picks.length ? listProducts : listProducts.slice(1);
   const activeTagGroups = tagGroups.filter((group) => group.options.length > 0);
 
   return (
@@ -98,14 +126,12 @@ export default function ProductFilters({ products, tagGroups = [] }: { products:
 
       <div className="mt-4" aria-live="polite">
         <p className="mb-3 text-sm text-[var(--muted)]">{filteredProducts.length} {filteredProducts.length === 1 ? "achado nesta seleção" : "achados nesta seleção"}</p>
-        {featuredProduct ? (
+        {filteredProducts.length ? (
           <>
-            <FeaturedProduct product={featuredProduct} />
-            {remainingProducts.length > 0 && (
-              <div className="editorial-grid">
-                {remainingProducts.map((product) => <ProductCard key={product.id} produto={product} />)}
-              </div>
-            )}
+            <HighlightStrip picks={picks} />
+            {picks.length > 0 && remainingProducts.length > 0 && <h2 className="rest-title font-display">Mais achados para você</h2>}
+            {featuredProduct && <FeaturedProduct product={featuredProduct} />}
+            <LoadMoreGrid noun="achados" items={remainingProducts.map((product) => <ProductCard key={product.id} produto={product} />)} />
           </>
         ) : (
           <div className="empty-state">

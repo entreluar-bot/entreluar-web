@@ -41,9 +41,9 @@ export default async function Resenhas() {
     const product = post.image_url ? highlightsByImage.get(post.image_url) : undefined;
     return {
       ...post,
-      is_featured: product?.is_featured,
+      is_featured: Boolean(post.is_featured || product?.is_featured),
       is_most_purchased: product?.is_most_purchased,
-      is_most_viewed: product?.is_most_viewed,
+      is_most_viewed: Boolean(post.is_most_viewed || product?.is_most_viewed),
       filter_category: product?.category,
       tagSlugs: tagSlugsByPostId.get(post.id) || [],
     };

@@ -180,6 +180,27 @@ const compressImage = (file: File): Promise<File> => {
   });
 };
 
+// Regra das marcas especiais: só um item por marca em cada seção.
+// Ao marcar um item, a marca é retirada de todos os outros da mesma seção
+// (Papo de Mulher e Te Explico são seções separadas; produtos são uma só).
+async function clearOtherHighlights(
+  supabase: ReturnType<typeof createClient>,
+  table: "journal" | "products",
+  id: string,
+  flags: string[],
+  category?: string | null,
+) {
+  for (const flag of flags) {
+    let query = supabase.from(table).update({ [flag]: false }).neq("id", id).eq(flag, true);
+    if (table === "journal") {
+      query = category === "Estudei para te explicar"
+        ? query.eq("category", "Estudei para te explicar")
+        : query.or('category.is.null,category.neq."Estudei para te explicar"');
+    }
+    await query;
+  }
+}
+
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "product" | "blog" | "manage" | "traffic" | "comments" | "inbox" | "quotes" | "drops" | "newsletter" | "memory">("overview");
@@ -1146,13 +1167,8 @@ export default function AdminDashboard() {
         if (blogError) throw blogError;
         journalId = journalData?.id;
 
-        if (isNew && journalId) {
-          const previousNew = supabase.from("journal").update({ is_new: false }).neq("id", journalId);
-          if (blogCategory === "Estudei para te explicar") {
-            await previousNew.eq("category", "Estudei para te explicar");
-          } else {
-            await previousNew.or('category.is.null,category.neq."Estudei para te explicar"');
-          }
+        if (journalId) {
+          await clearOtherHighlights(supabase, "journal", journalId, [isFeatured && "is_featured", isMostViewed && "is_most_viewed", isNew && "is_new"].filter(Boolean) as string[], blogCategory);
         }
 
         if (journalId && blogCategory === "Estudei para te explicar" && resumoRapidoHasContent(generatedResumoRapidoArtigo)) {
@@ -1198,8 +1214,8 @@ export default function AdminDashboard() {
         }]).select("id").single();
         if (prodError) throw prodError;
 
-        if (isNew && prodData?.id) {
-          await supabase.from("products").update({ is_new: false }).neq("id", prodData.id);
+        if (prodData?.id) {
+          await clearOtherHighlights(supabase, "products", prodData.id, [isFeatured && "is_featured", isMostViewed && "is_most_purchased", isMostViewed && "is_most_viewed", isNew && "is_new"].filter(Boolean) as string[]);
         }
 
         if (prodData?.id && resumoRapidoHasContent(generatedResumoRapido)) {
@@ -1298,9 +1314,7 @@ export default function AdminDashboard() {
           created_at: createdAt,
         }).eq("id", editingItem.id);
         if (error) throw error;
-        if (editingItem.is_new) {
-          await supabase.from("products").update({ is_new: false }).neq("id", editingItem.id);
-        }
+        await clearOtherHighlights(supabase, "products", editingItem.id, ["is_featured", "is_most_purchased", "is_most_viewed", "is_new"].filter((flag) => Boolean((editingItem as Record<string, unknown>)[flag])));
       } else {
         const { error } = await supabase.from("journal").update({ 
           title: editingItem.title, 
@@ -1314,14 +1328,7 @@ export default function AdminDashboard() {
         }).eq("id", editingItem.id);
         if (error) throw error;
         await shiftSocialProofDatesOnPostEdit(supabase, editingItem.id, createdAt);
-        if (editingItem.is_new) {
-          const previousNew = supabase.from("journal").update({ is_new: false }).neq("id", editingItem.id);
-          if (editingItem.category === "Estudei para te explicar") {
-            await previousNew.eq("category", "Estudei para te explicar");
-          } else {
-            await previousNew.or('category.is.null,category.neq."Estudei para te explicar"');
-          }
-        }
+        await clearOtherHighlights(supabase, "journal", editingItem.id, ["is_featured", "is_most_viewed", "is_new"].filter((flag) => Boolean((editingItem as Record<string, unknown>)[flag])), editingItem.category);
       }
 
       const contentType = editingItem.type === "product" ? "product" : "journal";
@@ -1401,8 +1408,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.11</p>
-                <p>Atualizado em 16/10/2026 às 07:23</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.12</p>
+                <p>Atualizado em 17/10/2026 às 15:32</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
