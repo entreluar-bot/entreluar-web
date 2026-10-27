@@ -4,7 +4,7 @@ import { getEditorialDirection, getProductCreativeDirection, originalityRules } 
 import { authenticateAiRequest } from "@/lib/ai/auth";
 import { loadAiContext, parseJson, recordGeneration, suggestMemoryFromNotes, topicTags } from "@/lib/ai/context";
 import { validateReviewCopy } from "@/lib/ai/copy-quality";
-import { LUANA_VOICE, PRODUCT_REVIEW_STYLE_RULES, QUICK_SUMMARY_RULES, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
+import { LUANA_VOICE, PAPO_DE_MULHER_VOICE_RULES, PRODUCT_REVIEW_STYLE_RULES, QUICK_SUMMARY_RULES, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES, TRUTH_RULES } from "@/lib/ai/identity";
 import { postSchema } from "@/lib/ai/schemas";
 import { combineUsage, generateAi } from "@/lib/ai/runtime";
 import { EMPTY_RESUMO_RAPIDO, type ResumoRapido } from "@/lib/summary";
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     const creativeDirection = isEstudei
       ? getProductCreativeDirection()
       : getEditorialDirection({ hasPersonalNotes: Boolean(impressions?.trim()), recentOpeningStyles: context.antiRepetitionPrompt.split("\n").slice(0, 3) });
-    const prompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${isEstudei ? `${SCIENCE_RULES}\n${PRODUCT_REVIEW_STYLE_RULES}\n` : ""}${QUICK_SUMMARY_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}
+    const prompt = `${LUANA_VOICE}\n${TRUTH_RULES}\n${SIMPLE_LANGUAGE_RULES}\n${isEstudei ? `${SCIENCE_RULES}\n${PRODUCT_REVIEW_STYLE_RULES}\n` : `${PAPO_DE_MULHER_VOICE_RULES}\n`}${QUICK_SUMMARY_RULES}\n${context.memoryPrompt}\n${context.antiRepetitionPrompt}
 
 Escreva um artigo completo para a categoria "${category || "Diário"}" do blog. Tema: "${title || "Crônica de uma mulher madura"}". NOTAS PESSOAIS DA LUANA: "${impressions || "Nenhuma nota pessoal fornecida."}"
 
@@ -74,7 +74,7 @@ ${isEstudei ? "resumoRapido deve resumir o artigo (text) que você acabou de esc
     });
     if (!reviewQuality.valid) {
       const retry = await generateAi(ai, "blog", {
-        contents: [...contents, `CORRIJA A RESPOSTA ANTERIOR: ${reviewQuality.errors.join(" ")} Remova disclaimer genérico, clichês e títulos fixos antigos. Traga ao menos um dado concreto do tema, ativo, nota ou pesquisa. Mantenha linguagem simples, positiva, próxima, com humor leve e conselhos práticos de uso. Gere o objeto completo e válido.`],
+        contents: [...contents, `CORRIJA A RESPOSTA ANTERIOR: ${reviewQuality.errors.join(" ")} ${isEstudei ? "Remova disclaimer genérico, clichês e títulos fixos antigos. Traga ao menos um dado concreto do tema, ativo, nota ou pesquisa. Mantenha linguagem simples, positiva, próxima, com humor leve e conselhos práticos de uso." : "A crônica precisa soar como o alter ego da Luana conversando de perto: traga um ponto de vista específico, ritmo humano e uma verdade concreta; remova tom de conselho genérico, palestra ou frase pronta."} Gere o objeto completo e válido.`],
         config: { responseMimeType: "application/json", responseJsonSchema: postSchema, temperature: 0.45 },
       });
       response = retry.response;

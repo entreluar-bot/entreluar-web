@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { friendlyAiError, type QuoteCandidate, validateAccessoryTrace, validateQuoteBatch, validateReviewCopy } from "../src/lib/ai/copy-quality";
-import { PRODUCT_REVIEW_STYLE_RULES, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES } from "../src/lib/ai/identity";
+import { PAPO_DE_MULHER_VOICE_RULES, PRODUCT_REVIEW_STYLE_RULES, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES } from "../src/lib/ai/identity";
 import { buildAccessoryPrompt, buildQuotePrompt } from "../src/lib/ai/prompts";
 import { getEditorialDirection, getProductCreativeDirection, originalityRules } from "../src/lib/creative-direction";
 import { getAiPolicy } from "../src/lib/ai/runtime";
@@ -89,6 +89,14 @@ test("regras de resenha priorizam conversa simples e uso prático", () => {
   expect(PRODUCT_REVIEW_STYLE_RULES).toContain("Varie a arquitetura");
   expect(PRODUCT_REVIEW_STYLE_RULES).toContain("títulos devem variar");
   expect(SCIENCE_RULES).toContain("não substitui procedimentos estéticos");
+});
+
+test("crônicas recebem uma voz íntima de alter ego, não um texto de bem-estar genérico", () => {
+  expect(PAPO_DE_MULHER_VOICE_RULES).toContain("alter ego literário da Luana");
+  expect(PAPO_DE_MULHER_VOICE_RULES).toContain("áudio longo para uma amiga esperta");
+  expect(PAPO_DE_MULHER_VOICE_RULES).toContain("ponto de vista");
+  expect(PAPO_DE_MULHER_VOICE_RULES).toContain("frase de caneca");
+  expect(PAPO_DE_MULHER_VOICE_RULES).toContain("Não invente fatos, cenas, falas");
 });
 
 test("resenha bloqueia disclaimers genéricos sobre procedimentos", () => {
