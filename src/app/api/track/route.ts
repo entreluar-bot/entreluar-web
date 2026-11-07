@@ -14,12 +14,19 @@ function createSupabaseClient() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
+function isAtelierPath(path: string) {
+  return path === "/admin" || path.startsWith("/admin/") || path.startsWith("/admin?");
+}
+
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
     const sessionId = clean(payload.sessionId, 80);
     const path = clean(payload.path, 400);
     if (!sessionId || !path) return NextResponse.json({ ok: true });
+    // Proteção no servidor: mesmo que um cliente antigo envie o evento, o
+    // Ateliê nunca entra nas métricas públicas do site.
+    if (isAtelierPath(path)) return NextResponse.json({ ok: true });
 
     const userAgent = clean(req.headers.get("user-agent"), 500);
     const supabase = createSupabaseClient();

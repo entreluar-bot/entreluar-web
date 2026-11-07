@@ -83,6 +83,8 @@ export default function CampaignTracker() {
 
   useEffect(() => {
     const path = `${window.location.pathname}${window.location.search}`;
+    // O Ateliê é uma área de trabalho da Luana, não uma visita ao site.
+    if (window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin/")) return;
     if (lastTracked.current === path) return;
     lastTracked.current = path;
 

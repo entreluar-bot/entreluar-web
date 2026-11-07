@@ -61,6 +61,10 @@ function startOfSaoPauloToday() {
   return new Date(`${value("year")}-${value("month")}-${value("day")}T03:00:00.000Z`);
 }
 
+function isAtelierPath(path: string | null) {
+  return path === "/admin" || path?.startsWith("/admin/") || path?.startsWith("/admin?");
+}
+
 function countByPath(rows: VisitRow[]) {
   const counts = new Map<string, number>();
   rows.forEach((row) => counts.set(row.path || "/", (counts.get(row.path || "/") || 0) + 1));
@@ -105,6 +109,8 @@ export async function GET(req: Request) {
       fetchAll<VisitRow>((from, to) => supabase.from("site_visits").select("path,session_id,referrer,utm_source,created_at").order("created_at", { ascending: false }).range(from, to)),
       fetchAll<ConversionRow>((from, to) => supabase.from("newsletter_conversions").select("email,path,source,utm_source,created_at").order("created_at", { ascending: false }).range(from, to)),
     ]);
+    // Também ignora registros antigos do Ateliê que possam já estar salvos.
+    const publicVisits = visits.filter((visit) => !isAtelierPath(visit.path));
 
     const today = startOfSaoPauloToday();
     const last7 = new Date(today);
@@ -115,10 +121,10 @@ export async function GET(req: Request) {
     return NextResponse.json({
       generatedAt: new Date().toISOString(),
       periods: {
-        today: { label: "Hoje", ...summarize(visits, conversions, today) },
-        last7: { label: "7 dias", ...summarize(visits, conversions, last7) },
-        last30: { label: "30 dias", ...summarize(visits, conversions, last30) },
-        all: { label: "Geral", ...summarize(visits, conversions) },
+        today: { label: "Hoje", ...summarize(publicVisits, conversions, today) },
+        last7: { label: "7 dias", ...summarize(publicVisits, conversions, last7) },
+        last30: { label: "30 dias", ...summarize(publicVisits, conversions, last30) },
+        all: { label: "Geral", ...summarize(publicVisits, conversions) },
       },
       recentConversions: conversions.slice(0, 6),
     });
