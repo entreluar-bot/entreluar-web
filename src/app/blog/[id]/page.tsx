@@ -6,7 +6,6 @@ import { createClient } from "@/utils/supabase/server";
 import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
 import { getActivePollForJournal } from "@/lib/poll";
 import { getReactionsForJournal } from "@/lib/reactions";
-import NewsletterSignup from "../../ui/NewsletterSignup";
 import ConversationCircle from "../../ui/ConversationCircle";
 import ShareButton from "../../ui/ShareButton";
 import TopQuickActions from "../../ui/TopQuickActions";
@@ -56,12 +55,11 @@ export async function generateMetadata({ params }: BlogPostProps): Promise<Metad
 export default async function BlogPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, commentRows, poll, reactions, { data: companionProduct }] = await Promise.all([
+  const [{ data }, commentRows, poll, reactions] = await Promise.all([
     supabase.from("journal").select("*").eq("id", id).single(),
     getApprovedComments(supabase, "journal_id", id),
     getActivePollForJournal(supabase, id),
     getReactionsForJournal(supabase, id),
-    supabase.from("products").select("shopee_link").eq("companion_journal_id", id).maybeSingle(),
   ]);
 
   if (!data) notFound();
@@ -69,13 +67,11 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
   const comments = (commentRows || []) as JournalComment[];
   const shareUrl = `${siteUrl}/blog/${post.id}`;
 
-  const PAPO_ONLY = 'category.is.null,category.neq."Estudei para te explicar"';
   const [{ data: nextRows }, { data: prevRows }] = await Promise.all([
-    supabase.from("journal").select("id,title").or(PAPO_ONLY).lt("created_at", post.created_at).order("created_at", { ascending: false }).limit(1),
-    supabase.from("journal").select("id,title").or(PAPO_ONLY).gt("created_at", post.created_at).order("created_at", { ascending: true }).limit(1),
+    supabase.from("journal").select("id,title").eq("editorial_pillar", "papo").lt("created_at", post.created_at).order("created_at", { ascending: false }).limit(1),
+    supabase.from("journal").select("id,title").eq("editorial_pillar", "papo").gt("created_at", post.created_at).order("created_at", { ascending: true }).limit(1),
   ]);
-  const nextPost = (nextRows || [])[0] as Pick<JournalPost, "id" | "title"> | undefined;
-  const prevPost = (prevRows || [])[0] as Pick<JournalPost, "id" | "title"> | undefined;
+  const nextPost = ((nextRows || [])[0] || (prevRows || [])[0]) as Pick<JournalPost, "id" | "title"> | undefined;
 
   return (
     <main className="site-shell">
@@ -97,52 +93,13 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
           )}
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
           <ReactionBar journalId={post.id} initialCounts={reactions} />
-          <ShareButton title={post.title} url={shareUrl} shareText={`Li isso e achei tudo a ver com a gente: ${post.title}`} className="border-t border-[var(--line)] pt-8" />
+          <ShareButton title={post.title} url={shareUrl} shareText={`Li isso e achei tudo a ver com a gente: ${post.title}`} className="article-share-compact" />
 
           {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
 
           <ConversationCircle postId={post.id} postTitle={post.title} postCreatedAt={post.created_at} comments={comments} question={post.reader_question} contentType="journal" variant="journal" />
 
-          {companionProduct?.shopee_link && (
-            <aside className="contextual-find" aria-label="Achado desta conversa">
-              <p className="eyebrow">O achado desta conversa</p>
-              <h2>Já que estamos entre amigas…</h2>
-              <p>Se esse assunto pediu um cuidado de bancada, deixei meu veredito sincero separado — sem transformar a conversa em vitrine.</p>
-              <Link href="/vitrine" className="ghost-button">Ver meu veredito →</Link>
-            </aside>
-          )}
-
-          <section className="newsletter-cta newsletter-cta--article" aria-labelledby="post-newsletter-title">
-            <div>
-              <p className="eyebrow">Entreluar por email</p>
-              <h2 id="post-newsletter-title" className="font-display text-4xl leading-none text-[var(--champagne-pale)]">A próxima conversa pode chegar primeiro para você.</h2>
-              <p className="muted mt-3 leading-7">Novidades 50+, autocuidado sem manual, convites especiais e papo de mulher para ler com calma.</p>
-            </div>
-            <NewsletterSignup source="blog-post" />
-          </section>
-
-          {(prevPost || nextPost) && (
-            <section className="section-space grid gap-4 sm:grid-cols-2" aria-label="Continue passeando pelos papos">
-              {prevPost && (
-                <Link href={`/blog/${prevPost.id}`} className="luxe-card p-6">
-                  <p className="eyebrow">← Papo anterior</p>
-                  <p className="font-display mt-2 text-xl leading-tight text-[var(--champagne-pale)]">{prevPost.title}</p>
-                </Link>
-              )}
-              {nextPost && (
-                <Link href={`/blog/${nextPost.id}`} className={`luxe-card p-6 sm:text-right${!prevPost ? " sm:col-start-2" : ""}`}>
-                  <p className="eyebrow">Próximo papo →</p>
-                  <p className="font-display mt-2 text-xl leading-tight text-[var(--champagne-pale)]">{nextPost.title}</p>
-                </Link>
-              )}
-            </section>
-          )}
-
-          <section className="next-steps" aria-label="Continue navegando">
-            <Link href="/pilulas" className="ghost-button">Quero uma pílula →</Link>
-            <Link href="/resenhas" className="ghost-button">Ver o que estudei para te explicar →</Link>
-            <Link href="/vitrine" className="ghost-button">Ver achados honestos →</Link>
-          </section>
+          {nextPost && <section className="next-reading" aria-label="A próxima conversa"><p className="eyebrow">A próxima conversa</p><Link href={`/blog/${nextPost.id}`} className="luxe-card mt-3 block p-6"><p className="font-display text-2xl leading-tight text-[var(--champagne-pale)]">{nextPost.title}</p><span className="mt-4 inline-flex text-xs font-bold uppercase tracking-[.14em] text-[var(--champagne)]">Continuar na roda →</span></Link></section>}
         </header>
       </article>
     </main>

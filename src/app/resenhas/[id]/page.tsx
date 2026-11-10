@@ -73,6 +73,11 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
   const comments = (commentRows || []) as JournalComment[];
   const sources = (sourceRows || []) as JournalSource[];
   const shareUrl = `${siteUrl}/resenhas/${post.id}`;
+  const [{ data: nextRows }, { data: prevRows }] = await Promise.all([
+    supabase.from("journal").select("id,title").eq("editorial_pillar", "te-explico").lt("created_at", post.created_at).order("created_at", { ascending: false }).limit(1),
+    supabase.from("journal").select("id,title").eq("editorial_pillar", "te-explico").gt("created_at", post.created_at).order("created_at", { ascending: true }).limit(1),
+  ]);
+  const nextPost = ((nextRows || [])[0] || (prevRows || [])[0]) as Pick<JournalPost, "id" | "title"> | undefined;
 
   return (
     <main className="site-shell">
@@ -96,7 +101,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
           <div className="prose-luxe" dangerouslySetInnerHTML={{ __html: post.content }} />
           {sources.length > 0 && <section className="article-sources" aria-labelledby="article-sources-title"><p className="eyebrow">Fontes revisadas</p><h2 id="article-sources-title">O que eu consultei para te explicar</h2><ul>{sources.map((source) => <li key={source.id}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a>{source.source_type ? ` · ${source.source_type}` : ""}</li>)}</ul><p className="muted text-sm">Revisado em {post.last_reviewed_at ? new Date(post.last_reviewed_at).toLocaleDateString("pt-BR") : new Date(post.created_at).toLocaleDateString("pt-BR")}.</p></section>}
           <ReactionBar journalId={post.id} initialCounts={reactions} />
-          <ShareButton title={post.title} url={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} className="border-t border-[var(--line)] pt-8" />
+          <ShareButton title={post.title} url={shareUrl} shareText={`Finalmente uma explicação que dá para entender: ${post.title}`} className="article-share-compact" />
           {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
           <ConversationCircle postId={post.id} postTitle={post.title} postCreatedAt={post.created_at} comments={comments} question={post.reader_question} contentType="journal" variant="journal-estudei" />
           {companionProduct?.shopee_link && (
@@ -107,11 +112,7 @@ export default async function ReviewPost({ params }: { params: Promise<{ id: str
               <Link href="/vitrine" className="ghost-button">Ver meu veredito →</Link>
             </aside>
           )}
-          <section className="next-steps" aria-label="Continue navegando">
-            <Link href="/vitrine" className="ghost-button">Ver achados relacionados →</Link>
-            <Link href="/blog" className="ghost-button">Conversar sobre vida real →</Link>
-            <Link href="/pilulas" className="ghost-button">Quero uma dose curta →</Link>
-          </section>
+          {nextPost && <section className="next-reading" aria-label="A próxima explicação"><p className="eyebrow">A próxima leitura</p><Link href={`/resenhas/${nextPost.id}`} className="luxe-card mt-3 block p-6"><p className="font-display text-2xl leading-tight text-[var(--champagne-pale)]">{nextPost.title}</p><span className="mt-4 inline-flex text-xs font-bold uppercase tracking-[.14em] text-[var(--champagne)]">Continuar lendo →</span></Link></section>}
         </header>
       </article>
     </main>

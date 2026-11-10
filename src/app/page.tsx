@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import ProductCard from "./ProductCard";
 import QuoteShareButton from "./ui/QuoteShareButton";
-import NewsletterSignup from "./ui/NewsletterSignup";
+import EntreluarMaps from "./ui/EntreluarMaps";
 import { THEME_GROUPS } from "@/lib/theme-groups";
 import type { JournalPost, Product, Quote } from "./types";
 
@@ -65,9 +65,9 @@ export default async function Home() {
   ] = await Promise.all([
     supabase.from("products").select("*").order("created_at", { ascending: false }).limit(3),
     supabase.from("quotes").select("*").order("created_at", { ascending: true }),
-    supabase.from("journal").select("*").order("created_at", { ascending: false }).limit(3),
+    supabase.from("journal").select("*").eq("editorial_pillar", "papo").order("created_at", { ascending: false }).limit(3),
     supabase.from("products").select("id,title,image_url,is_new,created_at").eq("is_new", true).order("created_at", { ascending: false }).limit(1),
-    supabase.from("journal").select("id,title,image_url,is_new,created_at").eq("is_new", true).or('category.is.null,category.neq."Estudei para te explicar"').order("created_at", { ascending: false }).limit(1),
+    supabase.from("journal").select("id,title,image_url,is_new,created_at").eq("is_new", true).eq("editorial_pillar", "papo").order("created_at", { ascending: false }).limit(1),
     supabase.from("journal").select("id,title,image_url,is_new,created_at").eq("is_new", true).eq("category", "Estudei para te explicar").order("created_at", { ascending: false }).limit(1),
     supabase.from("journal_comments").select("id,journal_id,reader_name,hide_reader_name,body,created_at,journal:journal_id(title,category)").eq("status", "approved").not("journal_id", "is", null).order("created_at", { ascending: false }).limit(3),
   ]);
@@ -89,7 +89,7 @@ export default async function Home() {
       <div className="content-wrap">
         <section className="hero">
           <div className="hero-copy">
-            <p className="eyebrow">Pele madura • vida sem manual</p>
+            <p className="eyebrow">Maturidade, corpo e vida sem manual</p>
             <h1 className="display-title">Madura.<br /><em>Luminosa.</em><br />Sem pedir licença.</h1>
             <p className="hero-intro">Eu puxo a cadeira para falar de menopausa, corpo, recomeços, desejos, família e liberdade. Estudo o que importa, troco ideias de verdade e só depois conto o que merece lugar na bancada.</p>
             <nav className="home-portals" aria-label="Escolha por onde começar">
@@ -119,10 +119,10 @@ export default async function Home() {
             <article className="featured-card luxe-card overflow-hidden">
               {featuredConversation.image_url && <div className="featured-card__media relative"><Image src={featuredConversation.image_url} alt="" fill sizes="(max-width:760px) 100vw,50vw" className="object-cover" unoptimized /></div>}
               <div className="featured-card__body">
-                <p className="eyebrow">{featuredConversation.category || "Papo de Mulher"}</p>
+                <p className="eyebrow">Papo de Mulher</p>
                 <h2 id="conversation-of-week" className="section-title mt-3">{featuredConversation.title}</h2>
                 <p className="muted mt-4 leading-7">{featuredConversation.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 220)}…</p>
-                <Link href={featuredConversation.category === "Estudei para te explicar" ? `/resenhas/${featuredConversation.id}` : `/blog/${featuredConversation.id}`} className="luxe-button mt-6 self-start">Entrar na roda →</Link>
+                <Link href={`/blog/${featuredConversation.id}`} className="luxe-button mt-6 self-start">Entrar na roda →</Link>
               </div>
             </article>
           </section>
@@ -142,11 +142,11 @@ export default async function Home() {
           </section>
         )}
 
-        <section className="glass-panel section-space rounded-[34px] px-6 py-12 text-center md:px-14" aria-label="Guia gratuito por email">
-          <p className="eyebrow">Um presente para você</p>
-          <h2 className="section-title my-5">Guia de rotina<br /><em>para pele madura</em></h2>
-          <p className="muted mx-auto mb-7 max-w-xl leading-7">Cinco passos simples, em uma página, sem susto e sem promessa milagrosa. Deixe seu melhor email que eu mando agora, e depois te escrevo só quando valer a pena.</p>
-          <div className="mx-auto max-w-md"><NewsletterSignup source="home-guia" buttonLabel="Quero meu guia grátis" /></div>
+        <section className="section-space" aria-labelledby="maps-title">
+          <div className="section-kicker"><span className="eyebrow">Do seu jeito</span></div>
+          <h2 id="maps-title" className="section-title mb-4">Dois mapas para<br /><em>começar por você.</em></h2>
+          <p className="muted max-w-2xl leading-7">Sem cadastro obrigatório e sem fórmula pronta. Você responde por aqui, recebe uma direção editorial na hora e decide se quer levar uma Carta Entreluar para o email.</p>
+          <EntreluarMaps />
         </section>
 
         <section className="section-space">
@@ -162,6 +162,17 @@ export default async function Home() {
           </div>
         </section>
 
+        <section className="section-space grid gap-8 md:grid-cols-[.8fr_1.2fr] md:items-center">
+          <div className="relative min-h-[420px] overflow-hidden rounded-[32px_32px_120px_32px] border border-[var(--line)]"><Image src="/luana.jpg" alt="Luana em seu espaço" fill sizes="(max-width:760px) 100vw,40vw" className="object-cover object-[center_35%]" /></div>
+          <div><p className="eyebrow">Quem eu sou e por que criei esse espaço</p><h2 className="section-title mt-4">A vida continua.<br /><em>E a conversa também.</em></h2><div className="muted my-6 max-w-xl space-y-4 text-base leading-8"><p>Eu sou a Luana. Tenho 54 anos, sou divorciada, mãe de uma filha de 18 e uma mulher que trabalha, se cuida, namora, erra a mão às vezes e segue aprendendo a viver uma fase que ninguém ensinou direito pra gente.</p><p>Eu senti falta de um lugar onde fosse possível falar de corpo, desejo, filhos, separação, liberdade, beleza, medo e recomeços sem constrangimento.</p><p>A Entreluar nasceu dessa falta.</p></div><Link href="/sobre" className="luxe-button">Conhecer minha história →</Link></div>
+        </section>
+
+        <section className="section-space">
+          <div className="section-kicker"><span className="eyebrow">Mais leituras da roda</span></div>
+          <h2 className="section-title mb-8">Entre nós,<br /><em>sem filtro</em></h2>
+          {posts.length ? <div className="editorial-grid">{posts.map((post) => <Link key={post.id} href={post.category === "Estudei para te explicar" ? `/resenhas/${post.id}` : `/blog/${post.id}`} className="luxe-card group block"><div className="relative aspect-[4/3]">{post.image_url ? <Image src={post.image_url} alt="" fill sizes="(max-width:760px) 100vw,33vw" className="object-cover transition duration-700 group-hover:scale-105" unoptimized /> : <div className="h-full bg-gradient-to-br from-[#76283b] to-[#16070b]" />}</div><div className="p-6"><p className="eyebrow">{post.category || "Papo de Mulher"}</p><h3 className="font-display mt-3 text-3xl leading-none">{post.title}</h3><span className="mt-5 inline-flex text-xs font-bold uppercase tracking-[.16em] text-[var(--champagne)]">Continuar a conversa →</span></div></Link>)}</div> : <div className="empty-state">A próxima conversa ainda está tomando forma. Volta daqui a pouco — eu prometo contar tudo. ☕</div>}
+        </section>
+
         <section className="section-space">
           <div className="section-kicker"><span className="eyebrow">Na minha bancada</span></div>
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -169,19 +180,8 @@ export default async function Home() {
             <Link href="/vitrine" className="ghost-button">Ver meus achados</Link>
           </div>
           {products.length ? <div className="editorial-grid">{products.map((product) => <ProductCard key={product.id} produto={product} />)}</div> : (
-            <div className="empty-state"><span className="mb-3 block text-4xl">◔</span><p className="font-display text-2xl text-[var(--champagne)]">A bancada está respirando.</p><p className="mt-2">Já já entram novos achados — só os que merecerem espaço.</p><Link href="/pilulas" className="ghost-button mt-5">Quero uma pílula</Link></div>
+            <div className="empty-state"><span className="mb-3 block text-4xl">◔</span><p className="font-display text-2xl text-[var(--champagne)]">A bancada está respirando.</p><p className="mt-2">Já já entram novos achados, só os que merecerem espaço.</p><Link href="/pilulas" className="ghost-button mt-5">Quero uma pílula</Link></div>
           )}
-        </section>
-
-        <section className="section-space grid gap-8 md:grid-cols-[.8fr_1.2fr] md:items-center">
-          <div className="relative min-h-[420px] overflow-hidden rounded-[32px_32px_120px_32px] border border-[var(--line)]"><Image src="/luana.jpg" alt="Luana em seu espaço" fill sizes="(max-width:760px) 100vw,40vw" className="object-cover object-[center_35%]" /></div>
-          <div><p className="eyebrow">Prazer, eu sou a Luana</p><h2 className="section-title mt-4">Mais vida.<br />Menos manual.</h2><p className="muted my-6 max-w-xl text-base leading-8">Eu testo, estudo, acerto, erro também — e conto tudo. Porque amadurecer não é desaparecer: é finalmente escolher o que fica.</p><Link href="/sobre" className="luxe-button">Chega mais →</Link></div>
-        </section>
-
-        <section className="section-space">
-          <div className="section-kicker"><span className="eyebrow">Mais leituras da roda</span></div>
-          <h2 className="section-title mb-8">Entre nós,<br /><em>sem filtro</em></h2>
-          {posts.length ? <div className="editorial-grid">{posts.map((post) => <Link key={post.id} href={post.category === "Estudei para te explicar" ? `/resenhas/${post.id}` : `/blog/${post.id}`} className="luxe-card group block"><div className="relative aspect-[4/3]">{post.image_url ? <Image src={post.image_url} alt="" fill sizes="(max-width:760px) 100vw,33vw" className="object-cover transition duration-700 group-hover:scale-105" unoptimized /> : <div className="h-full bg-gradient-to-br from-[#76283b] to-[#16070b]" />}</div><div className="p-6"><p className="eyebrow">{post.category || "Papo de Mulher"}</p><h3 className="font-display mt-3 text-3xl leading-none">{post.title}</h3><span className="mt-5 inline-flex text-xs font-bold uppercase tracking-[.16em] text-[var(--champagne)]">Continuar a conversa →</span></div></Link>)}</div> : <div className="empty-state">A próxima conversa ainda está tomando forma. Volta daqui a pouco — eu prometo contar tudo. ☕</div>}
         </section>
 
         <section className="glass-panel section-space rounded-[34px] px-6 py-12 text-center md:px-14">

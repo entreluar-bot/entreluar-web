@@ -6,23 +6,16 @@ const FROM = "Luana <luana@entreluar.com.br>";
 
 export function buildWelcomeEmail() {
   return renderPremiumEmail("site", {
-    subject: "Seu guia de rotina para pele madura chegou ✨",
-    preheader: "Cinco passos simples, sem susto e sem promessa milagrosa.",
+    subject: "Bem-vinda à roda da Entreluar ✨",
+    preheader: "Uma conversa para corpo, vida, recomeços e autocuidado possível.",
     headline: "Que bom que você chegou, amiga.",
     bodyHtml: `
-<p>Eu sou a Luana e, daqui pra frente, vou te mandar só o que vale a sua atenção: achados testados, conversa de amiga sobre menopausa e pele madura, e muita informação sem complicar.</p>
-<p>Prometi um presente, então aqui está o <strong>guia de rotina em 1 página</strong>:</p>
-<ol>
-<li><strong>Limpar com carinho.</strong> Água morna (não quente) e um sabonete suave. Pele madura gosta de delicadeza, não de esfregação.</li>
-<li><strong>Hidratar enquanto a pele está levemente úmida.</strong> Ajuda a segurar a água que a pele já tem.</li>
-<li><strong>Protetor solar, todo dia de manhã.</strong> Se eu pudesse escolher um único passo, seria este.</li>
-<li><strong>À noite, um passo de cada vez.</strong> Introduza um produto novo por vez e espere uns dias antes de somar outro. Assim você descobre o que funciona de verdade.</li>
-<li><strong>Constância vale mais que quantidade.</strong> Uma rotina simples que você mantém ganha de dez potinhos que ficam na gaveta.</li>
-</ol>
-<p>Isto é organização de hábitos, não indicação médica. Se algo irritar ou te preocupar, vale conversar com a sua dermatologista.</p>
-<p>Agora me conta: <strong>qual é a sua maior dúvida com a pele hoje?</strong> É só responder este email. Eu leio tudo, e sua pergunta pode virar um papo no site. 💛</p>`,
-    ctaText: "Montar minha rotina",
-    ctaUrl: "https://entreluar.com.br/minha-rotina",
+<p>Eu sou a Luana e, daqui pra frente, vou te mandar só o que vale a sua atenção: conversa de amiga sobre corpo, menopausa, relações, recomeços e autocuidado possível. Achados testados entram quando fazem sentido, sem tomar conta da mesa.</p>
+<p>Por aqui, você pode ler uma crônica, entender um assunto com fontes e entrar na Roda para contar o que vive. Sem fórmula para parecer mais nova e sem obrigação de estar bem resolvida o tempo todo.</p>
+<p>Se chegou por um dos mapas, lembra de uma coisa importante: suas respostas não entram no cadastro. Elas ficam com você. A carta é apenas um jeito de continuar a conversa.</p>
+<p>Agora me conta: <strong>que assunto você gostaria de ver por aqui?</strong> É só responder este email. Eu leio tudo, e sua pergunta pode virar um Papo de Mulher. 💛</p>`,
+    ctaText: "Entrar na roda",
+    ctaUrl: "https://entreluar.com.br/blog",
   });
 }
 

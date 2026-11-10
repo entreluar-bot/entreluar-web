@@ -13,7 +13,7 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://entreluar.com.br';
 export const metadata:Metadata={
   metadataBase: new URL(baseUrl),
   title:{default:"Entreluar | Madura. Luminosa. Sem pedir licença.",template:"%s | Entreluar"},
-  description:"Pele madura, menopausa, autocuidado e achados honestos — com ciência, humor e conversa de amiga.",
+  description:"Maturidade, corpo, relações, recomeços e autocuidado possível, com ciência, humor e conversa de amiga.",
   applicationName:"Entreluar",
   manifest:"/manifest.webmanifest",
   alternates: {
@@ -21,7 +21,7 @@ export const metadata:Metadata={
   },
   openGraph: {
     title: "Entreluar | Madura. Luminosa. Sem pedir licença.",
-    description: "Pele madura, menopausa, autocuidado e achados honestos — com ciência, humor e conversa de amiga.",
+    description: "Maturidade, corpo, relações, recomeços e autocuidado possível, com ciência, humor e conversa de amiga.",
     url: baseUrl,
     siteName: "Entreluar",
     locale: "pt_BR",
@@ -30,7 +30,7 @@ export const metadata:Metadata={
   twitter: {
     card: "summary_large_image",
     title: "Entreluar | Madura. Luminosa. Sem pedir licença.",
-    description: "Pele madura, menopausa, autocuidado e achados honestos — com ciência, humor e conversa de amiga.",
+    description: "Maturidade, corpo, relações, recomeços e autocuidado possível, com ciência, humor e conversa de amiga.",
   },
   icons:{
     icon:[
@@ -51,7 +51,7 @@ export default function RootLayout({children}:LayoutProps<"/">){
     "@type": "WebSite",
     "name": "Entreluar",
     "url": baseUrl,
-    "description": "Pele madura, menopausa, autocuidado e achados honestos — com ciência, humor e conversa de amiga."
+    "description": "Maturidade, corpo, relações, recomeços e autocuidado possível, com ciência, humor e conversa de amiga."
   };
 
   return (
