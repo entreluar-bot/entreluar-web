@@ -10,10 +10,10 @@ import TextSizeToggle from "./TextSizeToggle";
 
 const items = [
   { href: "/", label: "Início", icon: "⌂" },
-  { href: "/vitrine", label: "Vitrine", icon: "◇" },
   { href: "/blog", label: "Papo de Mulher", mobileLabel: "Papo", icon: "✦" },
   { href: "/resenhas", label: "Te Explico", mobileLabel: "Explico", icon: "?" },
   { href: "/pilulas", label: "Pílulas", icon: "☾" },
+  { href: "/vitrine", label: "Meus Achados", mobileLabel: "Achados", icon: "◇" },
 ];
 
 export default function SiteChrome() {

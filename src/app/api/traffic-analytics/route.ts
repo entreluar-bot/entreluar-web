@@ -74,6 +74,15 @@ function countByPath(rows: VisitRow[]) {
     .map(([path, visits]) => ({ path, visits }));
 }
 
+function countByPillar(rows: VisitRow[]) {
+  const definitions = [
+    ["Papo de Mulher", (path: string) => path === "/blog" || path.startsWith("/blog/")],
+    ["Te Explico", (path: string) => path === "/resenhas" || path.startsWith("/resenhas/")],
+    ["Meus Achados", (path: string) => path === "/vitrine" || path.startsWith("/vitrine/")],
+  ] as const;
+  return definitions.map(([label, matches]) => ({ label, visits: rows.filter((row) => matches(row.path || "/")).length }));
+}
+
 function summarize(visits: VisitRow[], conversions: ConversionRow[], since?: Date) {
   const filteredVisits = since ? visits.filter((visit) => new Date(visit.created_at) >= since) : visits;
   const filteredConversions = since ? conversions.filter((conversion) => new Date(conversion.created_at) >= since) : conversions;
@@ -97,6 +106,7 @@ function summarize(visits: VisitRow[], conversions: ConversionRow[], since?: Dat
     conversionRate: filteredVisits.length ? (filteredConversions.length / filteredVisits.length) * 100 : 0,
     sources,
     topPages: countByPath(filteredVisits),
+    pillars: countByPillar(filteredVisits),
   };
 }
 

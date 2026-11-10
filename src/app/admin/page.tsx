@@ -47,6 +47,7 @@ type TrafficPeriod = {
   conversionRate: number;
   sources: TrafficSourceStat[];
   topPages: Array<{ path: string; visits: number }>;
+  pillars: Array<{ label: string; visits: number }>;
 };
 
 type TrafficAnalytics = {
@@ -134,6 +135,29 @@ const PAPO_FILTERS = [
   "Rindo para não surtar",
   "Confissões da maturidade",
 ];
+
+type EditorialSource = { title: string; url: string; sourceType: string };
+type SocialPackage = { instagramPrompt: string; reelHook: string; reelScript: string; caption: string; stories: string[]; cta: string };
+
+function parseEditorialSources(value: string): EditorialSource[] {
+  return value.split("\n").map((line) => line.trim()).filter(Boolean).flatMap((line) => {
+    const [title, url, sourceType = "Referência"] = line.split("|").map((part) => part.trim());
+    return title && /^https?:\/\//i.test(url || "") ? [{ title, url, sourceType }] : [];
+  });
+}
+
+function buildSocialPackageDraft(articleTitle: string, articleText: string): SocialPackage {
+  const excerpt = articleText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 280);
+  const cta = "Leia a conversa completa no site e me conta sua história na Roda de Conversa.";
+  return {
+    instagramPrompt: `Crie uma postagem autêntica para Instagram sobre “${articleTitle}”. Use este trecho como única base: “${excerpt}”. Fale em primeira pessoa, como Luana da Entreluar, sem inventar experiência nem prometer resultado. Termine com: ${cta}`,
+    reelHook: articleTitle,
+    reelScript: `${excerpt}\n\n${cta}`,
+    caption: `${excerpt}\n\n${cta}`,
+    stories: [articleTitle, excerpt.slice(0, 150), "E você, já viveu isso?", cta],
+    cta,
+  };
+}
 
 const compressImage = (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {
@@ -265,6 +289,10 @@ export default function AdminDashboard() {
   const [generatedPollQuestion, setGeneratedPollQuestion] = useState("");
   const [generatedReaderQuestion, setGeneratedReaderQuestion] = useState("");
   const [generatedPollOptions, setGeneratedPollOptions] = useState<string[]>([]);
+  const [editorialTopic, setEditorialTopic] = useState("Menopausa & corpo");
+  const [sourceReferencesText, setSourceReferencesText] = useState("");
+  const [generatedSources, setGeneratedSources] = useState<EditorialSource[]>([]);
+  const [socialPackage, setSocialPackage] = useState<SocialPackage | null>(null);
 
   const [editingItemPoll, setEditingItemPoll] = useState<EditingPoll>(EMPTY_POLL);
   const [savingPoll, setSavingPoll] = useState(false);
@@ -867,6 +895,7 @@ export default function AdminDashboard() {
       setGeneratedReview(data.productReview);
       setGeneratedBlogTitle(data.blogTitle);
       setGeneratedBlogPost(data.blogPost);
+      setSocialPackage(buildSocialPackageDraft(data.blogTitle || title, data.blogPost || ""));
       setAccessoryDetailsUsed(Array.isArray(data.inputDetailsUsed) ? data.inputDetailsUsed : []);
       setAccessoryHumorApplied(Boolean(data.humorApplied));
       setGeneratedResumoRapido(data.resumoRapido || EMPTY_RESUMO_RAPIDO);
@@ -911,6 +940,7 @@ export default function AdminDashboard() {
   const handleGenerateBlogOnly = async () => {
     if (!confirmAiSpend()) return;
     if (!title && !impressions) return setMessage("Digite um tema ou impressões para gerar o artigo!");
+    if (blogCategory === "Estudei para te explicar" && !parseEditorialSources(sourceReferencesText).length) return setMessage("Para o Te Explico, cole ao menos uma fonte revisada pela Luana.");
     setLoading(true);
     setMessage("Escrevendo crônica do Diário...");
     try {
@@ -931,7 +961,7 @@ export default function AdminDashboard() {
       const res = await fetch("/api/generate-post", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ title, impressions, category: blogCategory, imageUrl: tempAiImageUrl })
+        body: JSON.stringify({ title, impressions, category: blogCategory, editorialTopic, sourceReferences: parseEditorialSources(sourceReferencesText), imageUrl: tempAiImageUrl })
       });
       
       const textRes = await res.text();
@@ -957,6 +987,10 @@ export default function AdminDashboard() {
         setGeneratedPollOptions(data.suggestedPoll.options || []);
       }
       setGeneratedReaderQuestion(typeof data.readerQuestion === "string" ? data.readerQuestion : "");
+      const approvedSources = parseEditorialSources(sourceReferencesText);
+      const returnedSources = Array.isArray(data.sources) ? data.sources.filter((source: EditorialSource) => source?.title && /^https?:\/\//i.test(source.url || "")) : [];
+      setGeneratedSources(returnedSources.length ? returnedSources : approvedSources);
+      setSocialPackage(data.socialPackage || null);
 
       if (data.imagePrompt) {
         setMessage("Buscando inspiração de imagem fotográfica...");
@@ -1152,6 +1186,9 @@ export default function AdminDashboard() {
           image_url: finalPublicUrl,
           category: blogCategory,
           papo_filter: blogCategory === "Estudei para te explicar" ? null : blogPapoFilter,
+          editorial_pillar: blogCategory === "Estudei para te explicar" ? "te-explico" : "papo",
+          editorial_topic: editorialTopic,
+          last_reviewed_at: blogCategory === "Estudei para te explicar" ? new Date().toISOString() : null,
           is_featured: isFeatured,
           is_most_viewed: isMostViewed,
           is_new: isNew,
@@ -1177,6 +1214,11 @@ export default function AdminDashboard() {
 
         if (journalId && generatedTagIds.length) {
           await supabase.from("content_tags").insert(generatedTagIds.map((tagId) => ({ tag_id: tagId, content_type: "journal", content_id: journalId })));
+        }
+
+        if (journalId && generatedSources.length) {
+          const { error: sourceError } = await supabase.from("journal_sources").insert(generatedSources.map((source) => ({ journal_id: journalId, title: source.title, url: source.url, source_type: source.sourceType })));
+          if (sourceError) throw sourceError;
         }
 
         const pollQuestion = generatedPollQuestion.trim();
@@ -1408,8 +1450,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.14</p>
-                <p>Atualizado em 07/11/2026 às 14:13</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.15</p>
+                <p>Atualizado em 10/11/2026 às 18:59</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1426,7 +1468,7 @@ export default function AdminDashboard() {
               Visão Geral
             </button>
             <button onClick={() => { setActiveTab("product"); setGeneratedReview(""); }} className={tabButtonClass("product")}>
-              Vitrine (Mágica)
+              Meus Achados (Mágica)
             </button>
             <button onClick={() => { setActiveTab("blog"); setGeneratedBlogPost(""); }} className={tabButtonClass("blog")}>
               Papo de Mulher
@@ -1651,6 +1693,15 @@ export default function AdminDashboard() {
                         )}
                       </div>
 
+                      {socialPackage && (
+                        <details className="rounded-2xl border border-[var(--color-gold)] bg-[#1a0f12] p-4">
+                          <summary className="cursor-pointer text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Instagram & engajamento deste artigo</summary>
+                          <label className="mt-4 block text-sm text-[var(--color-gold-light)]">Prompt para ChatGPT<textarea value={socialPackage.instagramPrompt} onChange={(e) => setSocialPackage({ ...socialPackage, instagramPrompt: e.target.value })} rows={4} className="mt-1 w-full text-sm" /></label>
+                          <label className="mt-3 block text-sm text-[var(--color-gold-light)]">Legenda<input value={socialPackage.caption} onChange={(e) => setSocialPackage({ ...socialPackage, caption: e.target.value })} className="mt-1 w-full text-sm" /></label>
+                          <p className="mt-3 text-xs text-[var(--color-gold-light)] opacity-70">Gancho: {socialPackage.reelHook} · CTA: {socialPackage.cta}</p>
+                        </details>
+                      )}
+
                       <fieldset className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                         <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Temas e tags sugeridas</legend>
                         <p className="mb-4 text-xs text-[var(--color-gold-light)] opacity-65">A IA já marcou o que encaixou. Ajuste antes de publicar — vale pro produto e pro artigo.</p>
@@ -1835,6 +1886,21 @@ export default function AdminDashboard() {
                       </select>
                     </div>
 
+                    <div>
+                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Trilha editorial</label>
+                      <select value={editorialTopic} onChange={(e) => setEditorialTopic(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
+                        <option>Menopausa & corpo</option><option>Pele & cabelo</option><option>Relações & desejo</option><option>Família & filhos</option><option>Recomeços & liberdade</option><option>Autocuidado & rotina</option>
+                      </select>
+                    </div>
+
+                    {blogCategory === "Estudei para te explicar" && (
+                      <div>
+                        <label className="block text-[var(--color-gold-light)] text-sm mb-1">Fontes revisadas pela Luana</label>
+                        <textarea value={sourceReferencesText} onChange={(e) => setSourceReferencesText(e.target.value)} rows={4} placeholder="Título da fonte | https://exemplo.org/artigo | Diretriz ou estudo&#10;Outra referência | https://exemplo.org | Órgão oficial" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
+                        <p className="mt-2 text-xs text-[var(--color-gold-light)] opacity-60">Uma por linha. O Ateliê só exibirá links que você forneceu e aprovou.</p>
+                      </div>
+                    )}
+
                     {blogCategory !== "Estudei para te explicar" && (
                       <div>
                         <label className="block text-[var(--color-gold-light)] text-sm mb-1">Gancho do Papo</label>
@@ -1907,6 +1973,25 @@ export default function AdminDashboard() {
                       <input type="text" value={generatedBlogTitle} onChange={(e) => setGeneratedBlogTitle(e.target.value)} className="w-full bg-transparent border-b border-[var(--color-wine-light)] mb-4 text-[var(--color-gold)] font-bold focus:outline-none" />
                       <textarea value={generatedBlogPost} onChange={(e) => setGeneratedBlogPost(e.target.value)} rows={15} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed" ></textarea>
                     </div>
+
+                    {socialPackage && (
+                      <section className="mt-6 rounded-2xl border border-[var(--color-gold)] bg-[#1a0f12] p-5">
+                        <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Instagram & engajamento — revise antes de usar</p>
+                        <label className="mt-4 block text-sm text-[var(--color-gold-light)]">Prompt para ChatGPT<textarea value={socialPackage.instagramPrompt} onChange={(e) => setSocialPackage({ ...socialPackage, instagramPrompt: e.target.value })} rows={4} className="mt-1 w-full text-sm" /></label>
+                        <label className="mt-3 block text-sm text-[var(--color-gold-light)]">Gancho do Reel<input value={socialPackage.reelHook} onChange={(e) => setSocialPackage({ ...socialPackage, reelHook: e.target.value })} className="mt-1 w-full text-sm" /></label>
+                        <label className="mt-3 block text-sm text-[var(--color-gold-light)]">Roteiro<textarea value={socialPackage.reelScript} onChange={(e) => setSocialPackage({ ...socialPackage, reelScript: e.target.value })} rows={4} className="mt-1 w-full text-sm" /></label>
+                        <label className="mt-3 block text-sm text-[var(--color-gold-light)]">Legenda<textarea value={socialPackage.caption} onChange={(e) => setSocialPackage({ ...socialPackage, caption: e.target.value })} rows={5} className="mt-1 w-full text-sm" /></label>
+                        <label className="mt-3 block text-sm text-[var(--color-gold-light)]">Stories (uma linha por tela)<textarea value={socialPackage.stories.join("\n")} onChange={(e) => setSocialPackage({ ...socialPackage, stories: e.target.value.split("\n").filter(Boolean) })} rows={4} className="mt-1 w-full text-sm" /></label>
+                        <label className="mt-3 block text-sm text-[var(--color-gold-light)]">CTA<input value={socialPackage.cta} onChange={(e) => setSocialPackage({ ...socialPackage, cta: e.target.value })} className="mt-1 w-full text-sm" /></label>
+                      </section>
+                    )}
+
+                    {blogCategory === "Estudei para te explicar" && generatedSources.length > 0 && (
+                      <section className="mt-6 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-5">
+                        <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Fontes que aparecerão no artigo</p>
+                        <ul className="mt-3 space-y-2 text-sm text-[var(--color-gold-light)]">{generatedSources.map((source, index) => <li key={`${source.url}-${index}`}>{source.title} <span className="opacity-55">· {source.sourceType}</span></li>)}</ul>
+                      </section>
+                    )}
 
                     <div className="border-2 border-dashed border-[var(--color-wine-light)] rounded-xl p-6 text-center bg-[var(--color-wine-dark)] relative mt-6 flex flex-col items-center">
                       <input type="file" id="blogOfficialFileInput" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files && e.target.files[0]) setDisplayImageFile(e.target.files[0]); }} />
@@ -2387,6 +2472,11 @@ export default function AdminDashboard() {
                         </div>
                       ))}
                     </div>
+                    <section className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-5">
+                      <p className="eyebrow">Pilares editoriais</p>
+                      <h3 className="mt-2 font-display text-2xl text-[var(--color-gold-light)]">Onde a comunidade está lendo</h3>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-3">{(trafficAnalytics.periods.last30.pillars || []).map((pillar) => <div key={pillar.label} className="rounded-xl border border-[var(--color-wine-light)] p-4"><p className="text-xs uppercase tracking-widest opacity-60">{pillar.label}</p><p className="mt-2 font-display text-3xl text-[var(--color-gold)]">{pillar.visits.toLocaleString("pt-BR")}</p><p className="text-xs opacity-60">visitas nos últimos 30 dias</p></div>)}</div>
+                    </section>
 
                     <div className="rounded-xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                       <p className="mb-3 text-xs uppercase tracking-widest text-[var(--color-gold-light)] opacity-60">Origem nos últimos 30 dias</p>

@@ -83,7 +83,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
         <header className="p-6 md:p-12">
           <p className="eyebrow">{product.category || "Escolha da Luana"}</p>
           <h1 className="section-title my-4">{product.title}</h1>
-          <TopQuickActions buyHref={product.shopee_link} title={product.title} shareUrl={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} />
+          <TopQuickActions title={product.title} shareUrl={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} />
           {comments.length > 0 && (
             <a href="#conversation-circle-title" className="conversation-jumplink">💬 {comments.length} comentário{comments.length === 1 ? "" : "s"} — ver e participar →</a>
           )}
@@ -97,7 +97,7 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
           )}
           <div className="prose-luxe mt-8" dangerouslySetInnerHTML={{ __html: product.description }} />
           <div className="mt-10 border-t border-[var(--line)] pt-8">
-            <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button w-full">Quer o seu? Clica aqui ↗</a>
+            <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button w-full">Onde encontrei esse achado ↗</a>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} />

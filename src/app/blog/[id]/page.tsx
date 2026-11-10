@@ -91,7 +91,7 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
         <header className="p-6 md:p-12">
           <p className="eyebrow">{post.category || "Papo de Mulher"} • {new Date(post.created_at).toLocaleDateString("pt-BR")}</p>
           <h1 className="section-title my-6">{post.title}</h1>
-          <TopQuickActions buyHref={companionProduct?.shopee_link} title={post.title} shareUrl={shareUrl} shareText={`Li isso e achei tudo a ver com a gente: ${post.title}`} />
+          <TopQuickActions title={post.title} shareUrl={shareUrl} shareText={`Li isso e achei tudo a ver com a gente: ${post.title}`} />
           {comments.length > 0 && (
             <a href="#conversation-circle-title" className="conversation-jumplink">💬 {comments.length} comentário{comments.length === 1 ? "" : "s"} — ver e participar →</a>
           )}
@@ -102,6 +102,15 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
           {poll && <PollWidget poll={poll.poll} options={poll.options} counts={poll.counts} />}
 
           <ConversationCircle postId={post.id} postTitle={post.title} postCreatedAt={post.created_at} comments={comments} question={post.reader_question} contentType="journal" variant="journal" />
+
+          {companionProduct?.shopee_link && (
+            <aside className="contextual-find" aria-label="Achado desta conversa">
+              <p className="eyebrow">O achado desta conversa</p>
+              <h2>Já que estamos entre amigas…</h2>
+              <p>Se esse assunto pediu um cuidado de bancada, deixei meu veredito sincero separado — sem transformar a conversa em vitrine.</p>
+              <Link href="/vitrine" className="ghost-button">Ver meu veredito →</Link>
+            </aside>
+          )}
 
           <section className="newsletter-cta newsletter-cta--article" aria-labelledby="post-newsletter-title">
             <div>

@@ -43,7 +43,7 @@ export default async function Vitrine() {
       <div className="content-wrap">
         <header className="page-intro page-intro--compact">
           <h1 className="section-title">Meus<br /><em>achados</em></h1>
-          <p>O que merece espaço na bancada — e o que só merece um belo tchau.</p>
+          <p>O que merece espaço na minha bancada — indicação de amiga, nunca empurro de loja.</p>
         </header>
         {products.length > 0 ? (
           <ProductFilters products={products} tagGroups={tagGroups} />

@@ -32,6 +32,31 @@ export const pollSuggestionSchema = {
   additionalProperties: false,
 };
 
+export const sourceSchema = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    url: { type: "string" },
+    sourceType: { type: "string" },
+  },
+  required: ["title", "url", "sourceType"],
+  additionalProperties: false,
+};
+
+export const socialPackageSchema = {
+  type: "object",
+  properties: {
+    instagramPrompt: { type: "string" },
+    reelHook: { type: "string" },
+    reelScript: { type: "string" },
+    caption: { type: "string" },
+    stories: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 4 },
+    cta: { type: "string" },
+  },
+  required: ["instagramPrompt", "reelHook", "reelScript", "caption", "stories", "cta"],
+  additionalProperties: false,
+};
+
 export const postSchema = {
   type: "object",
   properties: {
@@ -46,8 +71,10 @@ export const postSchema = {
     suggestedTagSlugs: { type: "array", items: { type: "string" }, maxItems: 8 },
     suggestedPoll: pollSuggestionSchema,
     readerQuestion: { type: "string" },
+    sources: { type: "array", items: sourceSchema, maxItems: 8 },
+    socialPackage: socialPackageSchema,
   },
-  required: ["title", "text", "imagePrompt", "openingStyle", "structureStyle", "closingStyle", "notablePhrases", "resumoRapido", "suggestedTagSlugs", "suggestedPoll", "readerQuestion"],
+  required: ["title", "text", "imagePrompt", "openingStyle", "structureStyle", "closingStyle", "notablePhrases", "resumoRapido", "suggestedTagSlugs", "suggestedPoll", "readerQuestion", "sources", "socialPackage"],
   additionalProperties: false,
 };
 
