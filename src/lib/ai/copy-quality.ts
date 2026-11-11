@@ -170,12 +170,15 @@ export function validateReviewCopy(text: string, options: {
   notesText?: string;
   sensoryEvidenceText?: string;
   isEstudei?: boolean;
+  isHealthExplainer?: boolean;
   enforceEditorialDiversity?: boolean;
 } = {}) {
   const errors: string[] = [];
-  for (const pattern of BANNED_REVIEW_DISCLAIMER_PATTERNS) {
-    const match = text.match(pattern)?.[0];
-    if (match) errors.push(`Disclaimer genérico bloqueado: "${match}".`);
+  if (!options.isHealthExplainer) {
+    for (const pattern of BANNED_REVIEW_DISCLAIMER_PATTERNS) {
+      const match = text.match(pattern)?.[0];
+      if (match) errors.push(`Disclaimer genérico bloqueado: "${match}".`);
+    }
   }
   if (options.enforceEditorialDiversity) {
     for (const pattern of REVIEW_CLICHE_PATTERNS) {

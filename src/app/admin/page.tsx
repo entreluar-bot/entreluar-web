@@ -138,6 +138,7 @@ const PAPO_FILTERS = [
 
 type EditorialSource = { title: string; url: string; sourceType: string };
 type SocialPackage = { instagramPrompt: string; reelHook: string; reelScript: string; caption: string; stories: string[]; cta: string };
+type TeExplicoMode = "saude" | "produto";
 
 function parseEditorialSources(value: string): EditorialSource[] {
   return value.split("\n").map((line) => line.trim()).filter(Boolean).flatMap((line) => {
@@ -298,7 +299,10 @@ export default function AdminDashboard() {
   const [generatedReaderQuestion, setGeneratedReaderQuestion] = useState("");
   const [generatedPollOptions, setGeneratedPollOptions] = useState<string[]>([]);
   const [editorialTopic, setEditorialTopic] = useState("Menopausa & corpo");
+  const [teExplicoMode, setTeExplicoMode] = useState<TeExplicoMode>("saude");
   const [sourceReferencesText, setSourceReferencesText] = useState("");
+  const [researchBrief, setResearchBrief] = useState("");
+  const [researchingHealth, setResearchingHealth] = useState(false);
   const [generatedSources, setGeneratedSources] = useState<EditorialSource[]>([]);
   const [socialPackage, setSocialPackage] = useState<SocialPackage | null>(null);
 
@@ -945,12 +949,38 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
+  const handleResearchHealth = async () => {
+    if (!confirmAiSpend()) return;
+    if (!title.trim()) return setMessage("Escreva o tema de saúde que você quer pesquisar primeiro.");
+    setResearchingHealth(true);
+    setMessage("Pesquisando fontes confiáveis para você...");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/research-health", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ topic: title }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Não consegui concluir a pesquisa.");
+      const sources = Array.isArray(data.sources) ? data.sources as EditorialSource[] : [];
+      setResearchBrief(typeof data.brief === "string" ? data.brief : "");
+      setSourceReferencesText(sources.map((source) => `${source.title} | ${source.url} | ${source.sourceType}`).join("\n"));
+      setMessage(`Pesquisei ${sources.length} fontes confiáveis. Revise o resumo e escreva suas notas antes de gerar.`);
+    } catch (error: any) {
+      setMessage(`Erro: ${error.message}`);
+    } finally {
+      setResearchingHealth(false);
+    }
+  };
+
   const handleGenerateBlogOnly = async () => {
     if (!confirmAiSpend()) return;
     if (!title && !impressions) return setMessage("Digite um tema ou impressões para gerar o artigo!");
     const editorialSources = parseEditorialSources(sourceReferencesText);
-    if (blogCategory === "Estudei para te explicar" && !hasOfficialProductSource(editorialSources)) return setMessage("No Te Explico, inclua a página da marca com o tipo ‘Página oficial do produto’.");
-    if (blogCategory === "Estudei para te explicar" && !hasScientificSource(editorialSources)) return setMessage("No Te Explico, inclua uma segunda fonte com o tipo ‘Fonte científica’, ‘Diretriz’ ou ‘Revisão’.");
+    if (blogCategory === "Estudei para te explicar" && teExplicoMode === "produto" && !hasOfficialProductSource(editorialSources)) return setMessage("Na resenha de produto, inclua a página da marca com o tipo ‘Página oficial do produto’.");
+    if (blogCategory === "Estudei para te explicar" && teExplicoMode === "saude" && editorialSources.filter((source) => hasScientificSource([source])).length < 2) return setMessage("No Te Explico de saúde, use pelo menos duas fontes científicas, diretrizes ou órgãos de saúde.");
+    if (blogCategory === "Estudei para te explicar" && teExplicoMode === "produto" && !hasScientificSource(editorialSources)) return setMessage("Na resenha de produto, inclua uma segunda fonte com o tipo ‘Fonte científica’, ‘Diretriz’ ou ‘Revisão’.");
     setLoading(true);
     setMessage("Escrevendo crônica do Diário...");
     try {
@@ -971,7 +1001,7 @@ export default function AdminDashboard() {
       const res = await fetch("/api/generate-post", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ title, impressions, category: blogCategory, editorialTopic, sourceReferences: editorialSources, imageUrl: tempAiImageUrl })
+        body: JSON.stringify({ title, impressions, category: blogCategory, editorialTopic, sourceReferences: editorialSources, researchBrief, teExplicoMode, imageUrl: tempAiImageUrl })
       });
       
       const textRes = await res.text();
@@ -1460,8 +1490,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.19</p>
-                <p>Atualizado em 10/11/2026 às 22:50</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.20</p>
+                <p>Atualizado em 10/11/2026 às 23:25</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1909,11 +1939,34 @@ export default function AdminDashboard() {
                     </div>
 
                     {blogCategory === "Estudei para te explicar" && (
-                      <div>
-                        <label className="block text-[var(--color-gold-light)] text-sm mb-1">Duas fontes da resenha</label>
-                        <textarea value={sourceReferencesText} onChange={(e) => setSourceReferencesText(e.target.value)} rows={5} placeholder="Página do produto na marca | https://marca.com/produto | Página oficial do produto&#10;Revisão sobre o ativo | https://pubmed.ncbi.nlm.nih.gov/... | Fonte científica" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
-                        <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">Use uma página oficial para ingredientes, promessa e modo de uso, mais uma fonte científica para traduzir o ativo. A resenha continua leve: não é bula nem consulta.</p>
-                      </div>
+                      <section className="space-y-4 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                        <div>
+                          <label className="block text-[var(--color-gold-light)] text-sm mb-1">Que tipo de Te Explico é este?</label>
+                          <select value={teExplicoMode} onChange={(e) => { setTeExplicoMode(e.target.value as TeExplicoMode); setResearchBrief(""); setSourceReferencesText(""); }} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
+                            <option value="saude">Saúde & maturidade: sintomas, hormônios, vitaminas e tratamentos</option>
+                            <option value="produto">Produto & ativo: resenha ligada a uma fórmula ou marca</option>
+                          </select>
+                        </div>
+                        {teExplicoMode === "saude" ? <>
+                          <div className="rounded-xl border border-[var(--color-gold)]/40 bg-black/15 p-4 text-sm leading-6 text-[var(--color-gold-light)]">
+                            <strong className="block text-[var(--color-gold)]">Sem Vitrine, sem produto obrigatório.</strong>
+                            Você traz o tema e suas impressões; eu busco fontes confiáveis e a IA transforma isso numa resenha explicativa, em primeira pessoa, com humor e referências no final.
+                          </div>
+                          <button type="button" onClick={handleResearchHealth} disabled={researchingHealth || loading || !title.trim()} className="rounded bg-[var(--color-gold)] px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--color-wine-dark)] disabled:opacity-50">
+                            {researchingHealth ? "Pesquisando fontes..." : "🔎 Pesquisar fontes confiáveis"}
+                          </button>
+                          {researchBrief && <details className="rounded-xl border border-[var(--color-wine-light)] bg-black/15 p-4 text-sm text-[var(--color-gold-light)]"><summary className="cursor-pointer font-bold text-[var(--color-gold)]">Resumo da pesquisa para esta resenha</summary><p className="mt-3 whitespace-pre-line leading-6">{researchBrief}</p></details>}
+                          <div>
+                            <label className="block text-[var(--color-gold-light)] text-sm mb-1">Fontes que vão aparecer no fim do artigo</label>
+                            <textarea value={sourceReferencesText} onChange={(e) => setSourceReferencesText(e.target.value)} rows={5} placeholder="OMS | https://www.who.int/... | Órgão oficial de saúde&#10;Diretriz da Febrasgo | https://... | Diretriz" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
+                            <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">A publicação pede duas fontes confiáveis. Você pode revisar, trocar ou acrescentar fontes antes de gerar.</p>
+                          </div>
+                        </> : <div>
+                          <label className="block text-[var(--color-gold-light)] text-sm mb-1">Duas fontes da resenha de produto</label>
+                          <textarea value={sourceReferencesText} onChange={(e) => setSourceReferencesText(e.target.value)} rows={5} placeholder="Página do produto na marca | https://marca.com/produto | Página oficial do produto&#10;Revisão sobre o ativo | https://pubmed.ncbi.nlm.nih.gov/... | Fonte científica" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
+                          <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">Use a página oficial para ingredientes, promessa e modo de uso, mais uma fonte científica para traduzir o ativo.</p>
+                        </div>}
+                      </section>
                     )}
 
                     {blogCategory !== "Estudei para te explicar" && (

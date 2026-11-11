@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { friendlyAiError, type QuoteCandidate, validateAccessoryTrace, validateQuoteBatch, validateReviewCopy } from "../src/lib/ai/copy-quality";
-import { PAPO_DE_MULHER_VOICE_RULES, PRODUCT_REVIEW_STYLE_RULES, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES } from "../src/lib/ai/identity";
+import { HEALTH_EXPLAINER_RULES, PAPO_DE_MULHER_VOICE_RULES, PRODUCT_REVIEW_STYLE_RULES, SCIENCE_RULES, SIMPLE_LANGUAGE_RULES } from "../src/lib/ai/identity";
 import { buildAccessoryPrompt, buildQuotePrompt } from "../src/lib/ai/prompts";
 import { getEditorialDirection, getProductCreativeDirection, originalityRules } from "../src/lib/creative-direction";
 import { getAiPolicy } from "../src/lib/ai/runtime";
@@ -173,6 +173,12 @@ test("Estudei rejeita o molde antigo de headings fixos", () => {
   const quality = validateReviewCopy(oldTemplate, { isEstudei: true });
   expect(quality.valid).toBe(false);
   expect(quality.errors.join(" ")).toContain("molde antigo");
+});
+
+test("Te Explico de saúde permite orientação de consulta sem virar prescrição", () => {
+  expect(HEALTH_EXPLAINER_RULES).toContain("Não prescreva medicamento");
+  const healthText = "Eu fui pesquisar os fogachos e, se eles estiverem atrapalhando sua vida, procure uma ginecologista para conversar sobre possibilidades, porque a escolha depende da história de cada mulher.";
+  expect(validateReviewCopy(healthText, { isEstudei: true, isHealthExplainer: true }).valid).toBe(true);
 });
 
 test("rastreabilidade de acessório confirma detalhe das notas", () => {
