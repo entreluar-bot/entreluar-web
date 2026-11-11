@@ -151,6 +151,10 @@ function hasScientificSource(sources: EditorialSource[]) {
   return sources.some((source) => /cient[ií]fica|estudo|diretriz|revis[aã]o|[oó]rg[aã]o oficial|pubmed|sociedade/i.test(source.sourceType));
 }
 
+function hasResearchFoundation(sources: EditorialSource[]) {
+  return sources.some((source) => /base cient[ií]fica|diretriz|[oó]rg[aã]o|revis[aã]o|estudo|pubmed|sociedade/i.test(source.sourceType));
+}
+
 function buildSocialPackageDraft(articleTitle: string, articleText: string): SocialPackage {
   const excerpt = articleText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 280);
   const cta = "Leia a conversa completa no site e me conta sua história na Roda de Conversa.";
@@ -977,7 +981,7 @@ export default function AdminDashboard() {
     if (!title && !impressions) return setMessage("Digite um tema ou impressões para gerar o artigo!");
     setBlogCategory("Papo de Mulher Madura");
     const editorialSources = parseEditorialSources(sourceReferencesText);
-    if (papoMode === "pesquisada" && editorialSources.filter((source) => hasScientificSource([source])).length < 2) return setMessage("Na crônica pesquisada, use pelo menos duas fontes científicas, diretrizes ou órgãos de saúde.");
+    if (papoMode === "pesquisada" && (!editorialSources.length || !hasResearchFoundation(editorialSources))) return setMessage("Na crônica pesquisada, escolha ao menos uma fonte-base, como diretriz, órgão de saúde, revisão ou estudo. Os complementos ajudam a traduzir a conversa.");
     setLoading(true);
     setMessage("Escrevendo crônica do Diário...");
     try {
@@ -1487,8 +1491,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.21</p>
-                <p>Atualizado em 10/11/2026 às 23:43</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.22</p>
+                <p>Atualizado em 11/11/2026 às 00:00</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1955,7 +1959,7 @@ export default function AdminDashboard() {
                         <div>
                           <label className="block text-[var(--color-gold-light)] text-sm mb-1">Fontes que vão aparecer no fim do artigo</label>
                           <textarea value={sourceReferencesText} onChange={(e) => setSourceReferencesText(e.target.value)} rows={5} placeholder="OMS | https://www.who.int/... | Órgão oficial de saúde&#10;Diretriz da Febrasgo | https://... | Diretriz" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
-                          <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">A publicação pede duas fontes confiáveis. Você vê exatamente quais foram usadas, pode revisar, trocar ou acrescentar antes de gerar.</p>
+                          <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">Use pelo menos uma fonte-base para sustentar a conversa. Fontes clínicas complementares ajudam a traduzir, e você vê exatamente quais serão usadas antes de gerar.</p>
                         </div>
                       </section>
                     )}
