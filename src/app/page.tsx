@@ -100,6 +100,7 @@ export default async function Home() {
           </div>
           <div className="hero-portrait">
             <Image src="/luana.jpg" alt="Luana, fundadora da Entreluar" fill priority sizes="(max-width:760px) 100vw,55vw" />
+            <Link href="/sobre" className="hero-about-link">Saiba um pouco mais de mim <span aria-hidden="true">→</span></Link>
             <div className="hero-seal">Entre beleza<br />e vivência<br />existe você</div>
           </div>
         </section>
@@ -145,7 +146,7 @@ export default async function Home() {
         <section className="section-space" aria-labelledby="maps-title">
           <div className="section-kicker"><span className="eyebrow">Do seu jeito</span></div>
           <h2 id="maps-title" className="section-title mb-4">Dois mapas para<br /><em>começar por você.</em></h2>
-          <p className="muted max-w-2xl leading-7">Sem cadastro obrigatório e sem fórmula pronta. Você responde por aqui, recebe uma direção editorial na hora e decide se quer levar uma Carta Entreluar para o email.</p>
+          <p className="muted max-w-2xl leading-7">Sem cadastro obrigatório e sem fórmula pronta. Você responde por aqui, recebe uma direção editorial na hora e decide se quer receber por email um guia prático feito a partir das suas respostas.</p>
           <EntreluarMaps />
         </section>
 

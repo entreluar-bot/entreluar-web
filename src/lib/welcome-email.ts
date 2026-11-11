@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { renderPremiumEmail } from "./email-template";
 import { applyUnsubscribe, unsubscribeHeaders } from "./unsubscribe";
+import { buildMapGuideEmail, type MapGuide } from "./map-guide";
 
 const FROM = "Luana <luana@entreluar.com.br>";
 
@@ -29,6 +30,23 @@ export async function sendWelcomeEmail(email: string): Promise<boolean> {
     const response = await resend.emails.send(
       { from: FROM, to: [email], replyTo: "luana@entreluar.com.br", subject, html: applyUnsubscribe(html, email), headers: unsubscribeHeaders(email) },
       { idempotencyKey: `welcome-${email}` },
+    );
+    return !response.error;
+  } catch {
+    return false;
+  }
+}
+
+/** Envia um guia solicitado conscientemente no mapa. As respostas não são gravadas no cadastro. */
+export async function sendMapGuideEmail(email: string, guide: MapGuide): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return false;
+  try {
+    const { subject, html } = buildMapGuideEmail(guide);
+    const resend = new Resend(apiKey);
+    const response = await resend.emails.send(
+      { from: FROM, to: [email], replyTo: "luana@entreluar.com.br", subject, html: applyUnsubscribe(html, email), headers: unsubscribeHeaders(email) },
+      { idempotencyKey: `map-guide-${guide.kind}-${email}-${Date.now()}` },
     );
     return !response.error;
   } catch {

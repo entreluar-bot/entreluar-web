@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { rateLimited, clientIp } from "@/lib/rate-limit";
 import { subscribeEmail, UTM_KEYS } from "@/lib/subscribe";
+import { parseMapGuide } from "@/lib/map-guide";
+import { sendMapGuideEmail } from "@/lib/welcome-email";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -27,13 +29,23 @@ export async function POST(req: Request) {
     );
 
     const attribution = Object.fromEntries(UTM_KEYS.map((key) => [key, clean(payload[key], 120)]));
+    const guide = payload.guideConsent === true ? parseMapGuide(payload.mapGuide) : null;
     const { created, welcomeSent } = await subscribeEmail(supabase, {
       email,
       source: clean(payload.source, 80) || "site",
       path: clean(payload.path, 400),
       sessionId: clean(payload.sessionId, 80),
       attribution,
+      sendWelcome: !guide,
     });
+
+    if (guide) {
+      const guideSent = await sendMapGuideEmail(email, guide);
+      return NextResponse.json({
+        success: true,
+        message: guideSent ? "Pronto, amiga! Seu guia personalizado foi para o email. Se não aparecer, vale checar o spam. ✨" : "Sua inscrição foi confirmada. O guia pode levar alguns minutinhos para chegar. ✨",
+      });
+    }
 
     if (!created) {
       return NextResponse.json({ message: "Esse email já estava na nossa roda. Atualizei a origem por aqui. ✨" });

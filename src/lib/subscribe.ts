@@ -13,11 +13,12 @@ type SubscribeInput = {
   path?: string | null;
   sessionId?: string | null;
   attribution?: Record<string, string | null>;
+  sendWelcome?: boolean;
 };
 
 /** Cadastra (ou reativa) o email na newsletter. `created` é true só na primeira vez, quando o email de boas-vindas é enviado. */
 export async function subscribeEmail(supabase: SupabaseClient, input: SubscribeInput) {
-  const { email, source, path = null, sessionId = null, attribution = {} } = input;
+  const { email, source, path = null, sessionId = null, attribution = {}, sendWelcome = true } = input;
   const subscriberRow = { email, source, signup_path: path, ...attribution };
   const conversionRow = { email, session_id: sessionId, path, source, ...attribution };
 
@@ -34,6 +35,6 @@ export async function subscribeEmail(supabase: SupabaseClient, input: SubscribeI
   if (error) throw error;
 
   await supabase.from("newsletter_conversions").insert([conversionRow]);
-  const welcomeSent = await sendWelcomeEmail(email);
+  const welcomeSent = sendWelcome ? await sendWelcomeEmail(email) : false;
   return { created: true, welcomeSent };
 }
