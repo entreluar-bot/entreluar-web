@@ -140,21 +140,6 @@ type EditorialSource = { title: string; url: string; sourceType: string };
 type SocialPackage = { instagramPrompt: string; reelHook: string; reelScript: string; caption: string; stories: string[]; cta: string };
 type PapoMode = "pessoal" | "pesquisada";
 
-function parseEditorialSources(value: string): EditorialSource[] {
-  return value.split("\n").map((line) => line.trim()).filter(Boolean).flatMap((line) => {
-    const [title, url, sourceType = "Referência"] = line.split("|").map((part) => part.trim());
-    return title && /^https?:\/\//i.test(url || "") ? [{ title, url, sourceType }] : [];
-  });
-}
-
-function hasScientificSource(sources: EditorialSource[]) {
-  return sources.some((source) => /cient[ií]fica|estudo|diretriz|revis[aã]o|[oó]rg[aã]o oficial|pubmed|sociedade/i.test(source.sourceType));
-}
-
-function hasResearchFoundation(sources: EditorialSource[]) {
-  return sources.some((source) => /base cient[ií]fica|diretriz|[oó]rg[aã]o|revis[aã]o|estudo|pubmed|sociedade/i.test(source.sourceType));
-}
-
 function buildSocialPackageDraft(articleTitle: string, articleText: string): SocialPackage {
   const excerpt = articleText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 280);
   const cta = "Leia a conversa completa no site e me conta sua história na Roda de Conversa.";
@@ -300,10 +285,6 @@ export default function AdminDashboard() {
   const [generatedPollOptions, setGeneratedPollOptions] = useState<string[]>([]);
   const [editorialTopic, setEditorialTopic] = useState("Menopausa & corpo");
   const [papoMode, setPapoMode] = useState<PapoMode>("pessoal");
-  const [sourceReferencesText, setSourceReferencesText] = useState("");
-  const [researchBrief, setResearchBrief] = useState("");
-  const [researchSources, setResearchSources] = useState<EditorialSource[]>([]);
-  const [researchingHealth, setResearchingHealth] = useState(false);
   const [generatedSources, setGeneratedSources] = useState<EditorialSource[]>([]);
   const [socialPackage, setSocialPackage] = useState<SocialPackage | null>(null);
 
@@ -950,40 +931,12 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
-  const handleResearchHealth = async () => {
-    if (!confirmAiSpend()) return;
-    if (!title.trim()) return setMessage("Escreva o tema de saúde que você quer pesquisar primeiro.");
-    setResearchingHealth(true);
-    setMessage("Pesquisando fontes confiáveis para você...");
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/research-health", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
-        body: JSON.stringify({ topic: title }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Não consegui concluir a pesquisa.");
-      const sources = Array.isArray(data.sources) ? data.sources as EditorialSource[] : [];
-      setResearchBrief(typeof data.brief === "string" ? data.brief : "");
-      setResearchSources(sources);
-      setSourceReferencesText(sources.map((source) => `${source.title} | ${source.url} | ${source.sourceType}`).join("\n"));
-      setMessage(`Pesquisei ${sources.length} fontes confiáveis. Revise o resumo e escreva suas notas antes de gerar.`);
-    } catch (error: any) {
-      setMessage(`Erro: ${error.message}`);
-    } finally {
-      setResearchingHealth(false);
-    }
-  };
-
   const handleGenerateBlogOnly = async () => {
     if (!confirmAiSpend()) return;
     if (!title && !impressions) return setMessage("Digite um tema ou impressões para gerar o artigo!");
     setBlogCategory("Papo de Mulher Madura");
-    const editorialSources = parseEditorialSources(sourceReferencesText);
-    if (papoMode === "pesquisada" && (!editorialSources.length || !hasResearchFoundation(editorialSources))) return setMessage("Na crônica pesquisada, escolha ao menos uma fonte-base, como diretriz, órgão de saúde, revisão ou estudo. Os complementos ajudam a traduzir a conversa.");
     setLoading(true);
-    setMessage("Escrevendo crônica do Diário...");
+    setMessage(papoMode === "pesquisada" ? "Pesquisando e escrevendo sua crônica..." : "Escrevendo sua crônica...");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token || "";
@@ -1002,7 +955,7 @@ export default function AdminDashboard() {
       const res = await fetch("/api/generate-post", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ title, impressions, category: "Papo de Mulher Madura", editorialTopic, sourceReferences: editorialSources, researchBrief, papoMode, imageUrl: tempAiImageUrl })
+        body: JSON.stringify({ title, impressions, category: "Papo de Mulher Madura", editorialTopic, papoMode, imageUrl: tempAiImageUrl })
       });
       
       const textRes = await res.text();
@@ -1028,9 +981,8 @@ export default function AdminDashboard() {
         setGeneratedPollOptions(data.suggestedPoll.options || []);
       }
       setGeneratedReaderQuestion(typeof data.readerQuestion === "string" ? data.readerQuestion : "");
-      const approvedSources = editorialSources;
       const returnedSources = Array.isArray(data.sources) ? data.sources.filter((source: EditorialSource) => source?.title && /^https?:\/\//i.test(source.url || "")) : [];
-      setGeneratedSources(returnedSources.length ? returnedSources : approvedSources);
+      setGeneratedSources(returnedSources);
       setSocialPackage(data.socialPackage || null);
 
       if (data.imagePrompt) {
@@ -1491,8 +1443,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.22</p>
-                <p>Atualizado em 11/11/2026 às 00:00</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.23</p>
+                <p>Atualizado em 11/11/2026 às 06:14</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1916,7 +1868,7 @@ export default function AdminDashboard() {
                     <section className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                       <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">1. Escolha seu caminho</p>
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                        <button type="button" onClick={() => { setPapoMode("pessoal"); setResearchBrief(""); setResearchSources([]); setSourceReferencesText(""); }} className={`rounded-xl border p-4 text-left transition ${papoMode === "pessoal" ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
+                        <button type="button" onClick={() => setPapoMode("pessoal")} className={`rounded-xl border p-4 text-left transition ${papoMode === "pessoal" ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
                           <strong className="block text-[var(--color-gold)]">Minha crônica pessoal</strong>
                           <span className="mt-1 block text-xs leading-5 text-[var(--color-gold-light)]">Sua opinião, vivência e aquele assunto que está pedindo conversa.</span>
                         </button>
@@ -1946,20 +1898,10 @@ export default function AdminDashboard() {
                     </div>
 
                     {papoMode === "pesquisada" && (
-                      <section className="space-y-4 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                      <section className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
                         <div className="rounded-xl border border-[var(--color-gold)]/40 bg-black/15 p-4 text-sm leading-6 text-[var(--color-gold-light)]">
-                          <strong className="block text-[var(--color-gold)]">Pesquisa com a sua assinatura.</strong>
-                          Eu busco informação confiável; você lê, acrescenta o que pensa e transforma isso em uma conversa que tem a sua voz. Produto não entra aqui: ele continua na Vitrine Mágica.
-                        </div>
-                        <button type="button" onClick={handleResearchHealth} disabled={researchingHealth || loading || !title.trim()} className="rounded bg-[var(--color-gold)] px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--color-wine-dark)] disabled:opacity-50">
-                          {researchingHealth ? "Pesquisando fontes..." : "🔎 Pesquisar fontes confiáveis"}
-                        </button>
-                        {researchBrief && <details className="rounded-xl border border-[var(--color-wine-light)] bg-black/15 p-4 text-sm text-[var(--color-gold-light)]"><summary className="cursor-pointer font-bold text-[var(--color-gold)]">Resumo da pesquisa para esta crônica</summary><p className="mt-3 whitespace-pre-line leading-6">{researchBrief}</p></details>}
-                        {researchSources.length > 0 && <section className="rounded-xl border border-[var(--color-wine-light)] bg-black/15 p-4"><p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Fontes que eu usei na pesquisa</p><ul className="mt-3 space-y-2 text-sm text-[var(--color-gold-light)]">{researchSources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer" className="underline decoration-[var(--color-gold)] underline-offset-4">{source.title}</a> <span className="opacity-60">· {source.sourceType}</span></li>)}</ul></section>}
-                        <div>
-                          <label className="block text-[var(--color-gold-light)] text-sm mb-1">Fontes que vão aparecer no fim do artigo</label>
-                          <textarea value={sourceReferencesText} onChange={(e) => setSourceReferencesText(e.target.value)} rows={5} placeholder="OMS | https://www.who.int/... | Órgão oficial de saúde&#10;Diretriz da Febrasgo | https://... | Diretriz" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
-                          <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">Use pelo menos uma fonte-base para sustentar a conversa. Fontes clínicas complementares ajudam a traduzir, e você vê exatamente quais serão usadas antes de gerar.</p>
+                          <strong className="block text-[var(--color-gold)]">Pesquisa sem trabalho extra para você.</strong>
+                          Quando você gerar, eu pesquiso a pauta, escrevo a crônica com a sua visão e, no resultado, mostro quais fontes embasaram exatamente aquela versão. Produto não entra aqui: ele continua na Vitrine Mágica.
                         </div>
                       </section>
                     )}
