@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 Pesquise o tema de saúde feminina madura: "${topic}".
 Busque apenas informação atual em fontes confiáveis: OMS, Ministério da Saúde/Anvisa, Febrasgo, ACOG, NAMS, NICE, Cochrane, sociedades médicas, NIH ou PubMed. Priorize diretrizes e revisões. Não pesquise produtos nem marcas.
 
-Organize um BRIEF factual para outra IA escrever uma resenha editorial da Luana: explique mecanismo ou contexto, sintomas quando relevantes, opções de cuidado ou tratamento que podem ser discutidas em consulta, limites da evidência e alertas específicos. Não prescreva doses, hormônios, medicamentos ou suplementos. Não escreva o artigo final e não invente fontes.`;
+Organize um BRIEF factual para outra IA escrever uma crônica pesquisada da Luana: explique mecanismo ou contexto, sintomas quando relevantes, opções de cuidado ou tratamento que podem ser discutidas em consulta, limites da evidência e alertas específicos. Não prescreva doses, hormônios, medicamentos ou suplementos. Não escreva o artigo final e não invente fontes.`;
     const { response, usage } = await generateAi(ai, "research", {
       contents: prompt,
       config: { responseMimeType: "application/json", responseJsonSchema: researchSchema, tools: [{ googleSearch: {} }] },

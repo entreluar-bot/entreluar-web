@@ -138,17 +138,13 @@ const PAPO_FILTERS = [
 
 type EditorialSource = { title: string; url: string; sourceType: string };
 type SocialPackage = { instagramPrompt: string; reelHook: string; reelScript: string; caption: string; stories: string[]; cta: string };
-type TeExplicoMode = "saude" | "produto";
+type PapoMode = "pessoal" | "pesquisada";
 
 function parseEditorialSources(value: string): EditorialSource[] {
   return value.split("\n").map((line) => line.trim()).filter(Boolean).flatMap((line) => {
     const [title, url, sourceType = "Referência"] = line.split("|").map((part) => part.trim());
     return title && /^https?:\/\//i.test(url || "") ? [{ title, url, sourceType }] : [];
   });
-}
-
-function hasOfficialProductSource(sources: EditorialSource[]) {
-  return sources.some((source) => /p[aá]gina oficial|site oficial|marca|fabricante|produto/i.test(source.sourceType));
 }
 
 function hasScientificSource(sources: EditorialSource[]) {
@@ -299,9 +295,10 @@ export default function AdminDashboard() {
   const [generatedReaderQuestion, setGeneratedReaderQuestion] = useState("");
   const [generatedPollOptions, setGeneratedPollOptions] = useState<string[]>([]);
   const [editorialTopic, setEditorialTopic] = useState("Menopausa & corpo");
-  const [teExplicoMode, setTeExplicoMode] = useState<TeExplicoMode>("saude");
+  const [papoMode, setPapoMode] = useState<PapoMode>("pessoal");
   const [sourceReferencesText, setSourceReferencesText] = useState("");
   const [researchBrief, setResearchBrief] = useState("");
+  const [researchSources, setResearchSources] = useState<EditorialSource[]>([]);
   const [researchingHealth, setResearchingHealth] = useState(false);
   const [generatedSources, setGeneratedSources] = useState<EditorialSource[]>([]);
   const [socialPackage, setSocialPackage] = useState<SocialPackage | null>(null);
@@ -965,6 +962,7 @@ export default function AdminDashboard() {
       if (!res.ok || data.error) throw new Error(data.error || "Não consegui concluir a pesquisa.");
       const sources = Array.isArray(data.sources) ? data.sources as EditorialSource[] : [];
       setResearchBrief(typeof data.brief === "string" ? data.brief : "");
+      setResearchSources(sources);
       setSourceReferencesText(sources.map((source) => `${source.title} | ${source.url} | ${source.sourceType}`).join("\n"));
       setMessage(`Pesquisei ${sources.length} fontes confiáveis. Revise o resumo e escreva suas notas antes de gerar.`);
     } catch (error: any) {
@@ -977,10 +975,9 @@ export default function AdminDashboard() {
   const handleGenerateBlogOnly = async () => {
     if (!confirmAiSpend()) return;
     if (!title && !impressions) return setMessage("Digite um tema ou impressões para gerar o artigo!");
+    setBlogCategory("Papo de Mulher Madura");
     const editorialSources = parseEditorialSources(sourceReferencesText);
-    if (blogCategory === "Estudei para te explicar" && teExplicoMode === "produto" && !hasOfficialProductSource(editorialSources)) return setMessage("Na resenha de produto, inclua a página da marca com o tipo ‘Página oficial do produto’.");
-    if (blogCategory === "Estudei para te explicar" && teExplicoMode === "saude" && editorialSources.filter((source) => hasScientificSource([source])).length < 2) return setMessage("No Te Explico de saúde, use pelo menos duas fontes científicas, diretrizes ou órgãos de saúde.");
-    if (blogCategory === "Estudei para te explicar" && teExplicoMode === "produto" && !hasScientificSource(editorialSources)) return setMessage("Na resenha de produto, inclua uma segunda fonte com o tipo ‘Fonte científica’, ‘Diretriz’ ou ‘Revisão’.");
+    if (papoMode === "pesquisada" && editorialSources.filter((source) => hasScientificSource([source])).length < 2) return setMessage("Na crônica pesquisada, use pelo menos duas fontes científicas, diretrizes ou órgãos de saúde.");
     setLoading(true);
     setMessage("Escrevendo crônica do Diário...");
     try {
@@ -1001,7 +998,7 @@ export default function AdminDashboard() {
       const res = await fetch("/api/generate-post", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ title, impressions, category: blogCategory, editorialTopic, sourceReferences: editorialSources, researchBrief, teExplicoMode, imageUrl: tempAiImageUrl })
+        body: JSON.stringify({ title, impressions, category: "Papo de Mulher Madura", editorialTopic, sourceReferences: editorialSources, researchBrief, papoMode, imageUrl: tempAiImageUrl })
       });
       
       const textRes = await res.text();
@@ -1228,7 +1225,7 @@ export default function AdminDashboard() {
           papo_filter: blogCategory === "Estudei para te explicar" ? null : blogPapoFilter,
           editorial_pillar: blogCategory === "Estudei para te explicar" ? "te-explico" : "papo",
           editorial_topic: editorialTopic,
-          last_reviewed_at: blogCategory === "Estudei para te explicar" ? new Date().toISOString() : null,
+          last_reviewed_at: blogCategory === "Estudei para te explicar" || papoMode === "pesquisada" ? new Date().toISOString() : null,
           is_featured: isFeatured,
           is_most_viewed: isMostViewed,
           is_new: isNew,
@@ -1490,8 +1487,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.20</p>
-                <p>Atualizado em 10/11/2026 às 23:25</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.21</p>
+                <p>Atualizado em 10/11/2026 às 23:43</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1906,30 +1903,36 @@ export default function AdminDashboard() {
                <div className="space-y-6">
                 {!generatedBlogPost ? (
                   <>
-                    <div className="flex justify-between items-center border-b border-[var(--color-wine-light)] pb-4">
-                        <h2 className="text-xl font-serif text-[var(--color-gold)]">Gerador de Crônicas</h2>
-                        <button onClick={handleBrainstorm} disabled={loading} className="border border-[#b5952f] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-gold)] hover:text-[var(--color-wine-dark)] transition-colors">
-                            💡 Me dê Ideias!
-                        </button>
+                    <div className="border-b border-[var(--color-wine-light)] pb-4">
+                      <p className="eyebrow">Papo de Mulher</p>
+                      <h2 className="mt-1 text-2xl font-serif text-[var(--color-gold)]">Vamos dar forma ao que está vivo em você?</h2>
+                      <p className="mt-2 text-sm text-[var(--color-gold-light)] opacity-75">Escolha um caminho, conte o assunto e eu cuido da primeira versão. O título vem depois, se você quiser ajustar.</p>
                     </div>
 
                     <section className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                      <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Quem está escrevendo</p>
-                      <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)]">Luana tem 54 anos, é mãe, trabalha, namora, se cuida e segue aprendendo a viver uma fase que ninguém ensinou direito pra gente. Essa história orienta a voz da IA, mas só vira fato no texto quando você trouxer uma nota pessoal ou memória aprovada.</p>
+                      <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">1. Escolha seu caminho</p>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <button type="button" onClick={() => { setPapoMode("pessoal"); setResearchBrief(""); setResearchSources([]); setSourceReferencesText(""); }} className={`rounded-xl border p-4 text-left transition ${papoMode === "pessoal" ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
+                          <strong className="block text-[var(--color-gold)]">Minha crônica pessoal</strong>
+                          <span className="mt-1 block text-xs leading-5 text-[var(--color-gold-light)]">Sua opinião, vivência e aquele assunto que está pedindo conversa.</span>
+                        </button>
+                        <button type="button" onClick={() => setPapoMode("pesquisada")} className={`rounded-xl border p-4 text-left transition ${papoMode === "pesquisada" ? "border-[var(--color-gold)] bg-[var(--color-gold)]/10" : "border-[var(--color-wine-light)]"}`}>
+                          <strong className="block text-[var(--color-gold)]">Minha crônica pesquisada</strong>
+                          <span className="mt-1 block text-xs leading-5 text-[var(--color-gold-light)]">Você escolhe o tema; eu pesquiso e você dá seu ponto de vista.</span>
+                        </button>
+                      </div>
                     </section>
 
-                    <div>
-                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Título / Tema da Crônica</label>
-                      <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: A libertação que é parar de tingir o cabelo" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
-                    </div>
-
-                    <div>
-                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Categoria no Diário</label>
-                      <select value={blogCategory} onChange={(e) => setBlogCategory(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
-                        <option value="Papo de Mulher Madura">🍷 Papo de Mulher Madura</option>
-                        <option value="Estudei para te explicar">🧠 Estudei para te explicar</option>
-                      </select>
-                    </div>
+                    <section className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div className="flex-1">
+                          <label className="block text-sm font-bold text-[var(--color-gold-light)]">2. Sobre o que você quer falar?</label>
+                          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={papoMode === "pesquisada" ? "Ex: Fogachos no começo da perimenopausa" : "Ex: A liberdade de parar de tingir o cabelo"} className="mt-2 w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
+                        </div>
+                        {papoMode === "pessoal" && <button type="button" onClick={handleBrainstorm} disabled={loading} className="shrink-0 border border-[#b5952f] text-[var(--color-gold)] px-4 py-3 rounded text-xs font-bold uppercase hover:bg-[var(--color-gold)] hover:text-[var(--color-wine-dark)] transition-colors">💡 Me dê ideias</button>}
+                      </div>
+                      <p className="mt-2 text-xs text-[var(--color-gold-light)] opacity-60">Uma frase basta. Se preferir, deixe o tema em branco e comece pelas suas anotações abaixo.</p>
+                    </section>
 
                     <div>
                       <label className="block text-[var(--color-gold-light)] text-sm mb-1">Trilha editorial</label>
@@ -1938,38 +1941,29 @@ export default function AdminDashboard() {
                       </select>
                     </div>
 
-                    {blogCategory === "Estudei para te explicar" && (
+                    {papoMode === "pesquisada" && (
                       <section className="space-y-4 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
-                        <div>
-                          <label className="block text-[var(--color-gold-light)] text-sm mb-1">Que tipo de Te Explico é este?</label>
-                          <select value={teExplicoMode} onChange={(e) => { setTeExplicoMode(e.target.value as TeExplicoMode); setResearchBrief(""); setSourceReferencesText(""); }} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
-                            <option value="saude">Saúde & maturidade: sintomas, hormônios, vitaminas e tratamentos</option>
-                            <option value="produto">Produto & ativo: resenha ligada a uma fórmula ou marca</option>
-                          </select>
+                        <div className="rounded-xl border border-[var(--color-gold)]/40 bg-black/15 p-4 text-sm leading-6 text-[var(--color-gold-light)]">
+                          <strong className="block text-[var(--color-gold)]">Pesquisa com a sua assinatura.</strong>
+                          Eu busco informação confiável; você lê, acrescenta o que pensa e transforma isso em uma conversa que tem a sua voz. Produto não entra aqui: ele continua na Vitrine Mágica.
                         </div>
-                        {teExplicoMode === "saude" ? <>
-                          <div className="rounded-xl border border-[var(--color-gold)]/40 bg-black/15 p-4 text-sm leading-6 text-[var(--color-gold-light)]">
-                            <strong className="block text-[var(--color-gold)]">Sem Vitrine, sem produto obrigatório.</strong>
-                            Você traz o tema e suas impressões; eu busco fontes confiáveis e a IA transforma isso numa resenha explicativa, em primeira pessoa, com humor e referências no final.
-                          </div>
-                          <button type="button" onClick={handleResearchHealth} disabled={researchingHealth || loading || !title.trim()} className="rounded bg-[var(--color-gold)] px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--color-wine-dark)] disabled:opacity-50">
-                            {researchingHealth ? "Pesquisando fontes..." : "🔎 Pesquisar fontes confiáveis"}
-                          </button>
-                          {researchBrief && <details className="rounded-xl border border-[var(--color-wine-light)] bg-black/15 p-4 text-sm text-[var(--color-gold-light)]"><summary className="cursor-pointer font-bold text-[var(--color-gold)]">Resumo da pesquisa para esta resenha</summary><p className="mt-3 whitespace-pre-line leading-6">{researchBrief}</p></details>}
-                          <div>
-                            <label className="block text-[var(--color-gold-light)] text-sm mb-1">Fontes que vão aparecer no fim do artigo</label>
-                            <textarea value={sourceReferencesText} onChange={(e) => setSourceReferencesText(e.target.value)} rows={5} placeholder="OMS | https://www.who.int/... | Órgão oficial de saúde&#10;Diretriz da Febrasgo | https://... | Diretriz" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
-                            <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">A publicação pede duas fontes confiáveis. Você pode revisar, trocar ou acrescentar fontes antes de gerar.</p>
-                          </div>
-                        </> : <div>
-                          <label className="block text-[var(--color-gold-light)] text-sm mb-1">Duas fontes da resenha de produto</label>
-                          <textarea value={sourceReferencesText} onChange={(e) => setSourceReferencesText(e.target.value)} rows={5} placeholder="Página do produto na marca | https://marca.com/produto | Página oficial do produto&#10;Revisão sobre o ativo | https://pubmed.ncbi.nlm.nih.gov/... | Fonte científica" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
-                          <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">Use a página oficial para ingredientes, promessa e modo de uso, mais uma fonte científica para traduzir o ativo.</p>
-                        </div>}
+                        <button type="button" onClick={handleResearchHealth} disabled={researchingHealth || loading || !title.trim()} className="rounded bg-[var(--color-gold)] px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--color-wine-dark)] disabled:opacity-50">
+                          {researchingHealth ? "Pesquisando fontes..." : "🔎 Pesquisar fontes confiáveis"}
+                        </button>
+                        {researchBrief && <details className="rounded-xl border border-[var(--color-wine-light)] bg-black/15 p-4 text-sm text-[var(--color-gold-light)]"><summary className="cursor-pointer font-bold text-[var(--color-gold)]">Resumo da pesquisa para esta crônica</summary><p className="mt-3 whitespace-pre-line leading-6">{researchBrief}</p></details>}
+                        {researchSources.length > 0 && <section className="rounded-xl border border-[var(--color-wine-light)] bg-black/15 p-4"><p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Fontes que eu usei na pesquisa</p><ul className="mt-3 space-y-2 text-sm text-[var(--color-gold-light)]">{researchSources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer" className="underline decoration-[var(--color-gold)] underline-offset-4">{source.title}</a> <span className="opacity-60">· {source.sourceType}</span></li>)}</ul></section>}
+                        <div>
+                          <label className="block text-[var(--color-gold-light)] text-sm mb-1">Fontes que vão aparecer no fim do artigo</label>
+                          <textarea value={sourceReferencesText} onChange={(e) => setSourceReferencesText(e.target.value)} rows={5} placeholder="OMS | https://www.who.int/... | Órgão oficial de saúde&#10;Diretriz da Febrasgo | https://... | Diretriz" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
+                          <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">A publicação pede duas fontes confiáveis. Você vê exatamente quais foram usadas, pode revisar, trocar ou acrescentar antes de gerar.</p>
+                        </div>
                       </section>
                     )}
 
-                    {blogCategory !== "Estudei para te explicar" && (
+                    <details className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                      <summary className="cursor-pointer text-sm font-bold text-[var(--color-gold-light)]">Opções extras de publicação <span className="ml-2 text-xs font-normal opacity-60">foto, data, destaque e gancho</span></summary>
+                      <div className="mt-4 space-y-5">
+                    <div>
                       <div>
                         <label className="block text-[var(--color-gold-light)] text-sm mb-1">Gancho do Papo</label>
                         <select value={blogPapoFilter} onChange={(e) => setBlogPapoFilter(e.target.value)} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]">
@@ -1977,7 +1971,7 @@ export default function AdminDashboard() {
                         </select>
                         <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">Esse é o filtro emocional que aparece no Papo de Mulher Madura.</p>
                       </div>
-                    )}
+                    </div>
 
                     <div>
                       <label className="block text-[var(--color-gold-light)] text-sm mb-1 font-bold">Data da Postagem (Opcional)</label>
@@ -2001,14 +1995,19 @@ export default function AdminDashboard() {
                           </label>
                       </div>
                     </fieldset>
+                      </div>
+                    </details>
 
-                    <div>
-                      <label className="block text-[var(--color-gold-light)] text-sm mb-1">Suas Impressões / Anotações (A IA vai transformar isso em texto!)</label>
-                      <textarea placeholder="O que você quer falar sobre esse tema? Ex: Na menopausa ninguém te avisa que a paciência acaba mais rápido que o colágeno..." value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={5} className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
+                    <section className="rounded-2xl border border-[var(--color-gold)]/60 bg-[#1a0f12] p-4">
+                      <label className="block text-sm font-bold text-[var(--color-gold-light)]">{papoMode === "pesquisada" ? "3. O que você pensa ou quer acrescentar?" : "3. Me conte do seu jeito"}</label>
+                      <p className="mt-1 text-xs leading-5 text-[var(--color-gold-light)] opacity-65">{papoMode === "pesquisada" ? "Pode ser sua dúvida, observação ou uma experiência real. A pesquisa entra como contexto, mas o ponto de vista continua sendo seu." : "Escreva solto: uma lembrança, uma opinião, uma cena ou até tópicos. A IA só usa fatos pessoais que você trouxe."}</p>
+                      <textarea placeholder={papoMode === "pesquisada" ? "Ex: Eu achava que fogacho era só calor, até ele começar a interromper meu sono..." : "Ex: Percebi que parar de tingir o cabelo não foi desistir de mim, foi parar de gastar energia tentando parecer outra pessoa."} value={impressions} onChange={(e) => setImpressions(e.target.value)} rows={6} className="mt-3 w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]"></textarea>
 <VoiceInputButton onText={(t) => setImpressions((prev) => (prev.trim() ? prev.replace(/\s*$/, " ") : "") + t)} />
-                    </div>
+                    </section>
 
-                     <div className="border-2 border-dashed border-[var(--color-wine-light)] rounded-xl p-6 text-center bg-[var(--color-wine-dark)] relative flex flex-col items-center justify-center">
+                     <details className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                      <summary className="cursor-pointer text-sm font-bold text-[var(--color-gold-light)]">Adicionar uma foto <span className="ml-2 text-xs font-normal opacity-60">opcional</span></summary>
+                     <div className="mt-4 border-2 border-dashed border-[var(--color-wine-light)] rounded-xl p-6 text-center bg-[var(--color-wine-dark)] relative flex flex-col items-center justify-center">
                       <input type="file" id="blogFileInput" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files && e.target.files[0]) setImageFile(e.target.files[0]); }} />
                       {previewUrl ? (
                         <div className="relative inline-block mt-4 mb-4">
@@ -2028,10 +2027,11 @@ export default function AdminDashboard() {
                         <button onClick={() => document.getElementById("blogFileInput")?.click()} className="border border-[var(--color-gold)] text-[var(--color-gold)] px-4 py-2 rounded text-xs uppercase hover:bg-[var(--color-wine)]">Escolher Arquivo</button>
                       )}
                     </div>
+                    </details>
 
                     
-                    <button onClick={handleGenerateBlogOnly} disabled={loading} className="w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform mt-4">
-                      {loading ? "A IA ESTÁ ESCREVENDO..." : "ESCREVER CRÔNICA"}
+                    <button onClick={handleGenerateBlogOnly} disabled={loading || (!title.trim() && !impressions.trim())} className="w-full bg-gradient-to-r from-[var(--color-gold)] to-[#b5952f] text-[var(--color-wine-dark)] py-4 rounded font-bold uppercase tracking-widest hover:scale-105 transition-transform disabled:cursor-not-allowed disabled:opacity-50">
+                      {loading ? "A IA ESTÁ ESCREVENDO..." : papoMode === "pesquisada" ? "GERAR MINHA CRÔNICA PESQUISADA" : "GERAR MINHA CRÔNICA"}
                     </button>
                   </>
                 ) : (
@@ -2054,10 +2054,10 @@ export default function AdminDashboard() {
                       </section>
                     )}
 
-                    {blogCategory === "Estudei para te explicar" && generatedSources.length > 0 && (
+                    {generatedSources.length > 0 && (
                       <section className="mt-6 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-5">
                         <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Fontes que aparecerão no artigo</p>
-                        <ul className="mt-3 space-y-2 text-sm text-[var(--color-gold-light)]">{generatedSources.map((source, index) => <li key={`${source.url}-${index}`}>{source.title} <span className="opacity-55">· {source.sourceType}</span></li>)}</ul>
+                        <ul className="mt-3 space-y-2 text-sm text-[var(--color-gold-light)]">{generatedSources.map((source, index) => <li key={`${source.url}-${index}`}><a href={source.url} target="_blank" rel="noreferrer" className="underline decoration-[var(--color-gold)] underline-offset-4">{source.title}</a> <span className="opacity-55">· {source.sourceType}</span></li>)}</ul>
                       </section>
                     )}
 
