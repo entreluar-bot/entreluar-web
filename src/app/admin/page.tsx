@@ -146,6 +146,14 @@ function parseEditorialSources(value: string): EditorialSource[] {
   });
 }
 
+function hasOfficialProductSource(sources: EditorialSource[]) {
+  return sources.some((source) => /p[aá]gina oficial|site oficial|marca|fabricante|produto/i.test(source.sourceType));
+}
+
+function hasScientificSource(sources: EditorialSource[]) {
+  return sources.some((source) => /cient[ií]fica|estudo|diretriz|revis[aã]o|[oó]rg[aã]o oficial|pubmed|sociedade/i.test(source.sourceType));
+}
+
 function buildSocialPackageDraft(articleTitle: string, articleText: string): SocialPackage {
   const excerpt = articleText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 280);
   const cta = "Leia a conversa completa no site e me conta sua história na Roda de Conversa.";
@@ -940,7 +948,9 @@ export default function AdminDashboard() {
   const handleGenerateBlogOnly = async () => {
     if (!confirmAiSpend()) return;
     if (!title && !impressions) return setMessage("Digite um tema ou impressões para gerar o artigo!");
-    if (blogCategory === "Estudei para te explicar" && !parseEditorialSources(sourceReferencesText).length) return setMessage("Para o Te Explico, cole ao menos uma fonte revisada pela Luana.");
+    const editorialSources = parseEditorialSources(sourceReferencesText);
+    if (blogCategory === "Estudei para te explicar" && !hasOfficialProductSource(editorialSources)) return setMessage("No Te Explico, inclua a página da marca com o tipo ‘Página oficial do produto’.");
+    if (blogCategory === "Estudei para te explicar" && !hasScientificSource(editorialSources)) return setMessage("No Te Explico, inclua uma segunda fonte com o tipo ‘Fonte científica’, ‘Diretriz’ ou ‘Revisão’.");
     setLoading(true);
     setMessage("Escrevendo crônica do Diário...");
     try {
@@ -961,7 +971,7 @@ export default function AdminDashboard() {
       const res = await fetch("/api/generate-post", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ title, impressions, category: blogCategory, editorialTopic, sourceReferences: parseEditorialSources(sourceReferencesText), imageUrl: tempAiImageUrl })
+        body: JSON.stringify({ title, impressions, category: blogCategory, editorialTopic, sourceReferences: editorialSources, imageUrl: tempAiImageUrl })
       });
       
       const textRes = await res.text();
@@ -987,7 +997,7 @@ export default function AdminDashboard() {
         setGeneratedPollOptions(data.suggestedPoll.options || []);
       }
       setGeneratedReaderQuestion(typeof data.readerQuestion === "string" ? data.readerQuestion : "");
-      const approvedSources = parseEditorialSources(sourceReferencesText);
+      const approvedSources = editorialSources;
       const returnedSources = Array.isArray(data.sources) ? data.sources.filter((source: EditorialSource) => source?.title && /^https?:\/\//i.test(source.url || "")) : [];
       setGeneratedSources(returnedSources.length ? returnedSources : approvedSources);
       setSocialPackage(data.socialPackage || null);
@@ -1450,8 +1460,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.16</p>
-                <p>Atualizado em 10/11/2026 às 20:07</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.17</p>
+                <p>Atualizado em 10/11/2026 às 22:23</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1873,6 +1883,11 @@ export default function AdminDashboard() {
                         </button>
                     </div>
 
+                    <section className="rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                      <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Quem está escrevendo</p>
+                      <p className="mt-2 text-sm leading-6 text-[var(--color-gold-light)]">Luana tem 54 anos, é mãe, trabalha, namora, se cuida e segue aprendendo a viver uma fase que ninguém ensinou direito pra gente. Essa história orienta a voz da IA, mas só vira fato no texto quando você trouxer uma nota pessoal ou memória aprovada.</p>
+                    </section>
+
                     <div>
                       <label className="block text-[var(--color-gold-light)] text-sm mb-1">Título / Tema da Crônica</label>
                       <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: A libertação que é parar de tingir o cabelo" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
@@ -1895,9 +1910,9 @@ export default function AdminDashboard() {
 
                     {blogCategory === "Estudei para te explicar" && (
                       <div>
-                        <label className="block text-[var(--color-gold-light)] text-sm mb-1">Fontes revisadas pela Luana</label>
-                        <textarea value={sourceReferencesText} onChange={(e) => setSourceReferencesText(e.target.value)} rows={4} placeholder="Título da fonte | https://exemplo.org/artigo | Diretriz ou estudo&#10;Outra referência | https://exemplo.org | Órgão oficial" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
-                        <p className="mt-2 text-xs text-[var(--color-gold-light)] opacity-60">Uma por linha. O Ateliê só exibirá links que você forneceu e aprovou.</p>
+                        <label className="block text-[var(--color-gold-light)] text-sm mb-1">Duas fontes da resenha</label>
+                        <textarea value={sourceReferencesText} onChange={(e) => setSourceReferencesText(e.target.value)} rows={5} placeholder="Página do produto na marca | https://marca.com/produto | Página oficial do produto&#10;Revisão sobre o ativo | https://pubmed.ncbi.nlm.nih.gov/... | Fonte científica" className="w-full bg-[var(--color-wine-dark)] border border-[var(--color-wine-light)] rounded px-4 py-3 text-[var(--color-gold-light)]" />
+                        <p className="mt-2 text-xs leading-5 text-[var(--color-gold-light)] opacity-60">Use uma página oficial para ingredientes, promessa e modo de uso, mais uma fonte científica para traduzir o ativo. A resenha continua leve: não é bula nem consulta.</p>
                       </div>
                     )}
 

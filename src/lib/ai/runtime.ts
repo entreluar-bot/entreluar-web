@@ -21,6 +21,8 @@ export type AiUsage = {
   estimatedCostBrl: number;
 };
 
+type OpenAiUsage = { input_tokens?: number; output_tokens?: number; total_tokens?: number };
+
 const policies: Record<AiTask, TaskPolicy> = {
   brainstorm: { model: "gemini-3.5-flash-lite", maxOutputTokens: 300, timeoutMs: 10_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
   quote: { model: "gemini-3.5-flash-lite", maxOutputTokens: 1_400, timeoutMs: 15_000, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
@@ -54,6 +56,37 @@ export function getAiPolicy(task: AiTask): TaskPolicy {
   return { ...policy, model: safeModel(process.env[`AI_MODEL_${task.toUpperCase()}`] || policy.model) };
 }
 
+function canUseOpenAi(task: AiTask, contents: unknown) {
+  // A pesquisa de produto continua no Gemini porque usa grounding do Google.
+  // Texto, revisão e organização podem usar OpenAI quando a chave for configurada.
+  return process.env.AI_TEXT_PROVIDER === "openai"
+    && Boolean(process.env.OPENAI_API_KEY)
+    && task !== "research"
+    && typeof contents === "string";
+}
+
+async function generateWithOpenAi(task: AiTask, contents: string, params: { config?: Record<string, unknown> }, policy: TaskPolicy) {
+  const schema = params.config?.responseJsonSchema as Record<string, unknown> | undefined;
+  const model = process.env[`OPENAI_MODEL_${task.toUpperCase()}`] || process.env.OPENAI_MODEL || "gpt-4.1-mini";
+  const body: Record<string, unknown> = {
+    model,
+    input: contents,
+    max_output_tokens: policy.maxOutputTokens,
+  };
+  if (typeof params.config?.temperature === "number") body.temperature = params.config.temperature;
+  if (schema) body.text = { format: { type: "json_schema", name: "entreluar_result", strict: true, schema } };
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(policy.timeoutMs),
+  });
+  const payload = await response.json() as { output_text?: string; error?: { message?: string }; usage?: OpenAiUsage };
+  if (!response.ok) throw new Error(payload.error?.message || "Falha ao gerar texto com OpenAI.");
+  return { text: payload.output_text || "", usageMetadata: payload.usage || {} };
+}
+
 export async function generateAi(
   ai: GoogleGenAI,
   task: AiTask,
@@ -61,6 +94,10 @@ export async function generateAi(
 ) {
   const policy = getAiPolicy(task);
   const startedAt = Date.now();
+  if (canUseOpenAi(task, params.contents)) {
+    const response = await generateWithOpenAi(task, params.contents as string, params, policy);
+    return { response: response as any, usage: readUsage(String(process.env[`OPENAI_MODEL_${task.toUpperCase()}`] || process.env.OPENAI_MODEL || "openai"), response.usageMetadata, Date.now() - startedAt) };
+  }
   const response = await ai.models.generateContent({
     model: policy.model,
     contents: params.contents as never,
@@ -80,12 +117,15 @@ export function readUsage(model: string, metadata: {
   thoughtsTokenCount?: number;
   toolUsePromptTokenCount?: number;
   totalTokenCount?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
 } | undefined, durationMs: number): AiUsage {
-  const inputTokens = metadata?.promptTokenCount || 0;
-  const outputTokens = metadata?.candidatesTokenCount || 0;
+  const inputTokens = metadata?.promptTokenCount || metadata?.input_tokens || 0;
+  const outputTokens = metadata?.candidatesTokenCount || metadata?.output_tokens || 0;
   const thoughtTokens = metadata?.thoughtsTokenCount || 0;
   const toolTokens = metadata?.toolUsePromptTokenCount || 0;
-  const totalTokens = metadata?.totalTokenCount || inputTokens + outputTokens + thoughtTokens + toolTokens;
+  const totalTokens = metadata?.totalTokenCount || metadata?.total_tokens || inputTokens + outputTokens + thoughtTokens + toolTokens;
   const rate = prices[model] || prices["gemini-3.6-flash"];
   const estimatedCostUsd = ((inputTokens + toolTokens) * rate.input + (outputTokens + thoughtTokens) * rate.output) / 1_000_000;
   const brlRate = Number(process.env.AI_USD_TO_BRL || "5.50");
