@@ -16,6 +16,10 @@ type EditorialSource = { title?: string; url?: string; sourceType?: string };
 const isOfficialProductSource = (source: EditorialSource) => /p[aá]gina oficial|site oficial|marca|fabricante|produto/i.test(source.sourceType || "");
 const isScientificSource = (source: EditorialSource) => /cient[ií]fica|estudo|diretriz|revis[aã]o|[oó]rg[aã]o oficial|pubmed|sociedade/i.test(source.sourceType || "");
 const isResearchFoundationSource = (source: EditorialSource) => /base cient[ií]fica|diretriz|[oó]rg[aã]o|revis[aã]o|estudo|pubmed|sociedade/i.test(source.sourceType || "");
+// A busca pode encontrar primeiro hospitais e clínicas acadêmicas confiáveis.
+// Elas não substituem uma diretriz quando houver uma, mas são base suficiente
+// para uma crônica explicativa cautelosa — bloquear o tema por isso não ajuda a leitora.
+const isClinicalReferenceSource = (source: EditorialSource) => /explica[cç][aã]o cl[ií]nica complementar/i.test(source.sourceType || "");
 
 export async function POST(req: Request) { 
   try { 
@@ -61,7 +65,7 @@ export async function POST(req: Request) {
       briefForArticle = research.brief;
       researchUsage = research.usage;
     }
-    if (isResearchPapo && !approvedSources.some(isResearchFoundationSource)) {
+    if (isResearchPapo && !approvedSources.some((source) => isResearchFoundationSource(source) || isClinicalReferenceSource(source))) {
       throw new Error("A pesquisa não trouxe uma fonte-base suficiente para esta pauta. Tente refinar o tema e gerar novamente.");
     }
     if (isEstudei && !approvedSources.some(isScientificSource)) {
