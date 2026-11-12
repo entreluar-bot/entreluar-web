@@ -384,6 +384,24 @@ export default function AdminDashboard() {
     return adminRequest(`/api/luana-memory${path}`, init);
   };
 
+  const copyText = async (text: string, label: string) => {
+    if (!text.trim()) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setMessage(`${label} copiado! ✨`);
+    } catch {
+      const field = document.createElement("textarea");
+      field.value = text;
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(field);
+      setMessage(copied ? `${label} copiado! ✨` : `Não consegui copiar ${label.toLowerCase()}.`);
+    }
+  };
+
   const fetchAdmins = async () => {
     try { const data = await adminRequest("/api/admins"); setAdmins(data.admins || []); }
     catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível carregar os administradores."); }
@@ -1550,8 +1568,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.32</p>
-                <p>Atualizado em 12/11/2026 às 00:26</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.33</p>
+                <p>Atualizado em 12/11/2026 às 20:23</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -2096,7 +2114,10 @@ export default function AdminDashboard() {
                 ) : (
                    <>
                     <div className="bg-[var(--color-wine-dark)] p-6 rounded-xl border border-[var(--color-gold)]">
-                      <h3 className="text-[var(--color-gold)] font-serif text-xl mb-4 text-center">Seu Novo Artigo</h3>
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <h3 className="text-[var(--color-gold)] font-serif text-xl">Seu Novo Artigo</h3>
+                        <button type="button" onClick={() => copyText(generatedBlogPost, "Crônica")} className="rounded border border-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)] transition hover:bg-[var(--color-gold)]/10">Copiar crônica</button>
+                      </div>
                       <input type="text" value={generatedBlogTitle} onChange={(e) => setGeneratedBlogTitle(e.target.value)} className="w-full bg-transparent border-b border-[var(--color-wine-light)] mb-4 text-[var(--color-gold)] font-bold focus:outline-none" />
                       <textarea value={generatedBlogPost} onChange={(e) => setGeneratedBlogPost(e.target.value)} rows={15} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed" ></textarea>
                     </div>
@@ -2106,7 +2127,7 @@ export default function AdminDashboard() {
                     {socialPackage && (
                       <section className="mt-6 rounded-2xl border border-[var(--color-gold)] bg-[#1a0f12] p-5">
                         <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Instagram & engajamento — revise antes de usar</p>
-                        <label className="mt-4 block text-sm text-[var(--color-gold-light)]">Prompt para ChatGPT<textarea value={socialPackage.instagramPrompt} onChange={(e) => setSocialPackage({ ...socialPackage, instagramPrompt: e.target.value })} rows={4} className="mt-1 w-full text-sm" /></label>
+                        <label className="mt-4 block text-sm text-[var(--color-gold-light)]"><span className="flex flex-wrap items-center justify-between gap-2"><span>Prompt para ChatGPT</span><button type="button" onClick={() => copyText(socialPackage.instagramPrompt, "Prompt de divulgação")} className="rounded border border-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)] transition hover:bg-[var(--color-gold)]/10">Copiar prompt</button></span><textarea value={socialPackage.instagramPrompt} onChange={(e) => setSocialPackage({ ...socialPackage, instagramPrompt: e.target.value })} rows={4} className="mt-2 w-full text-sm" /></label>
                         <label className="mt-3 block text-sm text-[var(--color-gold-light)]">Gancho do Reel<input value={socialPackage.reelHook} onChange={(e) => setSocialPackage({ ...socialPackage, reelHook: e.target.value })} className="mt-1 w-full text-sm" /></label>
                         <label className="mt-3 block text-sm text-[var(--color-gold-light)]">Roteiro<textarea value={socialPackage.reelScript} onChange={(e) => setSocialPackage({ ...socialPackage, reelScript: e.target.value })} rows={4} className="mt-1 w-full text-sm" /></label>
                         <label className="mt-3 block text-sm text-[var(--color-gold-light)]">Legenda<textarea value={socialPackage.caption} onChange={(e) => setSocialPackage({ ...socialPackage, caption: e.target.value })} rows={5} className="mt-1 w-full text-sm" /></label>
