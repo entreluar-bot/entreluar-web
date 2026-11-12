@@ -5,10 +5,13 @@ import { PRODUCT_CATEGORIES } from "@/lib/product-categories";
 import { TAG_TYPE_LABELS, slugify, type Tag, type TagType } from "@/lib/tags";
 import { EMPTY_RESUMO_RAPIDO, resumoRapidoFields, resumoRapidoHasContent, resumoRapidoToRow, rowToResumoRapido, type ResumoRapido } from "@/lib/summary";
 import { shiftSocialProofDatesOnPostEdit } from "@/lib/social-proof/timing";
+import { buildPublicationEmailDraft, type PublicationEmailDraft } from "@/lib/publication-email-draft";
 import InstallAppButton from "../ui/InstallAppButton";
 import VoiceInputButton from "./VoiceInputButton";
 
 type NewsletterStatus = "idle" | "preparing" | "sending" | "complete" | "partial" | "failed";
+type PublicationEmailKind = "cronica" | "estudei" | "vitrine";
+type PublicationAutomation = { id: string; content_type: string; content_id: string; subject: string; headline: string; cta_text: string; status: string; last_error?: string | null; created_at: string; sent_at?: string | null; publication_email_deliveries?: Array<{ status: string }> };
 
 type NewsletterResult = {
   success: boolean;
@@ -29,6 +32,7 @@ type EmailDelivery = {
   sentAt?: string;
   type: "marketing" | "resposta";
 };
+type SubscriberRecord = { email: string; initialSource: string; lastSource: string; subscribedAt?: string | null; welcomeSentAt?: string | null; welcomeStatus: string; pausedAt?: string | null; unsubscribedAt?: string | null };
 
 type TrafficSourceStat = {
   source: "instagram" | "facebook" | "direct" | "internet";
@@ -304,12 +308,15 @@ export default function AdminDashboard() {
   const [newsletterStatus, setNewsletterStatus] = useState<NewsletterStatus>("idle");
   const [newsletterDispatchId, setNewsletterDispatchId] = useState<string | null>(null);
   const [emailSubscribers, setEmailSubscribers] = useState<string[]>([]);
+  const [subscriberRecords, setSubscriberRecords] = useState<SubscriberRecord[]>([]);
   const [emailDeliveries, setEmailDeliveries] = useState<EmailDelivery[]>([]);
   const [emailAdminSearch, setEmailAdminSearch] = useState("");
   const [nlType, setNlType] = useState<"site" | "blog" | "produto" | "resenha" | "pilula">("site");
   const [nlContext, setNlContext] = useState("");
   const [nlSubject, setNlSubject] = useState("");
   const [nlHtml, setNlHtml] = useState("");
+  const [publicationDrafts, setPublicationDrafts] = useState<{ journal: PublicationEmailDraft | null; product: PublicationEmailDraft | null }>({ journal: null, product: null });
+  const [publicationAutomations, setPublicationAutomations] = useState<PublicationAutomation[]>([]);
   const [trafficAnalytics, setTrafficAnalytics] = useState<TrafficAnalytics | null>(null);
   const [trafficAnalyticsStatus, setTrafficAnalyticsStatus] = useState("Carregando tráfego...");
 
@@ -355,7 +362,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === "inbox") fetchEmails();
     if (activeTab === "manage" || activeTab === "quotes" || activeTab === "drops") fetchManageData();
-    if (activeTab === "newsletter") fetchSubscribers();
+    if (activeTab === "newsletter") { fetchSubscribers(); fetchPublicationAutomations(); }
     if (activeTab === "traffic" || activeTab === "overview") fetchTrafficAnalytics();
     if (activeTab === "comments") fetchComments();
     if (activeTab === "memory") fetchMemories();
@@ -498,17 +505,48 @@ export default function AdminDashboard() {
       if (!response.ok) throw new Error(data.error || "Não foi possível consultar a base.");
       setSubscribersCount(data.requested || 0);
       setEmailSubscribers(data.subscribers || []);
+      setSubscriberRecords(data.subscriberRecords || []);
       setEmailDeliveries(data.deliveries || []);
       const ignored = (data.invalid || 0) + (data.duplicates || 0);
       const left = data.unsubscribed || 0;
+      const paused = data.paused || 0;
       const leftNote = left > 0 ? ` ${left} pessoa${left === 1 ? " saiu" : "s saíram"} da lista e não recebe${left === 1 ? "" : "m"} mais emails.` : "";
-      setSubscriberNotes((ignored > 0 ? `${ignored} cadastro${ignored === 1 ? " foi ignorado" : "s foram ignorados"} por estar inválido ou repetido.` : "Base validada e pronta para envio.") + leftNote);
+      const pauseNote = paused > 0 ? ` ${paused} envio${paused === 1 ? " está" : "s estão"} suspenso${paused === 1 ? "" : "s"} temporariamente.` : "";
+      setSubscriberNotes((ignored > 0 ? `${ignored} cadastro${ignored === 1 ? " foi ignorado" : "s foram ignorados"} por estar inválido ou repetido.` : "Base validada e pronta para envio.") + leftNote + pauseNote);
     } catch (error) {
       setSubscribersCount(0);
       setEmailSubscribers([]);
+      setSubscriberRecords([]);
       setEmailDeliveries([]);
       setSubscriberNotes(error instanceof Error ? error.message : "Não foi possível consultar a base.");
     }
+  };
+
+  const fetchPublicationAutomations = async () => {
+    try {
+      const data = await adminRequest("/api/publication-email");
+      setPublicationAutomations(data.automations || []);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível carregar as automações.");
+    }
+  };
+
+  const sendPublicationEmail = async (kind: PublicationEmailKind, contentId: string, draft: PublicationEmailDraft) => {
+    const data = await adminRequest("/api/publication-email", {
+      method: "POST",
+      body: JSON.stringify({ action: "send", kind, contentId, ...draft }),
+    });
+    return data as { accepted: number; failed: number; skipped: number; automationId: string };
+  };
+
+  const retryPublicationEmail = async (automationId: string) => {
+    setLoading(true);
+    try {
+      const data = await adminRequest("/api/publication-email", { method: "POST", body: JSON.stringify({ action: "retry", automationId }) });
+      setMessage(data.failed ? `Reenvio parcial: ${data.accepted} enviado(s) e ${data.failed} pendente(s).` : `Reenvio concluído: ${data.accepted} novo(s) envio(s).`);
+      await fetchPublicationAutomations();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível retomar o envio."); }
+    finally { setLoading(false); }
   };
 
   const handleDeleteSubscriber = async (email: string) => {
@@ -527,6 +565,21 @@ export default function AdminDashboard() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Não foi possível excluir o cadastro.");
     }
+  };
+
+  const handleSubscriberPause = async (email: string, pause: boolean) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch("/api/send-newsletter", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ email, action: pause ? "pause" : "resume" }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Não foi possível atualizar o envio.");
+      setMessage(pause ? `${email} não receberá novos emails até você reativar.` : `${email} voltou a receber os emails da Entreluar. ✨`);
+      await fetchSubscribers();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível atualizar o envio."); }
   };
 
   const fetchTrafficAnalytics = async () => {
@@ -914,6 +967,10 @@ export default function AdminDashboard() {
       setGeneratedReview(data.productReview);
       setGeneratedBlogTitle(data.blogTitle);
       setGeneratedBlogPost(data.blogPost);
+      setPublicationDrafts({
+        journal: data.blogPost ? buildPublicationEmailDraft(data.blogTitle || title || "Nova resenha", data.blogPost, "estudei") : null,
+        product: data.productReview ? buildPublicationEmailDraft(data.productName || title || "Novo achado", data.productReview, "vitrine") : null,
+      });
       setSocialPackage(buildSocialPackageDraft(data.blogTitle || title, data.blogPost || ""));
       setAccessoryDetailsUsed(Array.isArray(data.inputDetailsUsed) ? data.inputDetailsUsed : []);
       setAccessoryHumorApplied(Boolean(data.humorApplied));
@@ -995,6 +1052,7 @@ export default function AdminDashboard() {
 
       setGeneratedBlogTitle(data.title || title || "Crônica da Luana");
       setGeneratedBlogPost(data.text);
+      setPublicationDrafts({ journal: buildPublicationEmailDraft(data.title || title || "Nova conversa", data.text || "", "cronica"), product: null });
       setGeneratedResumoRapido(data.resumoRapido || EMPTY_RESUMO_RAPIDO);
 
       if (data.suggestedTagSlugs) {
@@ -1197,6 +1255,7 @@ export default function AdminDashboard() {
       }
 
       let journalId: string | null = null;
+      let productId: string | null = null;
       if (generatedBlogPost && !isAccessory) {
         const journalRow = {
           title: generatedBlogTitle,
@@ -1275,6 +1334,7 @@ export default function AdminDashboard() {
         if (prodError) throw prodError;
 
         if (prodData?.id) {
+          productId = prodData.id;
           await clearOtherHighlights(supabase, "products", prodData.id, [isFeatured && "is_featured", isMostViewed && "is_most_purchased", isMostViewed && "is_most_viewed", isNew && "is_new"].filter(Boolean) as string[]);
         }
 
@@ -1287,7 +1347,22 @@ export default function AdminDashboard() {
         }
       }
 
-      setMessage("Sucesso! Tudo publicado no ar!");
+      const emailOutcomes: string[] = [];
+      if (journalId && publicationDrafts.journal) {
+        try {
+          const kind: PublicationEmailKind = blogCategory === "Estudei para te explicar" ? "estudei" : "cronica";
+          const result = await sendPublicationEmail(kind, journalId, publicationDrafts.journal);
+          emailOutcomes.push(result.failed ? `email do artigo parcial (${result.accepted} enviado(s))` : `email do artigo enviado para ${result.accepted} leitora(s)`);
+        } catch (emailError) { emailOutcomes.push(`artigo publicado, mas o email precisa ser retomado em Marketing (${emailError instanceof Error ? emailError.message : "falhou"})`); }
+      }
+      if (productId && publicationDrafts.product) {
+        try {
+          const result = await sendPublicationEmail("vitrine", productId, publicationDrafts.product);
+          emailOutcomes.push(result.failed ? `email da Vitrine parcial (${result.accepted} enviado(s))` : `email da Vitrine enviado para ${result.accepted} leitora(s)`);
+        } catch (emailError) { emailOutcomes.push(`Vitrine publicada, mas o email precisa ser retomado em Marketing (${emailError instanceof Error ? emailError.message : "falhou"})`); }
+      }
+
+      setMessage(`Sucesso! Tudo publicado no ar.${emailOutcomes.length ? ` ${emailOutcomes.join(" · ")}.` : ""}`);
       setTitle(""); setLink(""); setImpressions("");
       setImageFile(null); setDisplayImageFile(null); setPrice("");
       setGeneratedReview(""); setGeneratedProductName("");
@@ -1296,6 +1371,7 @@ export default function AdminDashboard() {
       setPostDate(""); setGeneratedResumoRapido(EMPTY_RESUMO_RAPIDO);
       setGeneratedResumoRapidoArtigo(EMPTY_RESUMO_RAPIDO);
       setGeneratedTagIds([]); setGeneratedPollQuestion(""); setGeneratedPollOptions([]); setGeneratedReaderQuestion("");
+      setPublicationDrafts({ journal: null, product: null });
 
     } catch (error: any) {
       setMessage("Erro: " + error.message);
@@ -1454,6 +1530,12 @@ export default function AdminDashboard() {
 
   const tabButtonClass = (tab: typeof activeTab) => `flex-1 whitespace-nowrap py-4 px-2 uppercase font-bold tracking-widest rounded-t-xl transition-colors text-xs md:text-sm ${activeTab === tab ? "bg-[var(--color-wine)] text-[var(--color-gold)] border-t border-x border-[var(--color-wine-light)]" : "bg-transparent text-[var(--color-gold-light)] opacity-50"}`;
   const subTabButtonClass = (tab: typeof activeTab) => `rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === tab ? "bg-[var(--color-wine)] text-[var(--color-gold)]" : "bg-transparent text-[var(--color-gold-light)] opacity-70 hover:opacity-100"}`;
+  const publicationDraftEditor = (slot: "journal" | "product", label: string) => {
+    const draft = publicationDrafts[slot];
+    if (!draft) return null;
+    const update = (key: keyof PublicationEmailDraft, value: string) => setPublicationDrafts((current) => ({ ...current, [slot]: current[slot] ? { ...current[slot]!, [key]: value } : null }));
+    return <section className="rounded-2xl border border-[var(--color-gold)] bg-[#1a0f12] p-5"><p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Email automático · {label}</p><p className="mt-2 text-sm text-[var(--color-gold-light)] opacity-70">Revise este resumo. Ao publicar, ele será enviado para toda a lista ativa.</p><div className="mt-4 grid gap-3"><label className="text-sm text-[var(--color-gold-light)]">Assunto<input value={draft.subject} onChange={(event) => update("subject", event.target.value)} className="mt-1 w-full" /></label><label className="text-sm text-[var(--color-gold-light)]">Prévia curta<input value={draft.preheader} onChange={(event) => update("preheader", event.target.value)} className="mt-1 w-full" /></label><label className="text-sm text-[var(--color-gold-light)]">Título do email<input value={draft.headline} onChange={(event) => update("headline", event.target.value)} className="mt-1 w-full" /></label><label className="text-sm text-[var(--color-gold-light)]">Resumo (HTML simples)<textarea value={draft.bodyHtml} onChange={(event) => update("bodyHtml", event.target.value)} rows={5} className="mt-1 w-full" /></label></div></section>;
+  };
 
   if (!user) return <div className="admin-shell grid min-h-screen place-items-center text-[var(--color-gold)]"><div className="glass-panel rounded-3xl px-8 py-6">Preparando o seu ateliê… ✨</div></div>;
 
@@ -1468,8 +1550,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.25</p>
-                <p>Atualizado em 11/11/2026 às 22:16</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.28</p>
+                <p>Atualizado em 11/11/2026 às 23:04</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1713,6 +1795,9 @@ export default function AdminDashboard() {
                           </div>
                         )}
                       </div>
+
+                      {publicationDraftEditor("product", "Vitrine")}
+                      {!isAccessory && publicationDraftEditor("journal", "Estudei para te explicar")}
 
                       {socialPackage && (
                         <details className="rounded-2xl border border-[var(--color-gold)] bg-[#1a0f12] p-4">
@@ -2015,6 +2100,8 @@ export default function AdminDashboard() {
                       <input type="text" value={generatedBlogTitle} onChange={(e) => setGeneratedBlogTitle(e.target.value)} className="w-full bg-transparent border-b border-[var(--color-wine-light)] mb-4 text-[var(--color-gold)] font-bold focus:outline-none" />
                       <textarea value={generatedBlogPost} onChange={(e) => setGeneratedBlogPost(e.target.value)} rows={15} className="w-full bg-transparent text-[var(--color-gold-light)] focus:outline-none resize-none leading-relaxed" ></textarea>
                     </div>
+
+                    {publicationDraftEditor("journal", "Crônica")}
 
                     {socialPackage && (
                       <section className="mt-6 rounded-2xl border border-[var(--color-gold)] bg-[#1a0f12] p-5">
@@ -2654,6 +2741,13 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
+                <section className="mt-10 border-t border-[var(--color-wine-light)] pt-8" aria-labelledby="automation-title">
+                  <p className="eyebrow mb-2">Automações por publicação</p>
+                  <h3 id="automation-title" className="font-serif text-2xl text-[var(--color-gold)]">Emails que saíram com novos conteúdos</h3>
+                  <p className="mt-1 text-sm text-[var(--color-gold-light)] opacity-70">Cada publicação tem um único disparo. Se algo falhar, retome apenas quem ainda não recebeu.</p>
+                  <div className="mt-5 space-y-3">{publicationAutomations.map((automation) => { const deliveries = automation.publication_email_deliveries || []; const sent = deliveries.filter((delivery) => delivery.status === "sent").length; const pending = deliveries.filter((delivery) => delivery.status !== "sent").length; return <article key={automation.id} className="rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold text-[var(--color-gold-light)]">{automation.subject}</p><p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-60">{automation.cta_text} · {sent} entregue(s){pending ? ` · ${pending} pendente(s)` : ""}</p>{automation.last_error && <p className="mt-2 text-xs text-red-200">{automation.last_error}</p>}</div><div className="flex items-center gap-2"><span className="rounded-full border border-[var(--color-gold)]/40 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--color-gold)]">{automation.status}</span>{automation.status !== "sent" && <button type="button" onClick={() => retryPublicationEmail(automation.id)} disabled={loading} className="rounded border border-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-gold)]">Retomar envio</button>}</div></div></article>; })}{publicationAutomations.length === 0 && <div className="rounded-xl border border-dashed border-[var(--color-wine-light)] p-5 text-sm text-[var(--color-gold-light)] opacity-65">Os próximos conteúdos publicados aparecerão aqui.</div>}</div>
+                </section>
+
                 <section className="mt-10 border-t border-[var(--color-wine-light)] pt-8" aria-labelledby="email-control-title">
                   <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
@@ -2686,13 +2780,14 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="space-y-3">
-                    {emailSubscribers
-                      .filter((subscriber) => {
+                    {subscriberRecords
+                      .filter((record) => {
                         const query = emailAdminSearch.trim().toLowerCase();
                         if (!query) return true;
-                        return subscriber.includes(query) || emailDeliveries.some((delivery) => delivery.recipient === subscriber && delivery.subject.toLowerCase().includes(query));
+                        return record.email.includes(query) || emailDeliveries.some((delivery) => delivery.recipient === record.email && delivery.subject.toLowerCase().includes(query));
                       })
-                      .map((subscriber) => {
+                      .map((record) => {
+                        const subscriber = record.email;
                         const subscriberDeliveries = emailDeliveries.filter((delivery) => delivery.recipient === subscriber);
                         const lastDelivery = subscriberDeliveries[0];
                         return (
@@ -2700,14 +2795,13 @@ export default function AdminDashboard() {
                             <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4">
                               <div className="min-w-0">
                                 <p className="truncate font-semibold text-[var(--color-gold-light)]">{subscriber}</p>
-                                <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-55">
-                                  {subscriberDeliveries.length === 0 ? "Nenhum envio registrado" : `${subscriberDeliveries.length} envio${subscriberDeliveries.length === 1 ? "" : "s"} · último em ${new Date(lastDelivery.sentAt || "").toLocaleString("pt-BR")}`}
-                                </p>
+                                <p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-55">{`${subscriberDeliveries.length === 0 ? "Nenhum envio manual registrado" : `${subscriberDeliveries.length} envio${subscriberDeliveries.length === 1 ? "" : "s"} · último em ${new Date(lastDelivery.sentAt || "").toLocaleString("pt-BR")}`} · entrou por ${record.initialSource} · boas-vindas: ${record.welcomeStatus}`}</p>
                               </div>
                               <span className="shrink-0 text-[var(--color-gold)] transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
                             </summary>
 
                             <div className="mt-4 space-y-3 border-t border-[var(--color-wine-light)] pt-4">
+                              {record.unsubscribedAt ? <p className="text-sm text-amber-200">Esta leitora saiu da lista por conta própria.</p> : <button type="button" onClick={() => handleSubscriberPause(subscriber, !record.pausedAt)} className="min-h-11 rounded-xl border border-[var(--color-gold)]/60 px-4 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)] transition hover:bg-[var(--color-gold)]/10">{record.pausedAt ? "▶ Retomar envio" : "⏸ Suspender envios"}</button>}
                               <button type="button" onClick={() => handleDeleteSubscriber(subscriber)} className="min-h-11 rounded-xl border border-red-400/40 px-4 text-xs font-bold uppercase tracking-widest text-red-300 transition hover:bg-red-500/10">🗑 Excluir este cadastro</button>
                               {subscriberDeliveries.length === 0 ? (
                                 <p className="text-sm text-[var(--color-gold-light)] opacity-65">Esta pessoa ainda não recebeu campanhas registradas.</p>
@@ -2729,7 +2823,7 @@ export default function AdminDashboard() {
                           </details>
                         );
                       })}
-                    {emailSubscribers.length === 0 && (
+                    {subscriberRecords.length === 0 && (
                       <div className="rounded-2xl border border-dashed border-[var(--color-wine-light)] p-8 text-center text-sm text-[var(--color-gold-light)] opacity-65">Nenhum email cadastrado para administrar.</div>
                     )}
                   </div>

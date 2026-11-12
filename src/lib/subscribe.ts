@@ -19,14 +19,15 @@ type SubscribeInput = {
 /** Cadastra (ou reativa) o email na newsletter. `created` é true só na primeira vez, quando o email de boas-vindas é enviado. */
 export async function subscribeEmail(supabase: SupabaseClient, input: SubscribeInput) {
   const { email, source, path = null, sessionId = null, attribution = {}, sendWelcome = true } = input;
-  const subscriberRow = { email, source, signup_path: path, ...attribution };
+  const now = new Date().toISOString();
+  const subscriberRow = { email, source, initial_source: source, last_source: source, signup_path: path, subscribed_at: now, welcome_status: sendWelcome ? "pending" : "skipped", ...attribution };
   const conversionRow = { email, session_id: sessionId, path, source, ...attribution };
 
   const { error } = await supabase.from("subscribers").insert([subscriberRow]);
 
   // 23505 é violação de unique no Postgres: o email já estava cadastrado.
   if (error && error.code === "23505") {
-    await supabase.from("subscribers").update(subscriberRow).eq("email", email);
+    await supabase.from("subscribers").update({ last_source: source, signup_path: path, reactivated_at: now, ...attribution }).eq("email", email);
     // Quem voltou a se cadastrar volta para a lista (ignora erro se a coluna ainda não existir).
     await supabase.from("subscribers").update({ unsubscribed_at: null }).eq("email", email).not("unsubscribed_at", "is", null);
     await supabase.from("newsletter_conversions").insert([conversionRow]);
@@ -36,5 +37,6 @@ export async function subscribeEmail(supabase: SupabaseClient, input: SubscribeI
 
   await supabase.from("newsletter_conversions").insert([conversionRow]);
   const welcomeSent = sendWelcome ? await sendWelcomeEmail(email) : false;
+  if (sendWelcome) await supabase.from("subscribers").update({ welcome_status: welcomeSent ? "sent" : "failed", welcome_sent_at: welcomeSent ? new Date().toISOString() : null }).eq("email", email);
   return { created: true, welcomeSent };
 }

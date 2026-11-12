@@ -75,8 +75,8 @@ async function getAuthenticatedContext(req: Request) {
 async function getRecipients(req: Request) {
   const supabase = await getAuthenticatedContext(req);
   if (!supabase) return { unauthorized: true as const };
-  let rows: Array<{ email: unknown; unsubscribed_at?: string | null }> = [];
-  const withFlag = await supabase.from("subscribers").select("email,unsubscribed_at");
+  let rows: Array<{ email: unknown; unsubscribed_at?: string | null; email_paused_at?: string | null; initial_source?: string | null; last_source?: string | null; subscribed_at?: string | null; welcome_sent_at?: string | null; welcome_status?: string | null }> = [];
+  const withFlag = await supabase.from("subscribers").select("email,unsubscribed_at,email_paused_at,initial_source,last_source,subscribed_at,welcome_sent_at,welcome_status");
   if (!withFlag.error) {
     rows = (withFlag.data ?? []) as typeof rows;
   } else {
@@ -85,13 +85,31 @@ async function getRecipients(req: Request) {
     if (plain.error) throw new Error("Não foi possível acessar a base de assinantes.");
     rows = (plain.data ?? []) as typeof rows;
   }
-  const active = rows.filter((row) => !row.unsubscribed_at);
+  const active = rows.filter((row) => !row.unsubscribed_at && !row.email_paused_at);
   return {
     unauthorized: false as const,
     supabase,
-    unsubscribedCount: rows.length - active.length,
+    unsubscribedCount: rows.filter((row) => row.unsubscribed_at).length,
+    pausedCount: rows.filter((row) => row.email_paused_at && !row.unsubscribed_at).length,
     recipients: normalizeEmails(active),
+    subscriberRecords: rows.map((row) => ({ email: String(row.email || "").trim().toLowerCase(), initialSource: row.initial_source || "site", lastSource: row.last_source || row.initial_source || "site", subscribedAt: row.subscribed_at || null, welcomeSentAt: row.welcome_sent_at || null, welcomeStatus: row.welcome_status || "não registrado", pausedAt: row.email_paused_at || null, unsubscribedAt: row.unsubscribed_at || null })),
   };
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const supabase = await getAuthenticatedContext(req);
+    if (!supabase) return NextResponse.json({ error: "Sessão inválida ou expirada." }, { status: 401 });
+    const payload = await req.json().catch(() => ({})) as { email?: unknown; action?: unknown };
+    const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
+    const action = payload.action === "resume" ? "resume" : payload.action === "pause" ? "pause" : "";
+    if (!EMAIL_PATTERN.test(email) || !action) return NextResponse.json({ error: "Dados de pausa inválidos." }, { status: 400 });
+    const { error } = await supabase.from("subscribers").update({ email_paused_at: action === "pause" ? new Date().toISOString() : null }).eq("email", email);
+    if (error) throw error;
+    return NextResponse.json({ success: true, paused: action === "pause" });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Não foi possível atualizar a pausa." }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: Request) {
@@ -149,7 +167,9 @@ export async function GET(req: Request) {
       invalid: result.recipients.invalid,
       duplicates: result.recipients.duplicates,
       subscribers: result.recipients.emails,
+      subscriberRecords: result.subscriberRecords,
       unsubscribed: result.unsubscribedCount,
+      paused: result.pausedCount,
       deliveries,
     });
   } catch (error) {
