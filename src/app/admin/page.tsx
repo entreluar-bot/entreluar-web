@@ -325,6 +325,8 @@ export default function AdminDashboard() {
   const [admins, setAdmins] = useState<AdminProfile[]>([]);
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [showNewAdminPassword, setShowNewAdminPassword] = useState(false);
+  const [createdAdmin, setCreatedAdmin] = useState<{ email: string; password: string } | null>(null);
 
   const supabase = createClient();
 
@@ -384,6 +386,7 @@ export default function AdminDashboard() {
     event.preventDefault(); setLoading(true);
     try {
       await adminRequest("/api/admins", { method: "POST", body: JSON.stringify({ email: newAdminEmail, password: newAdminPassword }) });
+      setCreatedAdmin({ email: newAdminEmail.trim().toLowerCase(), password: newAdminPassword });
       setNewAdminEmail(""); setNewAdminPassword(""); setMessage("Administrador cadastrado. No primeiro acesso, ele deverá trocar a senha provisória."); await fetchAdmins();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível cadastrar o administrador."); }
     finally { setLoading(false); }
@@ -1465,8 +1468,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.24</p>
-                <p>Atualizado em 11/11/2026 às 20:48</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.25</p>
+                <p>Atualizado em 11/11/2026 às 22:16</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -2420,9 +2423,10 @@ export default function AdminDashboard() {
                   <p className="mt-3 text-sm leading-6 text-[var(--color-gold-light)] opacity-75">Cadastre quem pode entrar no painel. A senha criada aqui é provisória e será trocada pela própria pessoa no primeiro acesso.</p>
                   <form onSubmit={createAdmin} className="mt-6 grid gap-4 md:grid-cols-2">
                     <label className="text-sm text-[var(--color-gold-light)]">E-mail do administrador<input type="email" required value={newAdminEmail} onChange={(event) => setNewAdminEmail(event.target.value)} className="mt-2 w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 text-[var(--color-gold-light)]" /></label>
-                    <label className="text-sm text-[var(--color-gold-light)]">Senha provisória<input type="password" required minLength={10} autoComplete="new-password" value={newAdminPassword} onChange={(event) => setNewAdminPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 text-[var(--color-gold-light)]" /></label>
-                    <button disabled={loading} className="md:col-span-2 rounded-lg bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] py-3 font-bold uppercase tracking-widest text-[var(--color-wine-dark)] disabled:opacity-50">{loading ? "Cadastrando…" : "Cadastrar administrador"}</button>
+                    <label className="text-sm text-[var(--color-gold-light)]">Senha provisória<div className="relative mt-2"><input type={showNewAdminPassword ? "text" : "password"} required minLength={10} autoComplete="new-password" value={newAdminPassword} onChange={(event) => setNewAdminPassword(event.target.value)} className="w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 pr-16 text-[var(--color-gold-light)]" /><button type="button" onClick={() => setShowNewAdminPassword((visible) => !visible)} className="absolute inset-y-0 right-0 px-4 text-xs font-bold text-[var(--color-gold)]" aria-label={showNewAdminPassword ? "Ocultar senha" : "Ver senha"}>{showNewAdminPassword ? "Ocultar" : "Ver"}</button></div></label>
+                    <button disabled={loading} className="md:col-span-2 rounded-lg bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] py-3 font-bold uppercase tracking-widest text-[var(--color-wine-dark)] disabled:opacity-50">{loading ? "Salvando…" : "Salvar administrador"}</button>
                   </form>
+                  {createdAdmin && <div className="mt-5 rounded-xl border border-[var(--color-gold)] bg-black/20 p-4 text-sm text-[var(--color-gold-light)]"><p className="font-bold text-[var(--color-gold)]">Administrador salvo ✨</p><p className="mt-2">E-mail: <strong>{createdAdmin.email}</strong></p><p>Senha provisória: <strong>{createdAdmin.password}</strong></p><div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => navigator.clipboard.writeText(`${createdAdmin.email}\n${createdAdmin.password}`)} className="rounded border border-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Copiar dados</button><button type="button" onClick={() => setCreatedAdmin(null)} className="rounded border border-[var(--color-wine-light)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold-light)]">Ocultar dados</button></div><p className="mt-3 text-xs opacity-65">Por segurança, esta senha só aparece agora e não é guardada pelo painel.</p></div>}
                 </section>
                 <section>
                   <h3 className="mb-4 font-serif text-2xl text-[var(--color-gold)]">Quem já tem acesso</h3>
