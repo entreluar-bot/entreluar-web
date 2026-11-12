@@ -21,7 +21,7 @@ async function context(request: Request) {
 }
 
 function config(kind: Kind, id: string) {
-  if (kind === "cronica") return { contentType: "journal", emailType: "blog" as NewsletterType, ctaText: "Entrar na Roda", ctaUrl: `https://entreluar.com.br/blog/${id}#conversation-circle-title` };
+  if (kind === "cronica") return { contentType: "journal", emailType: "blog" as NewsletterType, ctaText: "Ler a crônica completa", ctaUrl: `https://entreluar.com.br/blog/${id}` };
   if (kind === "estudei") return { contentType: "journal", emailType: "resenha" as NewsletterType, ctaText: "Dar minha opinião", ctaUrl: `https://entreluar.com.br/resenhas/${id}#conversation-circle-title` };
   return { contentType: "product", emailType: "produto" as NewsletterType, ctaText: "Conhecer o achado", ctaUrl: `https://entreluar.com.br/vitrine/${id}` };
 }

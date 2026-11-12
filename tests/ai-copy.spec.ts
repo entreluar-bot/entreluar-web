@@ -10,6 +10,7 @@ import { validateCommentBatch } from "../src/lib/social-proof/validate";
 import { clampCommentDisplayDate, generateSafeCommentDate, isFuturePostDate } from "../src/lib/social-proof/timing";
 import { buildSocialProofPrompt } from "../src/lib/social-proof/prompt";
 import { buildMemoryFromTexts } from "../src/lib/social-proof/memory";
+import { buildPublicationEmailDraft } from "../src/lib/publication-email-draft";
 
 const themes = ["humor_cotidiano", "liberdade", "corpo", "menopausa", "motivacao"] as const;
 
@@ -26,6 +27,14 @@ test("modelo antigo de pílulas é substituído pelo modelo estável", () => {
   expect(getAiPolicy("quote").model).toBe("gemini-3.5-flash-lite");
   if (previous === undefined) delete process.env.AI_MODEL_QUOTE;
   else process.env.AI_MODEL_QUOTE = previous;
+});
+
+test("email de crônica fecha o resumo e convida a leitora a continuar no artigo", () => {
+  const body = `${"Uma frase longa para testar o recorte editorial ".repeat(20)}. Segunda frase que não deve aparecer pela metade.`;
+  const draft = buildPublicationEmailDraft("Uma conversa", body, "cronica");
+  expect(draft.bodyHtml).toContain("Continue lendo comigo lá na nossa comunidade.");
+  expect(draft.bodyHtml).toContain("Roda de Conversa");
+  expect(draft.bodyHtml).toMatch(/…<\/p>/);
 });
 
 test("lote válido contém 15 frases sem cotas temáticas", () => {
