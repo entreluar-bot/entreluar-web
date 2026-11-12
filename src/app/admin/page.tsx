@@ -99,6 +99,7 @@ type AiUsageSummary = {
 };
 
 type ManageType = "papo" | "estudei" | "vitrine";
+type AdminProfile = { id: string; email: string; role: string; force_password_change: boolean; created_at: string };
 
 type EditingPoll = {
   id: string | null;
@@ -221,7 +222,7 @@ async function clearOtherHighlights(
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "product" | "blog" | "manage" | "traffic" | "comments" | "inbox" | "quotes" | "drops" | "newsletter" | "memory">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "product" | "blog" | "manage" | "traffic" | "comments" | "inbox" | "quotes" | "drops" | "newsletter" | "memory" | "admins">("overview");
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
   const [impressions, setImpressions] = useState("");
@@ -321,13 +322,19 @@ export default function AdminDashboard() {
   const [memoryPrivacy, setMemoryPrivacy] = useState<LuanaMemory["privacy"]>("editorial");
   const [memoryAllowInContent, setMemoryAllowInContent] = useState(false);
   const [aiUsage, setAiUsage] = useState<AiUsageSummary>(emptyAiUsage);
+  const [admins, setAdmins] = useState<AdminProfile[]>([]);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newAdminPassword, setNewAdminPassword] = useState("");
 
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) window.location.href = "/admin/login";
-      else setUser(data.user);
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return window.location.assign("/admin/login");
+      const { data: profile } = await supabase.from("admin_profiles").select("force_password_change").eq("id", data.user.id).maybeSingle();
+      if (!profile) { await supabase.auth.signOut(); return window.location.assign("/admin/login"); }
+      if (profile.force_password_change) return window.location.assign("/admin/alterar-senha");
+      setUser(data.user);
     });
   }, []);
 
@@ -350,6 +357,7 @@ export default function AdminDashboard() {
     if (activeTab === "traffic" || activeTab === "overview") fetchTrafficAnalytics();
     if (activeTab === "comments") fetchComments();
     if (activeTab === "memory") fetchMemories();
+    if (activeTab === "admins") fetchAdmins();
   }, [activeTab]);
 
   const adminRequest = async (path: string, init?: RequestInit) => {
@@ -365,6 +373,20 @@ export default function AdminDashboard() {
 
   const memoryRequest = async (path = "", init?: RequestInit) => {
     return adminRequest(`/api/luana-memory${path}`, init);
+  };
+
+  const fetchAdmins = async () => {
+    try { const data = await adminRequest("/api/admins"); setAdmins(data.admins || []); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível carregar os administradores."); }
+  };
+
+  const createAdmin = async (event: React.FormEvent) => {
+    event.preventDefault(); setLoading(true);
+    try {
+      await adminRequest("/api/admins", { method: "POST", body: JSON.stringify({ email: newAdminEmail, password: newAdminPassword }) });
+      setNewAdminEmail(""); setNewAdminPassword(""); setMessage("Administrador cadastrado. No primeiro acesso, ele deverá trocar a senha provisória."); await fetchAdmins();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível cadastrar o administrador."); }
+    finally { setLoading(false); }
   };
 
   const fetchComments = async () => {
@@ -1443,8 +1465,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.23</p>
-                <p>Atualizado em 11/11/2026 às 06:14</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.24</p>
+                <p>Atualizado em 11/11/2026 às 20:48</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -1497,6 +1519,9 @@ export default function AdminDashboard() {
               </button>
               <button onClick={() => setActiveTab("memory")} className={subTabButtonClass("memory")}>
                 Memória IA
+              </button>
+              <button onClick={() => setActiveTab("admins")} className={subTabButtonClass("admins")}>
+                Administradores
               </button>
             </div>
           </details>
@@ -2384,6 +2409,25 @@ export default function AdminDashboard() {
                     </div>}
                   </>
                 )}
+              </div>
+            )}
+
+            {activeTab === "admins" && (
+              <div className="space-y-8">
+                <section className="rounded-2xl border border-[var(--color-gold)] bg-[var(--color-wine-dark)] p-6">
+                  <p className="eyebrow mb-2">Acesso ao ateliê</p>
+                  <h2 className="font-display text-3xl text-[var(--color-gold-light)]">Administradores</h2>
+                  <p className="mt-3 text-sm leading-6 text-[var(--color-gold-light)] opacity-75">Cadastre quem pode entrar no painel. A senha criada aqui é provisória e será trocada pela própria pessoa no primeiro acesso.</p>
+                  <form onSubmit={createAdmin} className="mt-6 grid gap-4 md:grid-cols-2">
+                    <label className="text-sm text-[var(--color-gold-light)]">E-mail do administrador<input type="email" required value={newAdminEmail} onChange={(event) => setNewAdminEmail(event.target.value)} className="mt-2 w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 text-[var(--color-gold-light)]" /></label>
+                    <label className="text-sm text-[var(--color-gold-light)]">Senha provisória<input type="password" required minLength={10} autoComplete="new-password" value={newAdminPassword} onChange={(event) => setNewAdminPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-[var(--color-wine-light)] bg-[var(--color-wine)] p-3 text-[var(--color-gold-light)]" /></label>
+                    <button disabled={loading} className="md:col-span-2 rounded-lg bg-gradient-to-r from-[#b5952f] to-[var(--color-gold)] py-3 font-bold uppercase tracking-widest text-[var(--color-wine-dark)] disabled:opacity-50">{loading ? "Cadastrando…" : "Cadastrar administrador"}</button>
+                  </form>
+                </section>
+                <section>
+                  <h3 className="mb-4 font-serif text-2xl text-[var(--color-gold)]">Quem já tem acesso</h3>
+                  <div className="space-y-3">{admins.map((admin) => <div key={admin.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] p-4"><div><p className="font-bold text-[var(--color-gold-light)]">{admin.email}</p><p className="mt-1 text-xs text-[var(--color-gold-light)] opacity-60">{admin.force_password_change ? "Aguardando a troca da senha provisória" : "Acesso ativo"}</p></div><span className="rounded-full border border-[var(--color-wine-light)] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--color-gold)]">Administrador</span></div>)}{admins.length === 0 && <p className="text-sm text-[var(--color-gold-light)] opacity-70">Carregando administradores…</p>}</div>
+                </section>
               </div>
             )}
 
