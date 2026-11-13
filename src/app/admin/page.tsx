@@ -1568,8 +1568,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.34</p>
-                <p>Atualizado em 12/11/2026 às 20:41</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.35</p>
+                <p>Atualizado em 12/11/2026 às 21:16</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -2126,8 +2126,8 @@ export default function AdminDashboard() {
 
                     {socialPackage && (
                       <section className="mt-6 rounded-2xl border border-[var(--color-gold)] bg-[#1a0f12] p-5">
-                        <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Instagram & engajamento — revise antes de usar</p>
-                        <label className="mt-4 block text-sm text-[var(--color-gold-light)]"><span className="flex flex-wrap items-center justify-between gap-2"><span>Prompt para ChatGPT</span><button type="button" onClick={() => copyText(socialPackage.instagramPrompt, "Prompt de divulgação")} className="rounded border border-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)] transition hover:bg-[var(--color-gold)]/10">Copiar prompt</button></span><textarea value={socialPackage.instagramPrompt} onChange={(e) => setSocialPackage({ ...socialPackage, instagramPrompt: e.target.value })} rows={4} className="mt-2 w-full text-sm" /></label>
+                        <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-gold)]">Card único de divulgação — revise antes de usar</p>
+                        <label className="mt-4 block text-sm text-[var(--color-gold-light)]"><span className="flex flex-wrap items-center justify-between gap-2"><span>Prompt do card para ChatGPT</span><button type="button" onClick={() => copyText(socialPackage.instagramPrompt, "Prompt do card")} className="rounded border border-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-gold)] transition hover:bg-[var(--color-gold)]/10">Copiar prompt</button></span><textarea value={socialPackage.instagramPrompt} onChange={(e) => setSocialPackage({ ...socialPackage, instagramPrompt: e.target.value })} rows={6} className="mt-2 w-full text-sm" /></label>
                         <label className="mt-3 block text-sm text-[var(--color-gold-light)]">Gancho do Reel<input value={socialPackage.reelHook} onChange={(e) => setSocialPackage({ ...socialPackage, reelHook: e.target.value })} className="mt-1 w-full text-sm" /></label>
                         <label className="mt-3 block text-sm text-[var(--color-gold-light)]">Roteiro<textarea value={socialPackage.reelScript} onChange={(e) => setSocialPackage({ ...socialPackage, reelScript: e.target.value })} rows={4} className="mt-1 w-full text-sm" /></label>
                         <label className="mt-3 block text-sm text-[var(--color-gold-light)]">Legenda<textarea value={socialPackage.caption} onChange={(e) => setSocialPackage({ ...socialPackage, caption: e.target.value })} rows={5} className="mt-1 w-full text-sm" /></label>
