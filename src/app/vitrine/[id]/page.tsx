@@ -5,8 +5,6 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { absoluteUrl, plainTextFromHtml, siteUrl } from "@/lib/share-metadata";
 import type { ContentSummary } from "@/lib/summary";
-import { buildRoutineSentence, type Tag } from "@/lib/tags";
-import ShareButton from "../../ui/ShareButton";
 import TopQuickActions from "../../ui/TopQuickActions";
 import QuickSummaryCard from "../../ui/QuickSummaryCard";
 import AddToRoutineButton from "../../ui/AddToRoutineButton";
@@ -55,18 +53,15 @@ export async function generateMetadata({ params }: ProductPostProps): Promise<Me
 export default async function ProductPost({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data }, { data: summaryData }, commentRows, { data: tagRows }] = await Promise.all([
+  const [{ data }, { data: summaryData }, commentRows] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).single(),
     supabase.from("content_summaries").select("*").eq("content_type", "product").eq("content_id", id).maybeSingle(),
     getApprovedComments(supabase, "product_id", id),
-    supabase.from("content_tags").select("tags(id,name,slug,type)").eq("content_type", "product").eq("content_id", id),
   ]);
   if (!data) notFound();
   const product = data as Product;
   const summary = summaryData as ContentSummary | null;
   const comments = (commentRows || []) as JournalComment[];
-  const productTags = (tagRows || []).flatMap((row: { tags: Tag | Tag[] | null }) => (Array.isArray(row.tags) ? row.tags : row.tags ? [row.tags] : []));
-  const routineSentence = buildRoutineSentence(productTags);
   const shareUrl = `${siteUrl}/vitrine/${product.id}`;
 
   return (
@@ -83,25 +78,15 @@ export default async function ProductPost({ params }: { params: Promise<{ id: st
         <header className="p-6 md:p-12">
           <p className="eyebrow">{product.category || "Escolha da Luana"}</p>
           <h1 className="section-title my-4">{product.title}</h1>
-          <TopQuickActions title={product.title} shareUrl={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} />
+          <TopQuickActions title={product.title} shareUrl={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} storeUrl={product.shopee_link} />
           {comments.length > 0 && (
             <a href="#conversation-circle-title" className="conversation-jumplink">💬 {comments.length} comentário{comments.length === 1 ? "" : "s"} — ver e participar →</a>
           )}
           {product.price && <p className="font-display text-3xl text-[var(--champagne)]">{product.price}</p>}
           <QuickSummaryCard summary={summary} />
-          {routineSentence && (
-            <div className="routine-card">
-              <p>Ficha rápida</p>
-              <p>{routineSentence}</p>
-            </div>
-          )}
           <div className="prose-luxe mt-8" dangerouslySetInnerHTML={{ __html: product.description }} />
           <div className="mt-10 border-t border-[var(--line)] pt-8">
-            <a href={product.shopee_link} target="_blank" rel="noreferrer" className="luxe-button w-full">Onde encontrei esse achado ↗</a>
-          </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <ShareButton title={product.title} url={shareUrl} shareText={`Achei isso aqui e lembrei de você: ${product.title}`} />
-            <AddToRoutineButton id={product.id} title={product.title} image_url={product.image_url} className="sm:mt-0" />
+            <AddToRoutineButton id={product.id} title={product.title} image_url={product.image_url} />
           </div>
           <ConversationCircle postId={product.id} postTitle={product.title} postCreatedAt={product.created_at} comments={comments} contentType="product" variant="product" />
           <section className="next-steps" aria-label="Continue navegando">
