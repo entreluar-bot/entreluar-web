@@ -20,16 +20,13 @@ export default async function Resenhas() {
   const journalPosts = (journalData || []) as JournalPost[];
   const postIds = journalPosts.map((post) => post.id);
 
-  const [{ data: ingredientTagRows }, { data: concernTagRows }] = await Promise.all([
-    supabase.from("tags").select("id,name,slug,type").eq("type", "ingredient"),
-    supabase.from("tags").select("id,name,slug,type").eq("type", "concern"),
-  ]);
-  const allTagRows = [...((ingredientTagRows || []) as Tag[]), ...((concernTagRows || []) as Tag[])];
-  const { data: linkRows } = allTagRows.length && postIds.length
-    ? await supabase.from("content_tags").select("tag_id,content_id").eq("content_type", "journal").in("content_id", postIds).in("tag_id", allTagRows.map((tag) => tag.id))
+  const { data: allTagRows } = await supabase.from("tags").select("id,name,slug,type").in("type", ["ingredient", "concern", "routine_period", "body_part"]);
+  const tags = (allTagRows || []) as Tag[];
+  const { data: linkRows } = tags.length && postIds.length
+    ? await supabase.from("content_tags").select("tag_id,content_id").eq("content_type", "journal").in("content_id", postIds).in("tag_id", tags.map((tag) => tag.id))
     : { data: [] as Array<{ tag_id: string; content_id: string }> };
 
-  const tagBySlug = new Map(allTagRows.map((tag) => [tag.id, tag] as const));
+  const tagBySlug = new Map(tags.map((tag) => [tag.id, tag] as const));
   const tagSlugsByPostId = new Map<string, string[]>();
   for (const link of (linkRows || []) as Array<{ tag_id: string; content_id: string }>) {
     const tag = tagBySlug.get(link.tag_id);
@@ -49,24 +46,13 @@ export default async function Resenhas() {
     };
   });
 
-  const usedIngredientSlugs = new Set(posts.flatMap((post) => post.tagSlugs).filter((slug) => (ingredientTagRows || []).some((tag) => tag.slug === slug)));
-  const usedConcernSlugs = new Set(posts.flatMap((post) => post.tagSlugs).filter((slug) => (concernTagRows || []).some((tag) => tag.slug === slug)));
-  const tagGroups = [
-    {
-      label: "Por ativo",
-      options: ((ingredientTagRows || []) as Tag[])
-        .filter((tag) => usedIngredientSlugs.has(tag.slug))
-        .map((tag) => ({ slug: tag.slug, name: tag.name }))
-        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-    },
-    {
-      label: "Por queixa",
-      options: ((concernTagRows || []) as Tag[])
-        .filter((tag) => usedConcernSlugs.has(tag.slug))
-        .map((tag) => ({ slug: tag.slug, name: tag.name }))
-        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-    },
-  ];
+  const tagGroups = ([
+    ["ingredient", "Por ativo"], ["concern", "Por benefício"], ["routine_period", "Quando usar"], ["body_part", "Onde usar"],
+  ] as const).map(([type, label]) => ({
+    key: type,
+    label,
+    options: tags.filter((tag) => tag.type === type && posts.some((post) => post.tagSlugs.includes(tag.slug))).map((tag) => ({ slug: tag.slug, name: tag.name })).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+  }));
 
   return (
     <main className="site-shell">

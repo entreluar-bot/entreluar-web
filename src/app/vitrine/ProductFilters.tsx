@@ -6,13 +6,14 @@ import { useMemo, useState } from "react";
 import ProductCard from "../ProductCard";
 import type { Product } from "../types";
 import FilterChipBar from "../ui/FilterChipBar";
+import SmartTagFilters, { type SmartTagGroup } from "../ui/SmartTagFilters";
 import HighlightStrip from "../ui/HighlightStrip";
 import LoadMoreGrid from "../ui/LoadMoreGrid";
 import { pickHighlights } from "@/lib/highlights";
 
 type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | "new" | `category:${string}` | `tag:${string}`;
 type FilterableProduct = Product & { tagSlugs?: string[] };
-type TagGroup = { label: string; options: Array<{ slug: string; name: string }> };
+type TagGroup = SmartTagGroup;
 
 const specialFilters: Array<{ key: FilterKey; label: string }> = [
   { key: "all", label: "Tudo" },
@@ -47,25 +48,31 @@ function FeaturedProduct({ product }: { product: FilterableProduct }) {
 
 export default function ProductFilters({ products, tagGroups = [] }: { products: FilterableProduct[]; tagGroups?: TagGroup[] }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
+  const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
   const categories = useMemo(
     () => [...new Set(products.map((product) => product.category?.trim() || "Geral"))].sort((a, b) => a.localeCompare(b, "pt-BR")),
     [products],
   );
   const filteredProducts = useMemo(() => {
-    if (activeFilter === "featured") return products.filter((product) => product.is_featured);
-    if (activeFilter === "most-purchased") return products.filter((product) => product.is_most_purchased);
-    if (activeFilter === "most-viewed") return products.filter((product) => product.is_most_viewed);
-    if (activeFilter === "new") return products.filter((product) => product.is_new);
+    const matchesSmartFilters = (product: FilterableProduct) => tagGroups.every((group) => {
+      const selected = selectedTags[group.key] || [];
+      return !selected.length || selected.some((slug) => product.tagSlugs?.includes(slug));
+    });
+    const withSmartFilters = (items: FilterableProduct[]) => items.filter(matchesSmartFilters);
+    if (activeFilter === "featured") return withSmartFilters(products.filter((product) => product.is_featured));
+    if (activeFilter === "most-purchased") return withSmartFilters(products.filter((product) => product.is_most_purchased));
+    if (activeFilter === "most-viewed") return withSmartFilters(products.filter((product) => product.is_most_viewed));
+    if (activeFilter === "new") return withSmartFilters(products.filter((product) => product.is_new));
     if (activeFilter.startsWith("category:")) {
       const category = activeFilter.slice("category:".length);
-      return products.filter((product) => (product.category?.trim() || "Geral") === category);
+      return withSmartFilters(products.filter((product) => (product.category?.trim() || "Geral") === category));
     }
     if (activeFilter.startsWith("tag:")) {
       const tagSlug = activeFilter.slice("tag:".length);
-      return products.filter((product) => product.tagSlugs?.includes(tagSlug));
+      return withSmartFilters(products.filter((product) => product.tagSlugs?.includes(tagSlug)));
     }
-    return products;
-  }, [activeFilter, products]);
+    return withSmartFilters(products);
+  }, [activeFilter, products, selectedTags, tagGroups]);
 
   const filters = [
     ...specialFilters,
@@ -96,7 +103,10 @@ export default function ProductFilters({ products, tagGroups = [] }: { products:
   const listProducts = picks.length ? filteredProducts.filter((product) => !pickedIds.has(product.id)) : filteredProducts;
   const featuredProduct = picks.length ? undefined : listProducts[0];
   const remainingProducts = picks.length ? listProducts : listProducts.slice(1);
-  const activeTagGroups = tagGroups.filter((group) => group.options.length > 0);
+  const toggleTag = (groupKey: string, slug: string) => setSelectedTags((previous) => {
+    const selected = previous[groupKey] || [];
+    return { ...previous, [groupKey]: selected.includes(slug) ? selected.filter((item) => item !== slug) : [...selected, slug] };
+  });
 
   return (
     <section className="listing-flow" aria-label="Achados filtrados">
@@ -105,22 +115,7 @@ export default function ProductFilters({ products, tagGroups = [] }: { products:
         <div className="filter-drawer__panel">
           <p className="filter-drawer__label">Tipo de achado</p>
           <FilterChipBar ariaLabel="Filtros dos achados" activeKey={activeFilter} onSelect={(key) => setActiveFilter(key as FilterKey)} options={filters} compact />
-          {activeTagGroups.map((group) => (
-            <div key={group.label} className="mt-3">
-              <p className="filter-drawer__label">{group.label}</p>
-              <FilterChipBar
-                ariaLabel={group.label}
-                activeKey={activeFilter}
-                onSelect={(key) => setActiveFilter(key as FilterKey)}
-                options={group.options.map((option) => ({
-                  key: `tag:${option.slug}` as FilterKey,
-                  label: option.name,
-                  count: products.filter((product) => product.tagSlugs?.includes(option.slug)).length,
-                }))}
-                compact
-              />
-            </div>
-          ))}
+          <SmartTagFilters groups={tagGroups.map((group) => ({ ...group, options: group.options.map((option) => ({ ...option, count: products.filter((product) => product.tagSlugs?.includes(option.slug)).length })) }))} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags({})} />
         </div>
       </details>
 

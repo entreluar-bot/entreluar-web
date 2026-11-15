@@ -6,13 +6,14 @@ import { useMemo, useState } from "react";
 import type { JournalPost } from "../types";
 import JournalCard from "../ui/JournalCard";
 import FilterChipBar from "../ui/FilterChipBar";
+import SmartTagFilters, { type SmartTagGroup } from "../ui/SmartTagFilters";
 import HighlightStrip from "../ui/HighlightStrip";
 import LoadMoreGrid from "../ui/LoadMoreGrid";
 import { pickHighlights } from "@/lib/highlights";
 
 type FilterKey = "all" | "featured" | "most-purchased" | "most-viewed" | "new" | `tag:${string}`;
 type ReviewPost = JournalPost & { tagSlugs?: string[] };
-type TagGroup = { label: string; options: Array<{ slug: string; name: string }> };
+type TagGroup = SmartTagGroup;
 
 const specialFilters: Array<{ key: FilterKey; label: string }> = [
   { key: "all", label: "Todas" },
@@ -43,17 +44,23 @@ function FeaturedReview({ post }: { post: ReviewPost }) {
 
 export default function ReviewFilters({ posts, tagGroups = [] }: { posts: ReviewPost[]; tagGroups?: TagGroup[] }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
+  const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
   const filteredPosts = useMemo(() => {
-    if (activeFilter === "featured") return posts.filter((post) => post.is_featured);
-    if (activeFilter === "most-purchased") return posts.filter((post) => post.is_most_purchased);
-    if (activeFilter === "most-viewed") return posts.filter((post) => post.is_most_viewed);
-    if (activeFilter === "new") return posts.filter((post) => post.is_new);
+    const matchesSmartFilters = (post: ReviewPost) => tagGroups.every((group) => {
+      const selected = selectedTags[group.key] || [];
+      return !selected.length || selected.some((slug) => post.tagSlugs?.includes(slug));
+    });
+    const withSmartFilters = (items: ReviewPost[]) => items.filter(matchesSmartFilters);
+    if (activeFilter === "featured") return withSmartFilters(posts.filter((post) => post.is_featured));
+    if (activeFilter === "most-purchased") return withSmartFilters(posts.filter((post) => post.is_most_purchased));
+    if (activeFilter === "most-viewed") return withSmartFilters(posts.filter((post) => post.is_most_viewed));
+    if (activeFilter === "new") return withSmartFilters(posts.filter((post) => post.is_new));
     if (activeFilter.startsWith("tag:")) {
       const tagSlug = activeFilter.slice("tag:".length);
-      return posts.filter((post) => post.tagSlugs?.includes(tagSlug));
+      return withSmartFilters(posts.filter((post) => post.tagSlugs?.includes(tagSlug)));
     }
-    return posts;
-  }, [activeFilter, posts]);
+    return withSmartFilters(posts);
+  }, [activeFilter, posts, selectedTags, tagGroups]);
   const isDefaultView = activeFilter === "all";
   const picks = useMemo(
     () => isDefaultView
@@ -76,7 +83,10 @@ export default function ReviewFilters({ posts, tagGroups = [] }: { posts: Review
   const listPosts = picks.length ? filteredPosts.filter((post) => !pickedIds.has(post.id)) : filteredPosts;
   const featuredPost = picks.length ? undefined : listPosts[0];
   const remainingPosts = picks.length ? listPosts : listPosts.slice(1);
-  const activeTagGroups = tagGroups.filter((group) => group.options.length > 0);
+  const toggleTag = (groupKey: string, slug: string) => setSelectedTags((previous) => {
+    const selected = previous[groupKey] || [];
+    return { ...previous, [groupKey]: selected.includes(slug) ? selected.filter((item) => item !== slug) : [...selected, slug] };
+  });
 
   return (
     <section className="listing-flow" aria-label="Explicações filtradas">
@@ -85,22 +95,7 @@ export default function ReviewFilters({ posts, tagGroups = [] }: { posts: Review
         <div className="filter-drawer__panel">
           <p className="filter-drawer__label">Destaques</p>
           <FilterChipBar ariaLabel="Filtros de destaque" activeKey={activeFilter} onSelect={(key) => setActiveFilter(key as FilterKey)} options={specialFilters} compact />
-          {activeTagGroups.map((group) => (
-            <div key={group.label} className="mt-3">
-              <p className="filter-drawer__label">{group.label}</p>
-              <FilterChipBar
-                ariaLabel={group.label}
-                activeKey={activeFilter}
-                onSelect={(key) => setActiveFilter(key as FilterKey)}
-                options={group.options.map((option) => ({
-                  key: `tag:${option.slug}` as FilterKey,
-                  label: option.name,
-                  count: posts.filter((post) => post.tagSlugs?.includes(option.slug)).length,
-                }))}
-                compact
-              />
-            </div>
-          ))}
+          <SmartTagFilters groups={tagGroups.map((group) => ({ ...group, options: group.options.map((option) => ({ ...option, count: posts.filter((post) => post.tagSlugs?.includes(option.slug)).length })) }))} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags({})} />
         </div>
       </details>
 

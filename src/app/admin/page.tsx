@@ -1465,6 +1465,7 @@ export default function AdminDashboard() {
           is_most_purchased: Boolean(editingItem.is_most_purchased),
           is_most_viewed: Boolean(editingItem.is_most_viewed),
           is_new: Boolean(editingItem.is_new),
+          search_keywords: Array.isArray(editingItem.search_keywords) ? editingItem.search_keywords : [],
           created_at: createdAt,
         }).eq("id", editingItem.id);
         if (error) throw error;
@@ -1478,6 +1479,7 @@ export default function AdminDashboard() {
           is_featured: Boolean(editingItem.is_featured),
           is_most_viewed: Boolean(editingItem.is_most_viewed),
           is_new: Boolean(editingItem.is_new),
+          search_keywords: Array.isArray(editingItem.search_keywords) ? editingItem.search_keywords : [],
           created_at: createdAt,
         }).eq("id", editingItem.id);
         if (error) throw error;
@@ -1568,8 +1570,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.37</p>
-                <p>Atualizado em 15/11/2026 às 16:53</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.38</p>
+                <p>Atualizado em 15/11/2026 às 19:49</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -2332,6 +2334,17 @@ export default function AdminDashboard() {
                           {creatingTag ? "Criando…" : "Criar tag"}
                         </button>
                       </div>
+                    </fieldset>
+                    <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">
+                      <legend className="px-2 text-sm font-bold uppercase tracking-widest text-[var(--color-gold)]">Palavras para encontrar este conteúdo</legend>
+                      <p className="mb-3 text-xs text-[var(--color-gold-light)] opacity-65">Sinônimos e jeitos reais de buscar. Separe por vírgula: “linhas finas, uso noturno, pescoço”. Elas entram na busca, não viram filtros visíveis.</p>
+                      <input
+                        type="text"
+                        value={Array.isArray(editingItem.search_keywords) ? editingItem.search_keywords.join(", ") : ""}
+                        onChange={(event) => setEditingItem({ ...editingItem, search_keywords: event.target.value.split(",").map((term) => term.trim()).filter(Boolean) })}
+                        placeholder="Ex.: linhas finas, retinol, uso noturno"
+                        className="w-full rounded border border-[var(--color-wine-light)] bg-[var(--color-wine-dark)] px-3 py-3 text-sm text-[var(--color-gold-light)]"
+                      />
                     </fieldset>
                     {(editingItem.type === "product" || editingItem.category === "Estudei para te explicar") && (
                       <fieldset className="mb-5 rounded-2xl border border-[var(--color-wine-light)] bg-[#1a0f12] p-4">

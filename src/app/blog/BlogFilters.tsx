@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import type { JournalPost } from "../types";
 import JournalCard from "../ui/JournalCard";
 import FilterChipBar from "../ui/FilterChipBar";
+import SmartTagFilters, { type SmartTagGroup } from "../ui/SmartTagFilters";
 import NewsletterSignup from "../ui/NewsletterSignup";
 import HighlightStrip from "../ui/HighlightStrip";
 import LoadMoreGrid from "../ui/LoadMoreGrid";
@@ -59,19 +60,26 @@ function FeaturedJournal({ post }: { post: JournalPost }) {
   );
 }
 
-export default function BlogFilters({ posts }: { posts: JournalPost[] }) {
+type TaggedPost = JournalPost & { tagSlugs?: string[] };
+
+export default function BlogFilters({ posts, tagGroups = [] }: { posts: TaggedPost[]; tagGroups?: SmartTagGroup[] }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
+  const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
   const filters = useMemo(
     () => PAPO_FILTERS.map((filter) => ({ key: `papo:${filter}` as FilterKey, label: filter, count: posts.filter((post) => resolvePapoFilter(post) === filter).length })),
     [posts],
   );
   const filteredPosts = useMemo(() => {
+    const matchesTopics = (post: TaggedPost) => tagGroups.every((group) => {
+      const selected = selectedTags[group.key] || [];
+      return !selected.length || selected.some((slug) => post.tagSlugs?.includes(slug));
+    });
     if (activeFilter.startsWith("papo:")) {
       const filter = activeFilter.slice("papo:".length) as PapoFilter;
-      return posts.filter((post) => resolvePapoFilter(post) === filter);
+      return posts.filter((post) => resolvePapoFilter(post) === filter && matchesTopics(post));
     }
-    return posts;
-  }, [activeFilter, posts]);
+    return posts.filter(matchesTopics);
+  }, [activeFilter, posts, selectedTags, tagGroups]);
   const activeLabel = activeFilter === "all" ? "Todas as conversas" : activeFilter.slice("papo:".length);
   const isDefaultView = activeFilter === "all";
   const picks = useMemo(
@@ -95,6 +103,10 @@ export default function BlogFilters({ posts }: { posts: JournalPost[] }) {
   const listPosts = picks.length ? filteredPosts.filter((post) => !pickedIds.has(post.id)) : filteredPosts;
   const featuredPost = picks.length ? undefined : listPosts[0];
   const remainingPosts = picks.length ? listPosts : listPosts.slice(1);
+  const toggleTag = (groupKey: string, slug: string) => setSelectedTags((previous) => {
+    const selected = previous[groupKey] || [];
+    return { ...previous, [groupKey]: selected.includes(slug) ? selected.filter((item) => item !== slug) : [...selected, slug] };
+  });
 
   return (
     <section className="listing-flow" aria-label="Conversas filtradas">
@@ -109,6 +121,7 @@ export default function BlogFilters({ posts }: { posts: JournalPost[] }) {
             options={[{ key: "all" as FilterKey, label: "Todas", count: posts.length }, ...filters]}
             compact
           />
+          <SmartTagFilters groups={tagGroups.map((group) => ({ ...group, options: group.options.map((option) => ({ ...option, count: posts.filter((post) => post.tagSlugs?.includes(option.slug)).length })) }))} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags({})} />
         </div>
       </details>
       <div className="mt-4" aria-live="polite">

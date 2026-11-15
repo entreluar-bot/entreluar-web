@@ -12,13 +12,13 @@ export default async function Vitrine() {
   const productRows = (data || []) as Product[];
   const productIds = productRows.map((product) => product.id);
 
-  const { data: concernTagRows } = await supabase.from("tags").select("id,name,slug,type").eq("type", "concern");
-  const concernTags = (concernTagRows || []) as Tag[];
-  const { data: linkRows } = concernTags.length && productIds.length
-    ? await supabase.from("content_tags").select("tag_id,content_id").eq("content_type", "product").in("content_id", productIds).in("tag_id", concernTags.map((tag) => tag.id))
+  const { data: tagRows } = await supabase.from("tags").select("id,name,slug,type").in("type", ["concern", "ingredient", "routine_period", "body_part", "routine_phase", "skin_type"]);
+  const tags = (tagRows || []) as Tag[];
+  const { data: linkRows } = tags.length && productIds.length
+    ? await supabase.from("content_tags").select("tag_id,content_id").eq("content_type", "product").in("content_id", productIds).in("tag_id", tags.map((tag) => tag.id))
     : { data: [] as Array<{ tag_id: string; content_id: string }> };
 
-  const tagBySlug = new Map(concernTags.map((tag) => [tag.id, tag] as const));
+  const tagBySlug = new Map(tags.map((tag) => [tag.id, tag] as const));
   const tagSlugsByProductId = new Map<string, string[]>();
   for (const link of (linkRows || []) as Array<{ tag_id: string; content_id: string }>) {
     const tag = tagBySlug.get(link.tag_id);
@@ -27,16 +27,14 @@ export default async function Vitrine() {
   }
 
   const products = productRows.map((product) => ({ ...product, tagSlugs: tagSlugsByProductId.get(product.id) || [] }));
-  const usedConcernSlugs = new Set(products.flatMap((product) => product.tagSlugs));
-  const tagGroups = [
-    {
-      label: "Quero cuidar de",
-      options: concernTags
-        .filter((tag) => usedConcernSlugs.has(tag.slug))
-        .map((tag) => ({ slug: tag.slug, name: tag.name }))
-        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-    },
-  ];
+  const filterGroups = [
+    ["ingredient", "Por ativo"], ["routine_period", "Quando usar"], ["body_part", "Onde usar"], ["concern", "Quero cuidar de"], ["routine_phase", "Tipo de produto"], ["skin_type", "Meu tipo de pele"],
+  ] as const;
+  const tagGroups = filterGroups.map(([type, label]) => ({
+    key: type,
+    label,
+    options: tags.filter((tag) => tag.type === type && products.some((product) => product.tagSlugs.includes(tag.slug))).map((tag) => ({ slug: tag.slug, name: tag.name })).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+  }));
 
   return (
     <main className="site-shell">
