@@ -18,11 +18,16 @@ export default function SmartTagFilters({
   if (!activeGroups.length) return null;
 
   return (
-    <div className="grid gap-4">
-      {activeGroups.map((group) => (
-        <div key={group.key}>
-          <p className="filter-drawer__label">{group.label}</p>
-          <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={group.label}>
+    <div className="grid gap-2">
+      {activeGroups.map((group) => {
+        const selectedCount = selected[group.key]?.length || 0;
+        return (
+        <details key={group.key} className="smart-filter-group">
+          <summary>
+            <span>{group.label}</span>
+            <span className="smart-filter-group__count">{selectedCount ? `${selectedCount} selecionado${selectedCount === 1 ? "" : "s"}` : "Escolher"}</span>
+          </summary>
+          <div className="smart-filter-group__options" role="group" aria-label={group.label}>
             {group.options.map((option) => {
               const active = selected[group.key]?.includes(option.slug) || false;
               return (
@@ -38,8 +43,8 @@ export default function SmartTagFilters({
               );
             })}
           </div>
-        </div>
-      ))}
+        </details>
+      )})}
       {hasSelection && <button type="button" onClick={onClear} className="w-fit text-xs font-bold uppercase tracking-wider text-[var(--champagne)] underline underline-offset-4">Limpar filtros inteligentes</button>}
     </div>
   );

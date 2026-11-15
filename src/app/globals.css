@@ -51,6 +51,7 @@ input,textarea,select{border-color:var(--line)!important;border-radius:14px!impo
 html[data-text-size="large"]{font-size:110%}html[data-text-size="xlarge"]{font-size:120%}
 .eyebrow{font-size:.78rem;letter-spacing:.16em}.hero .eyebrow{font-size:.7rem;letter-spacing:.24em}
 .chip{font-size:.76rem;letter-spacing:.06em}.filter-drawer>summary{font-size:.76rem;letter-spacing:.06em}.filter-drawer__label{font-size:.76rem;letter-spacing:.06em}
+.smart-filter-group{border-bottom:1px solid var(--line)}.smart-filter-group>summary{display:flex;min-height:42px;cursor:pointer;align-items:center;justify-content:space-between;gap:12px;color:var(--champagne-pale);font-size:.72rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;list-style:none}.smart-filter-group>summary::-webkit-details-marker{display:none}.smart-filter-group>summary::after{content:"+";order:3;color:var(--champagne);font-size:1rem}.smart-filter-group[open]>summary::after{content:"−"}.smart-filter-group__count{margin-left:auto;color:var(--muted);font-size:.61rem;letter-spacing:.08em}.smart-filter-group__options{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0 14px}
 .luxe-button{font-size:.8rem;letter-spacing:.08em}.ghost-button{font-size:.78rem;letter-spacing:.07em}
 .prose-luxe{font-size:1.125rem;line-height:1.85}
 .intent-tile strong{font-size:1rem}.page-intro p{font-size:clamp(1.05rem,2vw,1.2rem)}
