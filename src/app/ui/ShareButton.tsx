@@ -16,21 +16,23 @@ export default function ShareButton({ title, url, shareText, storeUrl, className
 
   const share = async () => {
     setMessage("");
-    const text = storeUrl ? `${shareText}\n\nComprar na loja: ${storeUrl}` : shareText;
-    const shareData = { title, text, url };
-    const copyText = `${text}\n\nVer o achado: ${url}`;
+    const text = storeUrl
+      ? `${shareText}\n\n🛍️ Comprar na loja\n${storeUrl}\n\n✨ Saber como funciona\n${url}`
+      : shareText;
+    const shareData = storeUrl ? { title, text } : { title, text, url };
+    const copyText = storeUrl ? text : `${text}\n\nVer o achado: ${url}`;
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
         await navigator.share(shareData);
         return;
       }
       await navigator.clipboard.writeText(copyText);
-      setMessage("Mensagem com os links do achado e da loja copiada. Agora é só mandar para aquela amiga que vai amar isso.");
+      setMessage("Mensagem com os dois links copiada. Agora é só mandar para aquela amiga que vai amar isso.");
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       try {
         await navigator.clipboard.writeText(copyText);
-        setMessage("Mensagem com os links do achado e da loja copiada. Agora é só mandar para aquela amiga que vai amar isso.");
+        setMessage("Mensagem com os dois links copiada. Agora é só mandar para aquela amiga que vai amar isso.");
       } catch {
         setMessage("Não consegui copiar agora. Você pode copiar o link direto da barra do navegador.");
       }
