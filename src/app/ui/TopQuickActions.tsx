@@ -10,7 +10,7 @@ type TopQuickActionsProps = {
 
 export default function TopQuickActions({ title, shareUrl, shareText, storeUrl, className = "" }: TopQuickActionsProps) {
   return (
-    <div className={`flex flex-nowrap items-center gap-4 overflow-x-auto ${className}`}>
+    <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 ${className}`}>
       {storeUrl && (
         <a href={storeUrl} target="_blank" rel="noreferrer" className="quick-link shrink-0">
           <span className="quick-link__star" aria-hidden="true">✦</span>
