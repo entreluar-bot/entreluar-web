@@ -45,9 +45,10 @@ function FeaturedReview({ post }: { post: ReviewPost }) {
 export default function ReviewFilters({ posts, tagGroups = [] }: { posts: ReviewPost[]; tagGroups?: TagGroup[] }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
+  const [appliedTags, setAppliedTags] = useState<Record<string, string[]>>({});
   const filteredPosts = useMemo(() => {
     const matchesSmartFilters = (post: ReviewPost) => tagGroups.every((group) => {
-      const selected = selectedTags[group.key] || [];
+      const selected = appliedTags[group.key] || [];
       return !selected.length || selected.some((slug) => post.tagSlugs?.includes(slug));
     });
     const withSmartFilters = (items: ReviewPost[]) => items.filter(matchesSmartFilters);
@@ -60,7 +61,7 @@ export default function ReviewFilters({ posts, tagGroups = [] }: { posts: Review
       return withSmartFilters(posts.filter((post) => post.tagSlugs?.includes(tagSlug)));
     }
     return withSmartFilters(posts);
-  }, [activeFilter, posts, selectedTags, tagGroups]);
+  }, [activeFilter, posts, appliedTags, tagGroups]);
   const isDefaultView = activeFilter === "all";
   const picks = useMemo(
     () => isDefaultView
@@ -95,7 +96,7 @@ export default function ReviewFilters({ posts, tagGroups = [] }: { posts: Review
         <div className="filter-drawer__panel">
           <p className="filter-drawer__label">Destaques</p>
           <FilterChipBar ariaLabel="Filtros de destaque" activeKey={activeFilter} onSelect={(key) => setActiveFilter(key as FilterKey)} options={specialFilters} compact />
-          <SmartTagFilters groups={tagGroups.map((group) => ({ ...group, options: group.options.map((option) => ({ ...option, count: posts.filter((post) => post.tagSlugs?.includes(option.slug)).length })) }))} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags({})} />
+          <SmartTagFilters groups={tagGroups.map((group) => ({ ...group, options: group.options.map((option) => ({ ...option, count: posts.filter((post) => post.tagSlugs?.includes(option.slug)).length })) }))} selected={selectedTags} onToggle={toggleTag} onApply={() => setAppliedTags(selectedTags)} onClear={() => { setSelectedTags({}); setAppliedTags({}); }} />
         </div>
       </details>
 

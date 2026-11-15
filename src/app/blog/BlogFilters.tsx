@@ -65,13 +65,14 @@ type TaggedPost = JournalPost & { tagSlugs?: string[] };
 export default function BlogFilters({ posts, tagGroups = [] }: { posts: TaggedPost[]; tagGroups?: SmartTagGroup[] }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
+  const [appliedTags, setAppliedTags] = useState<Record<string, string[]>>({});
   const filters = useMemo(
     () => PAPO_FILTERS.map((filter) => ({ key: `papo:${filter}` as FilterKey, label: filter, count: posts.filter((post) => resolvePapoFilter(post) === filter).length })),
     [posts],
   );
   const filteredPosts = useMemo(() => {
     const matchesTopics = (post: TaggedPost) => tagGroups.every((group) => {
-      const selected = selectedTags[group.key] || [];
+      const selected = appliedTags[group.key] || [];
       return !selected.length || selected.some((slug) => post.tagSlugs?.includes(slug));
     });
     if (activeFilter.startsWith("papo:")) {
@@ -79,7 +80,7 @@ export default function BlogFilters({ posts, tagGroups = [] }: { posts: TaggedPo
       return posts.filter((post) => resolvePapoFilter(post) === filter && matchesTopics(post));
     }
     return posts.filter(matchesTopics);
-  }, [activeFilter, posts, selectedTags, tagGroups]);
+  }, [activeFilter, posts, appliedTags, tagGroups]);
   const activeLabel = activeFilter === "all" ? "Todas as conversas" : activeFilter.slice("papo:".length);
   const isDefaultView = activeFilter === "all";
   const picks = useMemo(
@@ -121,7 +122,7 @@ export default function BlogFilters({ posts, tagGroups = [] }: { posts: TaggedPo
             options={[{ key: "all" as FilterKey, label: "Todas", count: posts.length }, ...filters]}
             compact
           />
-          <SmartTagFilters groups={tagGroups.map((group) => ({ ...group, options: group.options.map((option) => ({ ...option, count: posts.filter((post) => post.tagSlugs?.includes(option.slug)).length })) }))} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags({})} />
+          <SmartTagFilters groups={tagGroups.map((group) => ({ ...group, options: group.options.map((option) => ({ ...option, count: posts.filter((post) => post.tagSlugs?.includes(option.slug)).length })) }))} selected={selectedTags} onToggle={toggleTag} onApply={() => setAppliedTags(selectedTags)} onClear={() => { setSelectedTags({}); setAppliedTags({}); }} />
         </div>
       </details>
       <div className="mt-4" aria-live="polite">

@@ -49,13 +49,14 @@ function FeaturedProduct({ product }: { product: FilterableProduct }) {
 export default function ProductFilters({ products, tagGroups = [] }: { products: FilterableProduct[]; tagGroups?: TagGroup[] }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
+  const [appliedTags, setAppliedTags] = useState<Record<string, string[]>>({});
   const categories = useMemo(
     () => [...new Set(products.map((product) => product.category?.trim() || "Geral"))].sort((a, b) => a.localeCompare(b, "pt-BR")),
     [products],
   );
   const filteredProducts = useMemo(() => {
     const matchesSmartFilters = (product: FilterableProduct) => tagGroups.every((group) => {
-      const selected = selectedTags[group.key] || [];
+      const selected = appliedTags[group.key] || [];
       return !selected.length || selected.some((slug) => product.tagSlugs?.includes(slug));
     });
     const withSmartFilters = (items: FilterableProduct[]) => items.filter(matchesSmartFilters);
@@ -72,7 +73,7 @@ export default function ProductFilters({ products, tagGroups = [] }: { products:
       return withSmartFilters(products.filter((product) => product.tagSlugs?.includes(tagSlug)));
     }
     return withSmartFilters(products);
-  }, [activeFilter, products, selectedTags, tagGroups]);
+  }, [activeFilter, products, appliedTags, tagGroups]);
 
   const filters = [
     ...specialFilters,
@@ -115,7 +116,7 @@ export default function ProductFilters({ products, tagGroups = [] }: { products:
         <div className="filter-drawer__panel">
           <p className="filter-drawer__label">Tipo de achado</p>
           <FilterChipBar ariaLabel="Filtros dos achados" activeKey={activeFilter} onSelect={(key) => setActiveFilter(key as FilterKey)} options={filters} compact />
-          <SmartTagFilters groups={tagGroups.map((group) => ({ ...group, options: group.options.map((option) => ({ ...option, count: products.filter((product) => product.tagSlugs?.includes(option.slug)).length })) }))} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags({})} />
+          <SmartTagFilters groups={tagGroups.map((group) => ({ ...group, options: group.options.map((option) => ({ ...option, count: products.filter((product) => product.tagSlugs?.includes(option.slug)).length })) }))} selected={selectedTags} onToggle={toggleTag} onApply={() => setAppliedTags(selectedTags)} onClear={() => { setSelectedTags({}); setAppliedTags({}); }} />
         </div>
       </details>
 
