@@ -62,7 +62,7 @@ export default function ReviewFilters({ posts, tagGroups = [] }: { posts: Review
     }
     return withSmartFilters(posts);
   }, [activeFilter, posts, appliedTags, tagGroups]);
-  const isDefaultView = activeFilter === "all";
+  const isDefaultView = activeFilter === "all" && !Object.values(appliedTags).some((slugs) => slugs.length > 0);
   const picks = useMemo(
     () => isDefaultView
       ? pickHighlights(posts).map(({ kind, item }) => ({

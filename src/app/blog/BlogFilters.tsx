@@ -82,7 +82,7 @@ export default function BlogFilters({ posts, tagGroups = [] }: { posts: TaggedPo
     return posts.filter(matchesTopics);
   }, [activeFilter, posts, appliedTags, tagGroups]);
   const activeLabel = activeFilter === "all" ? "Todas as conversas" : activeFilter.slice("papo:".length);
-  const isDefaultView = activeFilter === "all";
+  const isDefaultView = activeFilter === "all" && !Object.values(appliedTags).some((slugs) => slugs.length > 0);
   const picks = useMemo(
     () => isDefaultView
       ? pickHighlights(posts).map(({ kind, item }) => ({

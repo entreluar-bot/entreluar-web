@@ -79,7 +79,7 @@ export default function ProductFilters({ products, tagGroups = [] }: { products:
     ...specialFilters,
     ...categories.map((category) => ({ key: `category:${category}` as FilterKey, label: category })),
   ];
-  const isDefaultView = activeFilter === "all";
+  const isDefaultView = activeFilter === "all" && !Object.values(appliedTags).some((slugs) => slugs.length > 0);
   const picks = useMemo(
     () => isDefaultView
       ? pickHighlights(products).map(({ kind, item }) => {
