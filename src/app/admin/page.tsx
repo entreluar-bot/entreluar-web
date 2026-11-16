@@ -824,6 +824,41 @@ export default function AdminDashboard() {
     setMessage(`Tags sugeridas: ${done - failed} de ${pending.length}.${failed ? ` ${failed} falharam — pode rodar de novo pra tentar só o que faltou.` : ""}`);
   };
 
+  const handleBulkRefreshTags = async () => {
+    if (!confirmAiSpend()) return;
+    const candidates = [
+      ...products.map((p) => ({ contentType: "product" as const, id: p.id, title: p.title, sourceHtml: p.description, category: undefined as string | undefined })),
+      ...journals.map((j) => ({ contentType: "journal" as const, id: j.id, title: j.title, sourceHtml: j.content, category: j.category })),
+    ];
+    if (!candidates.length) return setMessage("Nada para revisar ainda.");
+    if (!confirm(`Vou revisar e substituir as tags de ${candidates.length} produtos e artigos. Isso faz ${candidates.length} chamadas de IA, grava as novas classificações e preserva um item se a IA não encontrar uma tag válida. Continuar?`)) return;
+
+    let done = 0;
+    let failed = 0;
+    let preserved = 0;
+    setBulkTagStatus(`Revisando 0 de ${candidates.length}...`);
+    for (const item of candidates) {
+      try {
+        const data = await adminRequest("/api/generate-tags", { method: "POST", body: JSON.stringify({ contentType: item.contentType, title: item.title, sourceHtml: item.sourceHtml, category: item.category }) });
+        const slugs = new Set((data.suggestedTagSlugs || []) as string[]);
+        const tagIds = tags.filter((tag) => slugs.has(tag.slug)).map((tag) => tag.id);
+        if (!tagIds.length) {
+          preserved += 1;
+        } else {
+          await supabase.from("content_tags").delete().eq("content_type", item.contentType).eq("content_id", item.id);
+          await supabase.from("content_tags").insert(tagIds.map((tagId) => ({ tag_id: tagId, content_type: item.contentType, content_id: item.id })));
+        }
+      } catch {
+        failed += 1;
+      }
+      done += 1;
+      setBulkTagStatus(`Revisando ${done} de ${candidates.length}...`);
+    }
+    setBulkTagStatus("");
+    fetchManageData();
+    setMessage(`Revisão concluída: ${done - failed - preserved} atualizados, ${preserved} preservados sem sugestão válida${failed ? ` e ${failed} com falha.` : "."}`);
+  };
+
   const handleGenerateSummaryForEditingItem = async () => {
     if (!editingItem) return;
     if (!confirmAiSpend()) return;
@@ -1570,8 +1605,8 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-col items-end gap-3">
               <div className="text-right text-[var(--color-gold-light)] opacity-70 text-xs">
-                <p className="font-bold tracking-widest uppercase">Versão 2.42</p>
-                <p>Atualizado em 15/11/2026 às 20:51</p>
+                <p className="font-bold tracking-widest uppercase">Versão 2.43</p>
+                <p>Atualizado em 15/11/2026 às 20:59</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <InstallAppButton variant="admin" />
@@ -2214,6 +2249,12 @@ export default function AdminDashboard() {
                         <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-70">Falta etiquetar algo? Sugiro tags a partir do texto já publicado pra tudo que ainda não tem nenhuma — grava direto, você revisa depois.</p>
                         <button type="button" onClick={handleBulkSuggestTags} disabled={Boolean(bulkTagStatus)} className="whitespace-nowrap rounded bg-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-wine-dark)] disabled:opacity-50">
                           {bulkTagStatus || "🏷️ Sugerir tags para tudo que falta"}
+                        </button>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--color-gold)]/45 bg-[var(--color-gold)]/5 px-4 py-3">
+                        <p className="flex-1 text-xs text-[var(--color-gold-light)] opacity-80">Quer deixar a busca realmente confiável? Reanaliso todos os produtos e artigos, substituindo as tags atuais só quando houver uma sugestão válida.</p>
+                        <button type="button" onClick={handleBulkRefreshTags} disabled={Boolean(bulkTagStatus)} className="whitespace-nowrap rounded border border-[var(--color-gold)] px-3 py-2 text-xs font-bold uppercase text-[var(--color-gold)] disabled:opacity-50">
+                          {bulkTagStatus || "✨ Revisar todas as tags"}
                         </button>
                       </div>
                     </div>
